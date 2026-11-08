@@ -266,9 +266,13 @@ function collide() {
   }
 }
 
+// the wagon's mouth widens like a funnel above FUN_Y
+const FUN_Y = 3.4, FUN_W = 1.0, FUN_TOP = -0.3;
+function funnelAt(y) { return y >= FUN_Y ? 0 : Math.min(1, (FUN_Y - y) / (FUN_Y - FUN_TOP)) * FUN_W; }
 function walls() {
-  const nb = E.NB, xmin = RB, xmax = WORLD_W - RB, ymax = FLOOR_Y - RB;
+  const nb = E.NB, ymax = FLOOR_Y - RB;
   for (let i = 0; i < nb; i++) {
+    const fw = funnelAt(Y[i]), xmin = RB - fw, xmax = WORLD_W - RB + fw;
     if (X[i] < xmin || X[i] > xmax) {
       const pen = X[i] < xmin ? xmin - X[i] : X[i] - xmax;
       X[i] = X[i] < xmin ? xmin : xmax;
@@ -472,13 +476,13 @@ const FLAGS = [
   ['su', ['#cc0000', '#ffd700']]
 ];
 const POINTS = [0, 2, 4, 8, 14, 22, 32, 45, 60, 80, 100, 125, 155, 190, 230];
-const MAX_BONUS = 250, DANGER_TIME = 1.2, BTN_Y = DANGER_Y + 2.2, BTN_H = 1.2;
+const MAX_BONUS = 250, DANGER_TIME = 0.15, BTN_Y = DANGER_Y + 2.2, BTN_H = 1.2;
 let btnL = false, btnR = false, depL = 0, depR = 0, tgtL = 0, tgtR = 0;
 const ABIL_COST = 25000;
 let charges = 0, abilProg = 0, wobT = 0;
 const abilBtn = document.getElementById('abilBtn');
 const SPAWN_W = [0.224, 0.28, 0.2, 0.12, 0.08];
-const VX0 = -0.95, VX1 = WORLD_W + 0.95, VY0 = -0.55, VY1 = FLOOR_Y + 1.45;
+const VX0 = -1.5, VX1 = WORLD_W + 1.5, VY0 = -0.55, VY1 = FLOOR_Y + 1.45;
 const reduceMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 const FONT = '"Baloo 2", system-ui, -apple-system, "Segoe UI", sans-serif';
 
@@ -984,15 +988,15 @@ function wobbleStep() {
 // two buttons on the wagon walls: game over when balls press both all the way at once
 function checkDanger() {
   // how hard each button is pressed = how many bead contacts lean on it
-  const y0 = BTN_Y - BTN_H / 2 - RB, y1 = BTN_Y + BTN_H / 2 + RB, lim = RB + 0.06;
+  const y0 = BTN_Y - BTN_H / 2 - RB, y1 = BTN_Y + BTN_H / 2 + RB, lim = RB + 0.15;
   let cl = 0, cr = 0;
   for (let i = 0; i < E.NB; i++) {
     const y = Y[i];
     if (y < y0 || y > y1) continue;
     if (X[i] < lim) cl++; else if (X[i] > WORLD_W - lim) cr++;
   }
-  tgtL = Math.min(1, cl / 3); tgtR = Math.min(1, cr / 3);
-  btnL = tgtL >= 1; btnR = tgtR >= 1;
+  tgtL = cl > 0 ? 1 : 0; tgtR = cr > 0 ? 1 : 0;
+  btnL = cl > 0; btnR = cr > 0;
   if (btnL && btnR && wobT <= 0) { dangerT += STEP; if (dangerT >= DANGER_TIME) gameOver(); }
   else dangerT = Math.max(0, dangerT - STEP * 2);
 }
@@ -1044,7 +1048,6 @@ function stepGame() {
     for (let i = 0; i < E.NB; i++) { const dx = X[i] - LX, dy = Y[i] - LY; if (dx * dx + dy * dy < lim) { jam = true; break; } }
     if (jam) { jamT += STEP; if (jamT > 4) gameOver(); } else jamT = 0;
   }
-  bumperStep();
   if (comboT > 0) { comboT -= STEP; if (comboT <= 0) combo = 0; }
 }
 
@@ -1218,7 +1221,7 @@ function rrect(x, y, w, h, r) { ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x
 function drawJar() {
   // open freight wagon of the "Europe express"
   const wT = 0.34, top = -0.3;
-  ctx.fillStyle = 'rgba(255,255,255,0.045)'; ctx.fillRect(0, top, WORLD_W, FLOOR_Y - top);
+  ctx.fillStyle = 'rgba(255,255,255,0.045)'; ctx.beginPath(); ctx.moveTo(-FUN_W, FUN_TOP); ctx.lineTo(WORLD_W + FUN_W, FUN_TOP); ctx.lineTo(WORLD_W, FUN_Y); ctx.lineTo(WORLD_W, FLOOR_Y); ctx.lineTo(0, FLOOR_Y); ctx.lineTo(0, FUN_Y); ctx.closePath(); ctx.fill();
   ctx.strokeStyle = 'rgba(255,255,255,0.05)'; ctx.lineWidth = 0.05; ctx.beginPath();
   for (let x = 1; x < WORLD_W; x += 1) { ctx.moveTo(x, top + 0.2); ctx.lineTo(x, FLOOR_Y); }
   ctx.stroke();
@@ -1242,12 +1245,17 @@ function drawJar() {
   ctx.fillStyle = fg; rrect(-wT, FLOOR_Y, WORLD_W + 2 * wT, 0.5, 0.12); ctx.fill();
   ctx.fillStyle = '#ffcc00'; ctx.fillRect(-wT + 0.15, FLOOR_Y + 0.22, WORLD_W + 2 * wT - 0.3, 0.06);
   // side walls with gold rivets
-  for (const x0 of [-wT, WORLD_W]) {
-    const g = ctx.createLinearGradient(x0, 0, x0 + wT, 0);
+  for (const side of [0, 1]) {
+    const d = side ? 1 : -1, inner = side ? WORLD_W : 0, outer = inner + d * wT;
+    const g = ctx.createLinearGradient(Math.min(inner, outer) - FUN_W, 0, Math.max(inner, outer) + FUN_W, 0);
     g.addColorStop(0, '#2d5fc4'); g.addColorStop(0.5, '#4d82e8'); g.addColorStop(1, '#1d438f');
-    ctx.fillStyle = g; rrect(x0, top, wT, FLOOR_Y - top + 0.3, 0.12); ctx.fill();
+    ctx.fillStyle = g; ctx.beginPath();
+    ctx.moveTo(inner, FLOOR_Y + 0.3); ctx.lineTo(inner, FUN_Y); ctx.lineTo(inner + d * FUN_W, FUN_TOP);
+    ctx.lineTo(outer + d * FUN_W, FUN_TOP); ctx.lineTo(outer, FUN_Y); ctx.lineTo(outer, FLOOR_Y + 0.3); ctx.closePath(); ctx.fill();
+    ctx.lineWidth = 0.05; ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.beginPath(); ctx.moveTo(inner, FLOOR_Y); ctx.lineTo(inner, FUN_Y); ctx.lineTo(inner + d * FUN_W, FUN_TOP); ctx.stroke();
     ctx.fillStyle = '#ffd84d';
-    for (let y = top + 0.5; y < FLOOR_Y; y += 1.3) { ctx.beginPath(); ctx.arc(x0 + wT / 2, y, 0.06, 0, TAU); ctx.fill(); }
+    for (let y = FUN_Y + 0.6; y < FLOOR_Y; y += 1.3) { ctx.beginPath(); ctx.arc(inner + d * wT / 2, y, 0.06, 0, TAU); ctx.fill(); }
+    for (let u = 0.2; u < 1; u += 0.3) { const y = FUN_Y + (FUN_TOP - FUN_Y) * u; ctx.beginPath(); ctx.arc(inner + d * (FUN_W * u + wT / 2), y, 0.06, 0, TAU); ctx.fill(); }
   }
 }
 
@@ -1286,7 +1294,9 @@ function drawDanger() {
     const gx = side ? WORLD_W + 0.5 : -0.7, gh = BTN_H + 0.3, gy = BTN_Y - gh / 2, gw = 0.2;
     ctx.fillStyle = 'rgba(10,15,35,0.75)'; rrect(gx, gy, gw, gh, 0.08); ctx.fill();
     ctx.lineWidth = 0.03; ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.stroke();
-    const fh = (gh - 0.08) * dep, gc = dep < 0.5 ? '#3ddc84' : dep < 0.9 ? '#ffcc00' : '#ff3b3b';
+    // gauge fills up as soon as a ball touches the button
+    const fill = dep;
+    const fh = (gh - 0.08) * fill, gc = '#ff3b3b';
     if (fh > 0.01) { ctx.fillStyle = full && both ? `rgba(255,59,59,${0.6 + pulse * 0.4})` : gc; rrect(gx + 0.04, gy + gh - 0.04 - fh, gw - 0.08, fh, 0.05); ctx.fill(); }
     ctx.fillStyle = 'rgba(255,255,255,0.6)'; ctx.fillRect(gx - 0.04, gy + 0.04, gw + 0.08, 0.025);
   }
@@ -1299,7 +1309,8 @@ function predict() {
   let hit = null;
   for (let k = 0; k < 160; k++) {
     vy += GRAV * dt; x += vx * dt; y += vy * dt;
-    if (x < R) { x = R; vx = -vx * 0.35; } else if (x > WORLD_W - R) { x = WORLD_W - R; vx = -vx * 0.35; }
+    const fw = funnelAt(y);
+    if (x < R - fw) { x = R - fw; vx = -vx * 0.35; } else if (x > WORLD_W - R + fw) { x = WORLD_W - R + fw; vx = -vx * 0.35; }
     if (y > FLOOR_Y - R) { hit = { x, y: FLOOR_Y - R }; break; }
     let hb = false;
     for (const b of E.blobs) {
@@ -1546,7 +1557,6 @@ function render() {
   drawDanger();
   if (state === 'play' && cooldown <= 0) drawAim();
   for (let q = 0; q < E.blobs.length; q++) drawBlob(E.blobs[q]);
-  drawBumpers();
   drawBonuses();
   drawParticles();
   if (state === 'play' || state === 'paused') drawLauncher();
@@ -1708,10 +1718,9 @@ function showMenu() {
     `<li><i class="dot" style="background:${COLORS[0]}"></i><span><b>Tähtää</b> hiirellä tai sormella. Mitä kauemmas osoitat, sitä kovempaa pallo lentää.</span></li>` +
     `<li><i class="dot" style="background:${COLORS[2]}"></i><span><b>Ammu</b> klikkaamalla tai nostamalla sormen ruudulta.</span></li>` +
     `<li><i class="dot" style="background:${COLORS[4]}"></i><span>Kevyt laukaus laskee pallon varovasti, kova laukaus <b>tönii ja litistää</b> muita.</span></li>` +
-    `<li><i class="dot" style="background:${COLORS[9]}"></i><span>Vaunun seinissä on kaksi nappia. Jos pallot painavat <b>molemmat napit pohjaan</b> yhtä aikaa, peli päättyy.</span></li>` +
+    `<li><i class="dot" style="background:${COLORS[9]}"></i><span>Vaunun seinissä on kaksi nappia. Jos pallot koskettavat <b>molempia nappeja</b> yhtä aikaa, peli päättyy.</span></li>` +
     `<li><i class="dot" style="background:#ffcc00"></i><span>Joka <b>25 000 pisteellä</b> saat heilautuksen, joka ravistaa vaunua ja sekoittaa pallot.</span></li>` +
     `<li><i class="dot" style="background:#ff4d7d"></i><span>Ammu vaunun yläosassa lentäviä <b>tähtiä</b> ja <b>sydämiä</b>, niin saat bonuspisteitä.</span></li>` +
-    `<li><i class="dot" style="background:#2bb8e8"></i><span>Seinien <b>trampoliinit</b> pompauttavat palloja takaisin ja antavat pisteitä.</span></li>` +
     '</ul>' +
     (validSave(store.get(AUTO_KEY, null))
       ? '<div class="row"><button class="btn" id="continueBtn" type="button">Jatka peliä</button><button class="btn alt" id="startBtn" type="button">Uusi peli</button></div>'
@@ -1768,7 +1777,8 @@ function showAdmin(note) {
       ? `<div class="audio"><label for="adminBall">Seuraava pallo</label><select id="adminBall">${opts}</select></div>` +
         '<div class="row" style="margin-top:14px"><button class="btn alt" id="admCharge" type="button">+1 heilautus</button><button class="btn alt" id="admPts" type="button">+10 000 pistettä</button></div>' +
         '<div class="row" style="margin-top:12px"><button class="btn alt" id="admClear" type="button">Tyhjennä vaunu</button>' +
-        `<button class="btn alt" id="admGod" type="button" aria-pressed="${invincible}">Kuolemattomuus: ${invincible ? 'päällä' : 'pois'}</button></div>`
+        `<button class="btn alt" id="admGod" type="button" aria-pressed="${invincible}">Kuolemattomuus: ${invincible ? 'päällä' : 'pois'}</button></div>` +
+        '<div class="row" style="margin-top:12px"><button class="btn alt" id="admLose" type="button">Häviä peli</button></div>'
       : '<p class="sub">Aloita peli, niin voit muokata sitä täällä.</p>' +
         `<div class="row"><button class="btn alt" id="admGod" type="button" aria-pressed="${invincible}">Kuolemattomuus: ${invincible ? 'päällä' : 'pois'}</button></div>`) +
     '<div class="row" style="margin-top:16px"><button class="btn" id="admClose" type="button">Sulje</button></div>');
@@ -1813,6 +1823,7 @@ card.addEventListener('click', e => {
   else if (btn.id === 'admClear') { clearAll(); dangerT = 0; jamT = 0; showAdmin('Vaunu tyhjennetty.'); }
   else if (btn.id === 'admGod') { invincible = !invincible; showAdmin('Kuolemattomuus ' + (invincible ? 'päällä.' : 'pois.')); }
   else if (btn.id === 'admClose') closeAdmin();
+  else if (btn.id === 'admLose') { invincible = false; hideOverlay(); state = 'play'; gameOver(); }
 
   else if (btn.id === 'backBtn') showPause();
   else if (btn.id === 'menuBtn') toMenu();
