@@ -472,7 +472,7 @@ const FLAGS = [
   ['su', ['#cc0000', '#ffd700']]
 ];
 const POINTS = [0, 2, 4, 8, 14, 22, 32, 45, 60, 80, 100, 125, 155, 190, 230];
-const MAX_BONUS = 250, DANGER_TIME = 1.2, BTN_Y = DANGER_Y + 2.2, BTN_H = 0.9;
+const MAX_BONUS = 250, DANGER_TIME = 1.2, BTN_Y = DANGER_Y + 2.2, BTN_H = 1.2;
 let btnL = false, btnR = false, depL = 0, depR = 0, tgtL = 0, tgtR = 0;
 const ABIL_COST = 25000;
 let charges = 0, abilProg = 0, wobT = 0;
@@ -818,7 +818,7 @@ function startGame() {
   if (state === 'play') return;
   sfx.ensure();
   clearAll(); parts.length = 0; floaters.length = 0;
-  bonuses.length = 0; bonusT = 12;
+  bonuses.length = 0; bonusT = 12; jamT = 0;
   score = 0; shownScore = 0; maxLevel = 0; dangerT = 0; combo = 0; comboT = 0; shake = 0; blockedT = 0; charges = 0; abilProg = 0; wobT = 0;
   cur = Math.random() < 0.5 ? 0 : 1; nxt = randLevel(); cooldown = 0.2; popT = 0; aiming = false;
   state = 'play'; hideOverlay(); syncUI();
@@ -874,7 +874,9 @@ function toMenu() {
 }
 function resume() { if (state !== 'paused') return; state = 'play'; hideOverlay(); syncUI(); }
 
+let jamT = 0;
 function gameOver() {
+  if (invincible) { dangerT = 0; jamT = 0; return; }
   state = 'over'; aiming = false;
   const newBest = score > best;
   if (newBest) { best = score; store.set('piispanpeli-best', best); }
@@ -989,7 +991,7 @@ function checkDanger() {
     if (y < y0 || y > y1) continue;
     if (X[i] < lim) cl++; else if (X[i] > WORLD_W - lim) cr++;
   }
-  tgtL = Math.min(1, cl / 7); tgtR = Math.min(1, cr / 7);
+  tgtL = Math.min(1, cl / 3); tgtR = Math.min(1, cr / 3);
   btnL = tgtL >= 1; btnR = tgtR >= 1;
   if (btnL && btnR && wobT <= 0) { dangerT += STEP; if (dangerT >= DANGER_TIME) gameOver(); }
   else dangerT = Math.max(0, dangerT - STEP * 2);
@@ -1034,7 +1036,14 @@ function stepGame() {
   stepPhysics();
   for (let i = 0; i < E.events.length; i++) handleEvent(E.events[i]);
   E.events.length = 0;
-  if (state === 'play') { wobbleStep(); checkDanger(); bonusStep(); }
+  if (state === 'play') {
+    wobbleStep(); checkDanger(); bonusStep();
+    // launcher jammed: is there room for the waiting ball?
+    const R = RADII[cur], lim = (R + RB) * (R + RB);
+    let jam = false;
+    for (let i = 0; i < E.NB; i++) { const dx = X[i] - LX, dy = Y[i] - LY; if (dx * dx + dy * dy < lim) { jam = true; break; } }
+    if (jam) { jamT += STEP; if (jamT > 4) gameOver(); } else jamT = 0;
+  }
   bumperStep();
   if (comboT > 0) { comboT -= STEP; if (comboT <= 0) combo = 0; }
 }
@@ -1544,6 +1553,7 @@ function render() {
   screenTf();
   drawFloaters(sx, sy);
   drawHUD();
+  if (adminOn) { ctx.font = `800 11px ${FONT}`; ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillStyle = invincible ? '#ff6b6b' : '#ffcc00'; ctx.fillText(invincible ? 'ADMIN · KUOLEMATON' : 'ADMIN', 8, 6); ctx.textBaseline = 'alphabetic'; }
   drawNelli();
   drawCardMascot();
 }
@@ -1619,7 +1629,7 @@ function drawMascot(c, cx, cy, s, t, bounce) {
 
 
 // ------------------------------ easter egg for Nelli ------------------------------
-let nelliT = 0, typed = '', mascotTaps = 0, mascotTapT = 0;
+let nelliT = 0, typed = '', mascotTaps = 0, mascotTapT = 0, invincible = false, adminOn = false, cornerTaps = 0, cornerT = 0;
 const hearts = [];
 function heartPath(c, x, y, s) {
   c.beginPath();
@@ -1745,6 +1755,25 @@ function musicRow() {
   return `<div class="audio"><label for="trackSel">♪ Musiikki</label><select id="trackSel">${opts}</select>` +
     `<label for="volRange">Äänenvoimakkuus</label><input id="volRange" type="range" min="0" max="100" value="${Math.round(sfx.volume * 100)}"></div>`;
 }
+function openAdmin() {
+  adminOn = true;
+  if (state === 'play') { state = 'paused'; aiming = false; syncUI(); }
+  showAdmin();
+}
+function showAdmin(note) {
+  const opts = NAMES.map((n, i) => `<option value="${i}"${i === cur ? ' selected' : ''}>${n}</option>`).join('');
+  const inGame = state === 'paused' || state === 'play';
+  showOverlay('<h2 class="h2">Admin</h2>' + (note ? `<p class="note">${note}</p>` : '') +
+    (inGame
+      ? `<div class="audio"><label for="adminBall">Seuraava pallo</label><select id="adminBall">${opts}</select></div>` +
+        '<div class="row" style="margin-top:14px"><button class="btn alt" id="admCharge" type="button">+1 heilautus</button><button class="btn alt" id="admPts" type="button">+10 000 pistettä</button></div>' +
+        '<div class="row" style="margin-top:12px"><button class="btn alt" id="admClear" type="button">Tyhjennä vaunu</button>' +
+        `<button class="btn alt" id="admGod" type="button" aria-pressed="${invincible}">Kuolemattomuus: ${invincible ? 'päällä' : 'pois'}</button></div>`
+      : '<p class="sub">Aloita peli, niin voit muokata sitä täällä.</p>' +
+        `<div class="row"><button class="btn alt" id="admGod" type="button" aria-pressed="${invincible}">Kuolemattomuus: ${invincible ? 'päällä' : 'pois'}</button></div>`) +
+    '<div class="row" style="margin-top:16px"><button class="btn" id="admClose" type="button">Sulje</button></div>');
+}
+function closeAdmin() { if (state === 'paused') { state = 'play'; hideOverlay(); syncUI(); } else if (state === 'menu') showMenu(); else hideOverlay(); }
 function showSaveSlots() {
   showOverlay('<h2 class="h2">Tallenna</h2>' + slotsHTML('save') +
     '<div class="row" style="margin-top:16px"><button class="btn alt" id="backBtn" type="button">Takaisin</button></div>');
@@ -1758,7 +1787,10 @@ function showOver(newBest) {
     '<div class="row"><button class="btn" id="againBtn" type="button">Pelaa uudestaan</button><button class="btn alt" id="menuBtn" type="button">Päävalikko</button></div>');
 }
 
-card.addEventListener('change', e => { if (e.target.id === 'trackSel') { sfx.ensure(); music.setTrack(Number(e.target.value)); } });
+card.addEventListener('change', e => {
+  if (e.target.id === 'trackSel') { sfx.ensure(); music.setTrack(Number(e.target.value)); }
+  if (e.target.id === 'adminBall') { cur = Number(e.target.value); popT = 0; }
+});
 card.addEventListener('input', e => { if (e.target.id === 'volRange') { sfx.ensure(); sfx.setVolume(Number(e.target.value) / 100); } });
 card.addEventListener('click', e => {
   if (e.target.classList && e.target.classList.contains('mascot')) {
@@ -1776,6 +1808,11 @@ card.addEventListener('click', e => {
   else if (btn.id === 'continueBtn') { const g = store.get(AUTO_KEY, null); if (validSave(g)) loadGame(g, true); else startGame(); }
   else if (btn.id === 'resumeBtn') resume();
   else if (btn.id === 'saveBtn') showSaveSlots();
+  else if (btn.id === 'admCharge') { charges++; syncAbil(); showAdmin('Heilautus lisätty.'); }
+  else if (btn.id === 'admPts') { addScore(10000); shownScore = score; showAdmin('Lisätty 10 000 pistettä.'); }
+  else if (btn.id === 'admClear') { clearAll(); dangerT = 0; jamT = 0; showAdmin('Vaunu tyhjennetty.'); }
+  else if (btn.id === 'admGod') { invincible = !invincible; showAdmin('Kuolemattomuus ' + (invincible ? 'päällä.' : 'pois.')); }
+  else if (btn.id === 'admClose') closeAdmin();
 
   else if (btn.id === 'backBtn') showPause();
   else if (btn.id === 'menuBtn') toMenu();
@@ -1796,7 +1833,14 @@ function aimAt(e) {
   aimAng = clamp(Math.atan2(dx, dy), -1.3, 1.3);
   aimPow = clamp((Math.hypot(wx - LX, wy - LY) - 0.9) / 10.5, 0.03, 1);
 }
+// four quick taps in the top-left corner open the admin panel
+window.addEventListener('pointerdown', e => {
+  if (e.clientX > 70 || e.clientY > 70) return;
+  cornerTaps = performance.now() - cornerT < 1500 ? cornerTaps + 1 : 1; cornerT = performance.now();
+  if (cornerTaps >= 4) { cornerTaps = 0; openAdmin(); }
+}, true);
 canvas.addEventListener('pointerdown', e => {
+  if (e.clientX <= 70 && e.clientY <= 70) return;
   sfx.ensure();
   if (state !== 'play' || (e.pointerType === 'mouse' && e.button !== 0)) return;
   e.preventDefault();
@@ -1817,7 +1861,11 @@ window.addEventListener('keydown', e => {
   if (k === 'ArrowLeft' || k === 'ArrowRight' || k === 'ArrowUp' || k === 'ArrowDown' || k === 'Space') e.preventDefault();
   keys[k] = true;
   if (e.repeat) return;
-  if (e.key && e.key.length === 1) { typed = (typed + e.key.toLowerCase()).slice(-5); if (typed === 'nelli') { typed = ''; triggerNelli(); } }
+  if (e.key && e.key.length === 1) {
+    typed = (typed + e.key.toLowerCase()).slice(-8);
+    if (typed.endsWith('nelli')) { typed = ''; triggerNelli(); }
+    else if (typed === 'admin123') { typed = ''; openAdmin(); }
+  }
   if (state === 'play') {
     if (k === 'Space' || k === 'Enter') shoot();
     else if (k === 'KeyP' || k === 'Escape') pause();
