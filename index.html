@@ -732,7 +732,7 @@ function layout() {
   const iB = parseFloat(ps.paddingBottom) || 0, iL = parseFloat(ps.paddingLeft) || 0;
   const aw = Math.max(1, vw - iL - iR), ah = Math.max(1, vh - iT - iB);
   const ww = VX1 - VX0, wh = VY1 - VY0;
-  const sTop = Math.min((aw - 24) / ww, (ah - 156) / wh);
+  const sTop = Math.min((aw - 24) / ww, (ah - 196) / wh);
   const sSide = Math.min((aw - 400) / ww, (ah - 32) / wh);
   if (sSide > sTop * 1.08) {
     mode = 'side'; SC = sSide;
@@ -741,7 +741,7 @@ function layout() {
   } else {
     mode = 'top'; SC = Math.max(8, sTop);
     OX = iL + (aw - ww * SC) / 2 - VX0 * SC;
-    OY = iT + Math.max(0, (ah - (wh * SC + 156)) / 2) + 88 - VY0 * SC;
+    OY = iT + Math.max(0, (ah - (wh * SC + 196)) / 2) + 88 - VY0 * SC;
   }
   placeButtons(); buildBg();
 }
@@ -1499,7 +1499,7 @@ const hudNum = (t, x, y, size, a) => hudText(String(t), x, y, a, `800 ${size}px 
 const hudSmall = (t, x, y, a) => hudText(t, x, y, a, `600 14px ${FONT}`, 'rgba(255,247,238,0.68)');
 
 function drawChain(x0, y0, vertical, room) {
-  const base = RADII.map(r => 4 + r * 4.2), full = base.reduce((a, r) => a + 2 * r, 0) + 5 * (base.length - 1);
+  const base = RADII.map(r => 8 + r * 2.6), full = base.reduce((a, r) => a + 2 * r, 0) + 5 * (base.length - 1);
   const scale = Math.min(1, room / full), sizes = base.map(r => r * scale), gap = 5 * scale;
   const total = sizes.reduce((a, r) => a + 2 * r, 0) + gap * (sizes.length - 1);
   const seen = Math.max(4, maxLevel, bestLevel);
@@ -1530,7 +1530,7 @@ function drawHUD() {
     const pr = 8 + nxt * 2.6;
     drawRoundBlob(nxt, fc, ft - 32, pr, 1, Math.max(1, pr * 0.07), pr > 9);
     hudSmall(NAMES[nxt], fc + pr + 8, ft - 27, 'left');
-    drawChain(fc + 105, fb + 36, false, fr - fl - 235);
+    drawChain(fc, fb + 78, false, Math.min(vw - 12, fr - fl + 40));
   } else {
     const x = fl - 30;
     hudLabel('PISTEET', x, ft + 30, 'right');
