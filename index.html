@@ -481,7 +481,8 @@ let btnL = false, btnR = false, depL = 0, depR = 0, tgtL = 0, tgtR = 0;
 const ABIL_COST = 25000;
 let charges = 0, abilProg = 0, wobT = 0;
 const abilBtn = document.getElementById('abilBtn');
-const SPAWN_W = [0.224, 0.28, 0.2, 0.12, 0.08];
+// Viro, Latvia, Irlanti, Itävalta, Unkari, Romania, Italia (Italia is the biggest that can appear)
+const SPAWN_W = [0.112, 0.14, 0.2, 0.12, 0.08, 0.06, 0.04];
 const VX0 = -1.5, VX1 = WORLD_W + 1.5, VY0 = -0.55, VY1 = FLOOR_Y + 1.45;
 const reduceMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 const FONT = '"Baloo 2", system-ui, -apple-system, "Segoe UI", sans-serif';
@@ -806,9 +807,16 @@ function buildBg() {
 }
 
 // ------------------------------ game flow ------------------------------
+function spawnWeights() {
+  // the further you get, the bigger the balls you are offered
+  const top = Math.min(SPAWN_W.length - 1, Math.max(4, maxLevel - 3));
+  const p = clamp((maxLevel - 4) / 8, 0, 1);
+  return SPAWN_W.map((w, i) => i > top ? 0 : w * (1 + p * i * 0.6));
+}
 function randLevel() {
-  let r = Math.random() * SPAWN_W.reduce((a, b) => a + b, 0);
-  for (let i = 0; i < SPAWN_W.length; i++) { r -= SPAWN_W[i]; if (r <= 0) return i; }
+  const w = spawnWeights();
+  let r = Math.random() * w.reduce((a, b) => a + b, 0);
+  for (let i = 0; i < w.length; i++) { r -= w[i]; if (r <= 0) return i; }
   return 0;
 }
 
@@ -847,7 +855,7 @@ function loadGame(g, play) {
     const R = RADII[lv];
     makeBlob(lv, clamp(+item[1] || 5, R, WORLD_W - R), clamp(+item[2] || 10, DANGER_Y, FLOOR_Y - R), 0, 0, 0.85);
   }
-  score = shownScore = g.score | 0; cur = clamp(g.cur | 0, 0, 4); nxt = clamp(g.nxt | 0, 0, 4); maxLevel = g.maxLevel | 0;
+  score = shownScore = g.score | 0; cur = clamp(g.cur | 0, 0, MAXL); nxt = clamp(g.nxt | 0, 0, 6); maxLevel = g.maxLevel | 0;
   charges = g.charges | 0; abilProg = g.abilProg | 0; wobT = 0;
   dangerT = 0; combo = 0; comboT = 0; shake = 0; blockedT = 0; cooldown = 0.3; popT = 0; aiming = false; autoT = 0;
   sfx.ensure();
