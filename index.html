@@ -969,7 +969,7 @@ function useAbility() {
   charges--; wobT = 1.4;
   // throw everything up a bit, then rock the wagon from side to side
   for (const b of E.blobs) {
-    const kick = 6 + Math.random() * 6, side = (Math.random() - 0.5) * 6;
+    const kick = 12 + Math.random() * 12, side = (Math.random() - 0.5) * 12;
     for (let i = b.start; i < b.start + b.n; i++) { VY[i] -= kick; VX[i] += side; }
   }
   if (!reduceMotion) shake = Math.max(shake, 0.35);
@@ -980,7 +980,7 @@ function useAbility() {
 function wobbleStep() {
   if (wobT <= 0) return;
   wobT -= STEP;
-  const a = Math.sin((1.4 - wobT) * TAU * 2.2) * 55 * Math.min(1, wobT / 0.4) * STEP;
+  const a = Math.sin((1.4 - wobT) * TAU * 2.2) * 110 * Math.min(1, wobT / 0.4) * STEP;
   for (let i = 0; i < E.NB; i++) VX[i] += a;
   if (wobT <= 0) { wobT = 0; syncAbil(); }
 }
