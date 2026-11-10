@@ -93,19 +93,21 @@ test('phones that still run the previous offline version switch to the new one c
   // the new release goes live
   overrides.delete('/sw.js');
   await page.evaluate(() => navigator.serviceWorker.getRegistration().then(r => r.update()));
+  // the version being released, read from sw.js so the test keeps working when VERSION is bumped
+  const current = 'piispanpeli-' + fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8').match(/const VERSION = '([^']+)'/)[1];
   // wait until the new version has activated (it removes the old cache as its last step)
-  const done = await page.evaluate(() => new Promise(ok => {
+  const done = await page.evaluate(cur => new Promise(ok => {
     const t0 = Date.now();
     const poll = async () => {
       const k = await caches.keys();
-      if (k.includes('piispanpeli-v53') && !k.includes('piispanpeli-v52')) ok(true); else if (Date.now() - t0 > 20000) ok(false); else setTimeout(poll, 250);
+      if (k.includes(cur) && !k.includes('piispanpeli-v52')) ok(true); else if (Date.now() - t0 > 20000) ok(false); else setTimeout(poll, 250);
     };
     poll();
-  }));
+  }), current);
   assert.ok(done, 'the new version activated and removed the old cache');
   const sw = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
   const assets = JSON.parse(sw.match(/const ASSETS = (\[[\s\S]*?\]);/)[1].replace(/'/g, '"'));
-  const cached = await page.evaluate(async list => { const c = await caches.open('piispanpeli-v53'); return Promise.all(list.map(u => c.match(u).then(Boolean))); }, assets);
+  const cached = await page.evaluate(async ([list, cur]) => { const c = await caches.open(cur); return Promise.all(list.map(u => c.match(u).then(Boolean))); }, [assets, current]);
   assert.deepEqual(assets.filter((a, i) => !cached[i]), [], 'every file of the new version is cached');
   await page.reload(); await page.waitForSelector('#startBtn');
   await page.click('#startBtn');

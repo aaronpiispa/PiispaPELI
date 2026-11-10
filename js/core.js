@@ -7,7 +7,7 @@ const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 const rand = (a, b) => a + Math.random() * (b - a);
 const INK = '#231d45';
 const COLORS = ['#0072ce', '#c0394a', '#169b62', '#ed2939', '#477050', '#fcd116', '#009246', '#2f6fd6', '#ffce00', '#fecc00', '#ef4135', '#ffd700', '#e30a17', '#d00c33', '#cc0000'];
-let NAMES = ['Viro', 'Latvia', 'Irlanti', 'Itävalta', 'Unkari', 'Romania', 'Italia', 'Suomi', 'Saksa', 'Ruotsi', 'Ranska', 'Ukraina', 'Turkki', 'Grönlanti', 'Venäjä'];
+let NAMES = ['Viro', 'Latvia', 'Irlanti', 'Itävalta', 'Unkari', 'Romania', 'Italia', 'Suomi', 'Saksa', 'Ruotsi', 'Ranska', 'Ukraina', 'Turkki', 'Grönlanti', 'USSR'];
 // flags, smallest country first: [type, colours, (weights)]
 const FLAGS = [
   ['h', ['#0072ce', '#111111', '#ffffff']],

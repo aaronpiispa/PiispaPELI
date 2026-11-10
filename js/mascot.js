@@ -140,6 +140,21 @@ function mHat(c, k, cx, by, s, t) {
   } else if (k === 'heart') {
     c.strokeStyle = '#ff8fab'; c.lineWidth = s * 0.08; c.beginPath(); c.arc(0, s * 0.15, s * 0.82, Math.PI * 1.05, Math.PI * 1.95); c.stroke();
     for (const d of [-1, 1]) { const bob = Math.sin(t * 4 + d) * s * 0.06; c.lineWidth = s * 0.03; c.beginPath(); c.moveTo(d * s * 0.4, -s * 0.5); c.lineTo(d * s * 0.5, -s * 0.95 + bob); c.stroke(); c.fillStyle = '#ff4d7d'; mHeart(c, d * s * 0.5, -s * 0.95 + bob, s * 0.24); c.fill(); }
+  } else if (k === 'wings') {
+    // Hermes wings at both temples, gently flapping
+    const flap = Math.sin(t * 5) * 0.12;
+    for (const d of [-1, 1]) {
+      c.save(); c.translate(d * s * 0.78, s * 0.42); c.scale(d, 1); c.rotate(-0.35 - flap);
+      for (let f = 0; f < 4; f++) {
+        const len = s * (0.95 - f * 0.17), ang = -0.95 + f * 0.32;
+        c.save(); c.rotate(ang);
+        c.fillStyle = f % 2 ? '#f4f1ea' : '#ffffff'; c.strokeStyle = '#b9b2a2'; c.lineWidth = s * 0.025;
+        c.beginPath(); c.ellipse(len * 0.5, 0, len * 0.5, s * 0.11, 0, 0, Math.PI * 2); c.fill(); c.stroke();
+        c.restore();
+      }
+      c.fillStyle = '#e8b400'; c.beginPath(); c.arc(0, 0, s * 0.11, 0, Math.PI * 2); c.fill();
+      c.restore();
+    }
   } else if (k === 'halo') {
     const bob = Math.sin(t * 2) * s * 0.05; c.strokeStyle = '#ffd84d'; c.lineWidth = s * 0.1;
     c.shadowColor = '#ffe680'; c.shadowBlur = s * 0.3; c.beginPath(); c.ellipse(0, -s * 0.85 + bob, s * 0.6, s * 0.16, 0, 0, Math.PI * 2); c.stroke(); c.shadowBlur = 0;

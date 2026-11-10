@@ -29,10 +29,17 @@ function serve(overrides = new Map()) {
 async function openPage(browser, base, t, opts = {}) {
   const ctx = await browser.newContext({
     viewport: opts.viewport || { width: 430, height: 860 }, deviceScaleFactor: opts.dsf || 1,
-    hasTouch: !!opts.touch, ...(BROWSER === 'firefox' ? {} : { isMobile: !!opts.touch }), // Firefox has no mobile emulation serviceWorkers: opts.sw ? 'allow' : 'block'
+    hasTouch: !!opts.touch, ...(BROWSER === 'firefox' ? {} : { isMobile: !!opts.touch }), // Firefox has no mobile emulation
+    serviceWorkers: opts.sw ? 'allow' : 'block'
   });
   await ctx.route(/fonts\.(googleapis|gstatic)\.com/, r => r.fulfill({ status: 200, contentType: 'text/css', body: '' }));
   const page = await ctx.newPage();
+  // the game starts weak devices (2 cores or less) one quality step lower; pin the device class so the results
+  // do not depend on the computer running the tests (opts.cores lets a test pretend to be a weak phone)
+  await page.addInitScript(c => {
+    Object.defineProperty(Navigator.prototype, 'hardwareConcurrency', { get: () => c, configurable: true });
+    Object.defineProperty(Navigator.prototype, 'deviceMemory', { get: () => (c <= 2 ? 2 : 8), configurable: true });
+  }, opts.cores || 8);
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
   page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });

@@ -106,7 +106,7 @@ function showMenu() {
   const autoG = store.get(AUTO_KEY, null), auto = validSave(autoG) ? autoG : null;
   // two groups: on phones held sideways they become two columns so the play button stays in view
   showOverlay('<div class="menu-l">' + titleHTML() +
-    '<p class="lead">' + T('Ammu lippupalloja junavaunuun. Kaksi samaa maata yhdistyy isommaksi maaksi, Virosta aina Venäjään asti.') + '</p>' +
+    '<p class="lead">' + T('Ammu lippupalloja junavaunuun. Kaksi samaa maata yhdistyy isommaksi maaksi, Virosta aina USSR:ään asti.') + '</p>' +
     '<div class="stats">' +
       `<div class="stat" style="color:#ffcc00">${MI.star}<b style="color:#fff">${best}</b><small>${T('Ennätys')}</small></div>` +
       `<div class="stat" style="color:#ffcc00">${MI.trophy}<b style="color:#fff">${achCount()}/${ACH.length}</b><small>${T('Saavutukset')}</small></div>` +

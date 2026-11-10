@@ -3,7 +3,7 @@
 // background; the new versions are stored only when all of them arrived, so old and new files never get mixed
 // (the scripts share one global scope, so a mix could break the game). Updates show up on the next launch.
 // VERSION only needs a bump when this file's own logic changes or files are added or removed.
-const VERSION = 'v53';
+const VERSION = 'v54';
 const CACHE = 'piispanpeli-' + VERSION;
 const FONTS = 'piispanpeli-fonts-v1';
 const ASSETS = [

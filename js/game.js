@@ -61,7 +61,7 @@ function modeBest(m) { return Number(store.get('piispanpeli-best-' + m, 0)) || 0
 // ======================= wardrobe for the mascot =======================
 const WARDROBE = {
   hat: [['bonnet', 'Satiinimyssy'], ['none', 'Ei hattua'], ['cap', 'Lippis', 'first'], ['beanie', 'Suomi-pipo', 'fin'], ['beret', 'Baskeri', 'fra'],
-    ['ushanka', 'Karvalakki', 'rus'], ['viking', 'Viikinkikypärä', 'nordic'], ['crown', 'Kruunu', 'union'], ['party', 'Juhlahattu', 's10k'],
+    ['ushanka', 'Karvalakki', 'rus'], ['viking', 'Viikinkikypärä', 'nordic'], ['crown', 'Kruunu', 'mapAll'], ['wings', 'Hermeksen siivet', 'union'], ['party', 'Juhlahattu', 's10k'],
     ['tophat', 'Silinteri', 's100k'], ['heart', 'Sydänpanta', 'heart'], ['halo', 'Sädekehä', 'zen5']],
   glasses: [['none', 'Ei laseja'], ['sun', 'Aurinkolasit', 'combo5'], ['round', 'Pyöreät lasit', 'marathon'], ['star', 'Tähtilasit', 'star'],
     ['heart', 'Sydänlasit', 'nelli'], ['mono', 'Monokkeli', 'daily']],
@@ -103,7 +103,7 @@ const TCOL = { gold: ['#ffd84d', '#a07800'], silver: ['#e6ebf3', '#7d869c'], ros
   blue: ['#7fb0ff', '#2a4fa0'], red: ['#ff6b6b', '#9e1f1f'], purple: ['#c9a2ff', '#5e3aa8'], black: ['#5a6078', '#15182a'] };
 const TDES = {
   first: ['medal', 'gold', 't:1'], fin: ['shield', 'blue', 'f:7'], nordic: ['crown', 'silver', 'f:9'], fra: ['cup', 'blue', 'f:10'],
-  rus: ['gem', 'red', 'f:14'], union: ['crown', 'gold', 'eu'], all: ['cup', 'gold', 't:15'], combo5: ['star', 'gold', 't:×5'],
+  rus: ['gem', 'red', 'f:14'], union: ['shield', 'purple', 't:H'], all: ['cup', 'gold', 't:15'], combo5: ['star', 'gold', 't:×5'],
   combo10: ['star', 'purple', 't:×10'], star: ['medal', 'silver', 'star'], heart: ['medal', 'rose', 'heart'], close: ['shield', 'red', 't:!'],
   merges100: ['plaque', 'teal', 't:100'], s10k: ['cup', 'silver', 't:10k'], s100k: ['cup', 'gold', 't:100k'], shake: ['medal', 'teal', 't:≈'],
   marathon: ['plaque', 'blue', 't:30m'], games50: ['plaque', 'gold', 't:50'], time5k: ['medal', 'blue', 't:2:00'], time15k: ['star', 'red', 't:15k'],
@@ -276,8 +276,8 @@ const ACH = [
   ['fin', 'Kotimaa', 'Saa Suomi.'],
   ['nordic', 'Pohjoismaat', 'Saa samassa pelissä Suomi ja Ruotsi.'],
   ['fra', 'Ranskalainen tyyli', 'Saa Ranska.'],
-  ['rus', 'Itäblokki', 'Saa Venäjä.'],
-  ['union', 'Eurooppa yhdistyi', 'Yhdistä kaksi Venäjää.'],
+  ['rus', 'Itäblokki', 'Saa USSR.'],
+  ['union', 'Alamaailman Hermes', 'Yhdistä kaksi USSR:ää.'],
   ['all', 'Keräilijä', 'Avaa kaikki 15 maata. Palkintona kultaiset reunat!'],
   ['combo5', 'Kombokuningas', 'Tee kombo ×5.'],
   ['combo10', 'Ketjureaktio', 'Tee kombo ×10.'],
@@ -519,7 +519,7 @@ function handleEvent(ev) {
     unlock('union');
     const pts = MAX_BONUS * combo;
     addScore(pts);
-    floater(T('Eurooppa yhdistyi! +{0}', pts), ev.x, ev.y, '#ffe066', 28);
+    floater(T('Alamaailman Hermes! +{0}', pts), ev.x, ev.y, '#ffe066', 28);
   }
 }
 
