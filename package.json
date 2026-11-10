@@ -1,0 +1,14 @@
+{
+  "name": "piispanpeli",
+  "version": "1.0.0",
+  "private": true,
+  "description": "PiispanPELI – lippupallopeli junavaunussa",
+  "scripts": {
+    "test": "node --test \"tests/unit/*.test.js\"",
+    "test:e2e": "node --test --test-concurrency=1 \"tests/e2e/*.test.js\"",
+    "test:all": "npm test && npm run test:e2e"
+  },
+  "devDependencies": {
+    "playwright": "^1.48.0"
+  }
+}
