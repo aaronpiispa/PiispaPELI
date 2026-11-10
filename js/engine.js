@@ -6,7 +6,9 @@
 // ---- skin (edge length), pressure (area) and a soft shape-matching spring.
 const WORLD_W = 12, FLOOR_Y = 19.2, DANGER_Y = 2.75, LX = 6, LY = 1.1;
 const GRAV = 24, RB = 0.11, SPACING = 0.165;
-const RADII = [0.40, 0.47, 0.54, 0.63, 0.74, 0.86, 1.00, 1.17, 1.36, 1.59, 1.85, 2.16, 2.51, 2.93, 3.40];
+// the seven countries that can be shot keep their size; the big ones grow a little more gently so that two USSRs
+// just fit side by side and the final merge is reachable with careful play
+const RADII = [0.40, 0.47, 0.54, 0.63, 0.74, 0.86, 1.00, 1.16, 1.34, 1.54, 1.77, 2.02, 2.30, 2.61, 2.94];
 const MAXL = RADII.length - 1;
 const STEP = 1 / 60, SUB = 8, H = STEP / SUB;
 const KE = 0.9, KA = 0.25, KS = 0.003, SLACK = 0.9;

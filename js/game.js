@@ -65,9 +65,10 @@ const WARDROBE = {
     ['tophat', 'Silinteri', 's100k'], ['heart', 'Sydänpanta', 'heart'], ['halo', 'Sädekehä', 'zen5']],
   glasses: [['none', 'Ei laseja'], ['sun', 'Aurinkolasit', 'combo5'], ['round', 'Pyöreät lasit', 'marathon'], ['star', 'Tähtilasit', 'star'],
     ['heart', 'Sydänlasit', 'nelli'], ['mono', 'Monokkeli', 'daily']],
-  neck: [['chain', 'Kultaketju'], ['none', 'Ei mitään'], ['scarf', 'Kaulahuivi', 'games50'], ['bowtie', 'Rusetti', 'map3'], ['pearls', 'Helmet', 'time5k'], ['medal', 'Mitali', 'all']]
+  neck: [['chain', 'Kultaketju'], ['none', 'Ei mitään'], ['scarf', 'Kaulahuivi', 'games50'], ['bowtie', 'Rusetti', 'map3'], ['pearls', 'Helmet', 'time5k'], ['medal', 'Mitali', 'all']],
+  ball: [['plain', 'Tavalliset reunat'], ['gold', 'Kultareunat', 'union']]
 };
-const SLOT_NAMES = { hat: 'Hattu', glasses: 'Lasit', neck: 'Kaula' };
+const SLOT_NAMES = { hat: 'Hattu', glasses: 'Lasit', neck: 'Kaula', ball: 'Pallot' };
 
 // ======================= wagon themes, unlocked by achievements =======================
 const THEMES = [
@@ -83,10 +84,11 @@ const THEMES = [
 let themeId = store.get('piispanpeli-theme', 'eu');
 const themeOpen = t => !t.ach || !!achGot[t.ach];
 function theme() { const t = THEMES.find(x => x.id === themeId); return t && themeOpen(t) ? t : THEMES[0]; }
-let look = Object.assign({ hat: 'bonnet', glasses: 'none', neck: 'chain' }, store.get('piispanpeli-look', {}) || {});
+let look = Object.assign({ hat: 'bonnet', glasses: 'none', neck: 'chain', ball: 'plain' }, store.get('piispanpeli-look', {}) || {});
+const goldBalls = () => look.ball === 'gold' && !!achGot.union;
 function showWardrobe() {
   let html = '<h2 class="h2">' + T('Hahmo') + '</h2><canvas class="mascot big" width="240" height="240" aria-hidden="true"></canvas>';
-  for (const slot of ['hat', 'glasses', 'neck']) {
+  for (const slot of ['hat', 'glasses', 'neck', 'ball']) {
     html += `<h3 class="wtitle">${SLOT_NAMES[slot]}</h3><div class="wgrid">` + WARDROBE[slot].map(([id, name, ach]) => {
       const open = !ach || achGot[ach], on = look[slot] === id, a = ach && ACH.find(x => x[0] === ach);
       return `<button class="witem${on ? ' on' : ''}${open ? '' : ' locked'}" type="button" data-slot="${slot}" data-item="${id}"${open ? '' : ' disabled'} title="${open ? name : T('Avautuu saavutuksesta: {0}', a ? a[1] : '')}">` +
@@ -340,6 +342,8 @@ function unlock(id) {
   if (!a) return;
   const before = trophies();
   achGot[id] = Date.now(); store.set('piispanpeli-ach', achGot);
+  // the Hermes reward: the balls put on their golden rims right away (can be switched off in the wardrobe)
+  if (id === 'union' && look.ball !== 'gold') { look.ball = 'gold'; store.set('piispanpeli-look', look); }
   toast(T('Saavutus: {0}', a[1]), a[2], id);
   sfx.ensure(); sfx.mega();
   if (trophies() > before) toast(T('Kultapalkinto {0}/{1}!', trophies(), TROPHY_AT.length), T('Se näkyy nyt junavaunun kyljessä.'));

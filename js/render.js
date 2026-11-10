@@ -66,6 +66,12 @@ function paintBall(path, level, cx, cy, R, ang, lw) {
   g.addColorStop(0, 'rgba(255,255,255,0.38)'); g.addColorStop(0.45, 'rgba(255,255,255,0)'); g.addColorStop(1, 'rgba(5,15,45,0.42)');
   ctx.fillStyle = g; ctx.fill(path);
   ctx.lineWidth = lw; ctx.lineJoin = 'round'; ctx.strokeStyle = 'rgba(8,20,55,0.75)'; ctx.stroke(path);
+  if (goldBalls()) {
+    // golden rim outfit (Hermes reward): a bright gold band just inside the dark outline
+    const gg = ctx.createLinearGradient(cx - R, cy - R, cx + R, cy + R);
+    gg.addColorStop(0, '#fff3b0'); gg.addColorStop(0.45, '#ffcc00'); gg.addColorStop(1, '#a67c00');
+    ctx.save(); ctx.clip(path); ctx.lineWidth = Math.max(lw * 2.2, R * 0.16); ctx.strokeStyle = gg; ctx.stroke(path); ctx.restore();
+  }
   ctx.save(); ctx.clip(path);
   ctx.fillStyle = 'rgba(255,255,255,0.3)';
   ctx.beginPath(); ctx.ellipse(cx - R * 0.36, cy - R * 0.5, R * 0.3, R * 0.15, -0.55, 0, TAU); ctx.fill();

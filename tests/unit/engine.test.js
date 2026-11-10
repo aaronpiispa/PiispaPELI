@@ -106,3 +106,46 @@ test('clearAll empties the wagon', () => {
   assert.equal(g.E.blobs.length, 0);
   assert.equal(g.E.NB, 0);
 });
+
+test('the game can be completed: a USSR plus one of every smaller country fits with room to spare', () => {
+  // the hardest moment before the final merge, with a few extra small balls lying around as in a real game.
+  // The game is lost when balls touch the buttons on BOTH walls at the same time.
+  const BTN_Y = 2.75 + 2.2, BTN_H = 2.4;
+  for (const seed of [7, 20, 33]) {
+    const g = engine(), r = rng(seed);
+    const levels = [14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0];
+    for (let i = 0; i < 6; i++) levels.push(Math.floor(r() * 5));
+    for (const lv of levels) {
+      // like the launcher: a new ball only appears once its spot is free
+      const x = 1 + r() * 10, R = g.RADII[lv];
+      for (let k = 0; k < 600; k++) {
+        let free = true;
+        for (let i = 0; i < g.E.NB && free; i++) if (Math.hypot(g.X[i] - x, g.Y[i] - 1.5) < R + 0.3) free = false;
+        if (free) break;
+        g.stepPhysics(); g.E.events.length = 0;
+      }
+      g.makeBlob(lv, x, 1.5, 0, 0);
+      for (let k = 0; k < 25; k++) { g.stepPhysics(); g.E.events.length = 0; }
+    }
+    let pressed = 0;
+    for (let k = 0; k < 240; k++) {
+      g.stepPhysics(); g.E.events.length = 0;
+      const y0 = BTN_Y - BTN_H / 2 - g.RB, y1 = BTN_Y + BTN_H / 2 + g.RB, lim = g.RB + 0.15;
+      let left = false, right = false;
+      for (let i = 0; i < g.E.NB; i++) {
+        if (g.Y[i] < y0 || g.Y[i] > y1) continue;
+        if (g.X[i] < lim) left = true; else if (g.X[i] > g.WORLD_W - lim) right = true;
+      }
+      if (left && right) pressed++;
+    }
+    assert.equal(pressed, 0, `seed ${seed}: balls pressed both buttons in ${pressed} of 240 frames`);
+    // and with some room to spare: at least 2.8 units between the top of the pile and the buttons (the old sizes left about 2)
+    const room = Math.min(...g.E.blobs.map(b => b.cy - b.R)) - (BTN_Y - BTN_H / 2);
+    assert.ok(room > 2.8, `seed ${seed}: only ${room.toFixed(2)} units of room left above the pile`);
+  }
+});
+
+test('two USSRs fit side by side in the wagon', () => {
+  const g = engine();
+  assert.ok(4 * g.RADII[g.MAXL] < g.WORLD_W, `two balls of ${(2 * g.RADII[g.MAXL]).toFixed(2)} fit in ${g.WORLD_W}`);
+});

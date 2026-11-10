@@ -276,7 +276,10 @@ const I18N = {
     "Avaa kaikki": "Lås alt op",
     "Kaikki avattu: saavutukset, teemat, hahmon tavarat, maat ja tehtävät.": "Alt låst op: præstationer, temaer, figurting, lande og missioner.",
     "Euroopan junapeli": "Det europæiske togspil",
-    "Hermeksen siivet": "Hermesvinger"
+    "Hermeksen siivet": "Hermesvinger",
+    "Pallot": "Bolde",
+    "Tavalliset reunat": "Almindelige kanter",
+    "Kultareunat": "Guldkanter"
   },
   "de": {
     "Hahmo": "Figur",
@@ -552,7 +555,10 @@ const I18N = {
     "Avaa kaikki": "Alles freischalten",
     "Kaikki avattu: saavutukset, teemat, hahmon tavarat, maat ja tehtävät.": "Alles freigeschaltet: Erfolge, Themen, Figurenteile, Länder und Missionen.",
     "Euroopan junapeli": "Das europäische Zugspiel",
-    "Hermeksen siivet": "Hermesflügel"
+    "Hermeksen siivet": "Hermesflügel",
+    "Pallot": "Bälle",
+    "Tavalliset reunat": "Normale Ränder",
+    "Kultareunat": "Goldene Ränder"
   },
   "en": {
     "Hahmo": "Character",
@@ -828,7 +834,10 @@ const I18N = {
     "Avaa kaikki": "Unlock everything",
     "Kaikki avattu: saavutukset, teemat, hahmon tavarat, maat ja tehtävät.": "Everything unlocked: achievements, themes, character items, countries and missions.",
     "Euroopan junapeli": "The European train game",
-    "Hermeksen siivet": "Hermes wings"
+    "Hermeksen siivet": "Hermes wings",
+    "Pallot": "Balls",
+    "Tavalliset reunat": "Plain rims",
+    "Kultareunat": "Golden rims"
   },
   "et": {
     "Hahmo": "Tegelane",
@@ -1104,7 +1113,10 @@ const I18N = {
     "Avaa kaikki": "Ava kõik",
     "Kaikki avattu: saavutukset, teemat, hahmon tavarat, maat ja tehtävät.": "Kõik avatud: saavutused, teemad, tegelase asjad, riigid ja missioonid.",
     "Euroopan junapeli": "Euroopa rongimäng",
-    "Hermeksen siivet": "Hermese tiivad"
+    "Hermeksen siivet": "Hermese tiivad",
+    "Pallot": "Pallid",
+    "Tavalliset reunat": "Tavalised servad",
+    "Kultareunat": "Kuldsed servad"
   },
   "fr": {
     "Hahmo": "Personnage",
@@ -1380,7 +1392,10 @@ const I18N = {
     "Avaa kaikki": "Tout débloquer",
     "Kaikki avattu: saavutukset, teemat, hahmon tavarat, maat ja tehtävät.": "Tout est débloqué : succès, thèmes, objets du personnage, pays et missions.",
     "Euroopan junapeli": "Le jeu de train européen",
-    "Hermeksen siivet": "Ailes d'Hermès"
+    "Hermeksen siivet": "Ailes d'Hermès",
+    "Pallot": "Boules",
+    "Tavalliset reunat": "Bords normaux",
+    "Kultareunat": "Bords dorés"
   },
   "ga": {
     "Hahmo": "Carachtar",
@@ -1656,7 +1671,10 @@ const I18N = {
     "Avaa kaikki": "Díghlasáil gach rud",
     "Kaikki avattu: saavutukset, teemat, hahmon tavarat, maat ja tehtävät.": "Gach rud díghlasáilte: éachtaí, téamaí, rudaí carachtair, tíortha agus misin.",
     "Euroopan junapeli": "Cluiche traenach na hEorpa",
-    "Hermeksen siivet": "Sciatháin Hermes"
+    "Hermeksen siivet": "Sciatháin Hermes",
+    "Pallot": "Liathróidí",
+    "Tavalliset reunat": "Imill ghnáthacha",
+    "Kultareunat": "Imill órga"
   },
   "hu": {
     "Hahmo": "Karakter",
@@ -1932,7 +1950,10 @@ const I18N = {
     "Avaa kaikki": "Minden feloldása",
     "Kaikki avattu: saavutukset, teemat, hahmon tavarat, maat ja tehtävät.": "Minden feloldva: teljesítmények, témák, karaktertárgyak, országok és küldetések.",
     "Euroopan junapeli": "Az európai vonatos játék",
-    "Hermeksen siivet": "Hermész szárnyai"
+    "Hermeksen siivet": "Hermész szárnyai",
+    "Pallot": "Golyók",
+    "Tavalliset reunat": "Sima szélek",
+    "Kultareunat": "Arany szélek"
   },
   "it": {
     "Hahmo": "Personaggio",
@@ -2208,7 +2229,10 @@ const I18N = {
     "Avaa kaikki": "Sblocca tutto",
     "Kaikki avattu: saavutukset, teemat, hahmon tavarat, maat ja tehtävät.": "Tutto sbloccato: obiettivi, temi, oggetti del personaggio, paesi e missioni.",
     "Euroopan junapeli": "Il gioco del treno europeo",
-    "Hermeksen siivet": "Ali di Hermes"
+    "Hermeksen siivet": "Ali di Hermes",
+    "Pallot": "Palline",
+    "Tavalliset reunat": "Bordi normali",
+    "Kultareunat": "Bordi dorati"
   },
   "lv": {
     "Hahmo": "Tēls",
@@ -2484,7 +2508,10 @@ const I18N = {
     "Avaa kaikki": "Atbloķēt visu",
     "Kaikki avattu: saavutukset, teemat, hahmon tavarat, maat ja tehtävät.": "Viss atbloķēts: sasniegumi, tēmas, tēla lietas, valstis un misijas.",
     "Euroopan junapeli": "Eiropas vilcienu spēle",
-    "Hermeksen siivet": "Hermeja spārni"
+    "Hermeksen siivet": "Hermeja spārni",
+    "Pallot": "Bumbas",
+    "Tavalliset reunat": "Parastas malas",
+    "Kultareunat": "Zelta malas"
   },
   "ro": {
     "Hahmo": "Personaj",
@@ -2760,7 +2787,10 @@ const I18N = {
     "Avaa kaikki": "Deblochează tot",
     "Kaikki avattu: saavutukset, teemat, hahmon tavarat, maat ja tehtävät.": "Totul a fost deblocat: realizări, teme, obiecte pentru personaj, țări și misiuni.",
     "Euroopan junapeli": "Jocul european cu trenul",
-    "Hermeksen siivet": "Aripile lui Hermes"
+    "Hermeksen siivet": "Aripile lui Hermes",
+    "Pallot": "Bile",
+    "Tavalliset reunat": "Margini simple",
+    "Kultareunat": "Margini aurii"
   },
   "ru": {
     "Hahmo": "Персонаж",
@@ -3036,7 +3066,10 @@ const I18N = {
     "Avaa kaikki": "Открыть всё",
     "Kaikki avattu: saavutukset, teemat, hahmon tavarat, maat ja tehtävät.": "Всё открыто: достижения, темы, вещи персонажа, страны и миссии.",
     "Euroopan junapeli": "Европейская игра с поездом",
-    "Hermeksen siivet": "Крылья Гермеса"
+    "Hermeksen siivet": "Крылья Гермеса",
+    "Pallot": "Шары",
+    "Tavalliset reunat": "Обычные края",
+    "Kultareunat": "Золотые края"
   },
   "sv": {
     "Hahmo": "Figur",
@@ -3312,7 +3345,10 @@ const I18N = {
     "Avaa kaikki": "Lås upp allt",
     "Kaikki avattu: saavutukset, teemat, hahmon tavarat, maat ja tehtävät.": "Allt upplåst: prestationer, teman, figursaker, länder och uppdrag.",
     "Euroopan junapeli": "Det europeiska tågspelet",
-    "Hermeksen siivet": "Hermesvingar"
+    "Hermeksen siivet": "Hermesvingar",
+    "Pallot": "Bollar",
+    "Tavalliset reunat": "Vanliga kanter",
+    "Kultareunat": "Guldkanter"
   },
   "tr": {
     "Hahmo": "Karakter",
@@ -3588,7 +3624,10 @@ const I18N = {
     "Avaa kaikki": "Her şeyi aç",
     "Kaikki avattu: saavutukset, teemat, hahmon tavarat, maat ja tehtävät.": "Her şey açıldı: başarımlar, temalar, karakter eşyaları, ülkeler ve görevler.",
     "Euroopan junapeli": "Avrupa tren oyunu",
-    "Hermeksen siivet": "Hermes kanatları"
+    "Hermeksen siivet": "Hermes kanatları",
+    "Pallot": "Toplar",
+    "Tavalliset reunat": "Normal kenarlar",
+    "Kultareunat": "Altın kenarlar"
   },
   "uk": {
     "Hahmo": "Персонаж",
@@ -3864,7 +3903,10 @@ const I18N = {
     "Avaa kaikki": "Відкрити все",
     "Kaikki avattu: saavutukset, teemat, hahmon tavarat, maat ja tehtävät.": "Усе відкрито: досягнення, теми, речі персонажа, країни та місії.",
     "Euroopan junapeli": "Європейська гра з потягом",
-    "Hermeksen siivet": "Крила Гермеса"
+    "Hermeksen siivet": "Крила Гермеса",
+    "Pallot": "Кулі",
+    "Tavalliset reunat": "Звичайні краї",
+    "Kultareunat": "Золоті краї"
   },
   "kl": {
     "Grönlanti": "Kalaallit Nunaat"
