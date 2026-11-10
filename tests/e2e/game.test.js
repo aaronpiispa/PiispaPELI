@@ -146,7 +146,7 @@ test('every game mode starts and runs', { skip }, async t => {
 });
 
 test('a slow phone gets a lower render resolution', { skip }, async t => {
-  const { page } = await open(t, { dsf: 2, store: { 'piispanpeli-quality': 3 } });
+  const { page } = await open(t, { dsf: 2, store: { 'piispanpeli-quality': { q: 3, at: Date.now() } } });
   const w = await page.evaluate(() => [document.getElementById('game').width, innerWidth]);
   assert.equal(w[0], w[1], 'renders at 1x on the lowest quality level');
   const { page: fast } = await open(t, { dsf: 2, store: { 'piispanpeli-quality': 0 } });

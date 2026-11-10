@@ -32,7 +32,9 @@ const fxCanvas = document.getElementById('fx'), fctx = fxCanvas.getContext('2d')
 let fxDirty = false;
 function drawNelli() {
   if (fxCanvas.width !== canvas.width || fxCanvas.height !== canvas.height) { fxCanvas.width = canvas.width; fxCanvas.height = canvas.height; }
-  if (!hearts.length && nelliT <= 0) { if (fxDirty) { fctx.setTransform(1, 0, 0, 1, 0, 0); fctx.clearRect(0, 0, fxCanvas.width, fxCanvas.height); fxDirty = false; } return; }
+  if (!hearts.length && nelliT <= 0) { if (fxDirty) { fctx.setTransform(1, 0, 0, 1, 0, 0); fctx.clearRect(0, 0, fxCanvas.width, fxCanvas.height); fxDirty = false; fxCanvas.hidden = true; } return; }
+  // the effects layer is hidden while empty, so the browser does not have to blend a blank full-screen layer every frame
+  if (!fxDirty) fxCanvas.hidden = false;
   fxDirty = true;
   const ctx = fctx;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, vw, vh);
@@ -102,14 +104,15 @@ function mb(id, icon, bg, fg, label, sub, primary) {
 }
 function showMenu() {
   const autoG = store.get(AUTO_KEY, null), auto = validSave(autoG) ? autoG : null;
-  showOverlay(titleHTML() +
+  // two groups: on phones held sideways they become two columns so the play button stays in view
+  showOverlay('<div class="menu-l">' + titleHTML() +
     '<p class="lead">' + T('Ammu lippupalloja junavaunuun. Kaksi samaa maata yhdistyy isommaksi maaksi, Virosta aina Venäjään asti.') + '</p>' +
     '<div class="stats">' +
       `<div class="stat" style="color:#ffcc00">${MI.star}<b style="color:#fff">${best}</b><small>${T('Ennätys')}</small></div>` +
       `<div class="stat" style="color:#ffcc00">${MI.trophy}<b style="color:#fff">${achCount()}/${ACH.length}</b><small>${T('Saavutukset')}</small></div>` +
       `<div class="stat" style="color:#6fd3ff">${MI.globe}<b style="color:#fff">${seenEver.size}/${RADII.length}</b><small>${T('Maat')}</small></div>` +
-    '</div>' +
-    '<div class="menu-btns">' +
+    '</div></div>' +
+    '<div class="menu-r"><div class="menu-btns">' +
     (auto ? mb('continueBtn', 'play', '', '', T('Jatka peliä'), T('{0} pistettä', (auto.score | 0).toLocaleString('fi-FI')), true) + mb('startBtn', 'plus', '#2fbf71', '#fff', T('Uusi peli'), T('Klassinen alusta'))
           : mb('startBtn', 'play', '', '', T('Pelaa'), T('Klassinen peli'), true)) +
     mb('modesBtn', 'modes', '#7b5cff', '#fff', T('Pelimuodot'), T('Aikahaaste, Zen, Tehtäväkartta…')) +
@@ -123,7 +126,7 @@ function showMenu() {
     slotsHTML('load') +
     musicRow() +
     '<div class="install" id="installRow"></div>' +
-    '<p class="keys">' + T('Näppäimistö: ← → tähtää · ↑ ↓ voima · välilyönti ampuu · H heilauta · P tauko') + '</p>', 'start');
+    '<p class="keys">' + T('Näppäimistö: ← → tähtää · ↑ ↓ voima · välilyönti ampuu · H heilauta · P tauko') + '</p></div>', 'menu');
   renderInstall();
 }
 function showThemes() {

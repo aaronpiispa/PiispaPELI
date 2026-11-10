@@ -14,15 +14,15 @@
 *{box-sizing:border-box}
 html,body{height:100%;margin:0;overflow:hidden;background:var(--night);color:var(--paper);font-family:var(--body);-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;-webkit-text-size-adjust:100%;touch-action:manipulation;overscroll-behavior:none}
 #game{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
-.iconbtn{position:fixed;z-index:5;width:40px;height:40px;padding:0;border:0;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.1);color:var(--paper);cursor:pointer;transition:background .15s}
+.iconbtn{position:fixed;z-index:5;width:calc(40px * var(--ui,1));height:calc(40px * var(--ui,1));padding:0;border:0;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.1);color:var(--paper);cursor:pointer;transition:background .15s}
 .iconbtn:hover{background:rgba(255,255,255,.2)}
 .iconbtn:focus-visible{outline:2px solid var(--paper);outline-offset:2px}
-.iconbtn svg{width:20px;height:20px;display:block}
+.iconbtn svg{width:calc(20px * var(--ui,1));height:calc(20px * var(--ui,1));display:block}
 .iconbtn[hidden]{display:none}
 #overlay{position:fixed;inset:0;z-index:10;display:grid;place-items:center;padding:max(16px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left));background:rgba(14,12,38,.5)}
 #safe{position:fixed;inset:0;padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px);visibility:hidden;pointer-events:none;z-index:-1}
 #overlay[hidden]{display:none}
-.abil{position:fixed;z-index:5;height:34px;padding:0 12px;border:2px solid #ffd84d;border-radius:12px;font:800 13px/1 var(--body);color:#fff;cursor:pointer;letter-spacing:.02em;
+.abil{position:fixed;z-index:5;height:calc(34px * var(--ui,1));padding:0 calc(12px * var(--ui,1));border:calc(2px * var(--ui,1)) solid #ffd84d;border-radius:calc(12px * var(--ui,1));font:800 calc(13px * var(--ui,1))/1 var(--body);color:#fff;cursor:pointer;letter-spacing:.02em;
   background:linear-gradient(90deg,#e8a800 0,#ffcc00 var(--p,0%),rgba(10,28,71,.85) var(--p,0%),rgba(10,28,71,.85) 100%);
   box-shadow:0 0 0 2px #0a1c47,0 0 14px rgba(255,204,0,.35),inset 0 1px 0 rgba(255,255,255,.35),0 4px 0 #6b5000;text-shadow:0 1px 2px rgba(0,0,0,.7);white-space:nowrap;font-variant-numeric:tabular-nums}
 .abil.ready{color:var(--ink);text-shadow:none;box-shadow:0 0 0 2px #0a1c47,0 0 22px rgba(255,204,0,.8),inset 0 1px 0 rgba(255,255,255,.5),0 4px 0 #6b5000}
@@ -33,7 +33,7 @@ html,body{height:100%;margin:0;overflow:hidden;background:var(--night);color:var
 @keyframes abilpulse{50%{transform:scale(1.07)}}
 @media (prefers-reduced-motion: reduce){.abil.ready{animation:none}}
 #fx{position:fixed;inset:0;width:100%;height:100%;z-index:15;pointer-events:none}
-.card{width:min(380px,100%);max-height:100%;overflow:auto;background:var(--paper);color:var(--ink);border-radius:28px;padding:24px 24px 22px;text-align:center;box-shadow:0 26px 70px rgba(4,2,24,.55)}
+.card{zoom:var(--uiz,1);width:min(380px,100%);max-height:100%;overflow:auto;background:var(--paper);color:var(--ink);border-radius:28px;padding:24px 24px 22px;text-align:center;box-shadow:0 26px 70px rgba(4,2,24,.55)}
 .title{font-family:var(--display);font-weight:400;font-size:min(52px,11.5vw);line-height:1.05;margin:0 0 6px;letter-spacing:1px;white-space:nowrap}
 .title span{display:inline-block;-webkit-text-stroke:3px var(--ink);paint-order:stroke fill}
 .lead{font-size:18px;line-height:1.35;font-weight:600;margin:2px auto 16px;max-width:30ch;text-wrap:balance}
@@ -84,7 +84,7 @@ html,body{height:100%;margin:0;overflow:hidden;background:var(--night);color:var
 .trophies{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin:6px 0 4px}
 .trophies svg{width:34px;height:34px}
 .trophies .off{opacity:.18;filter:grayscale(1)}
-#toast{position:fixed;left:50%;top:max(14px,env(safe-area-inset-top));transform:translate(-50%,-140%);z-index:30;display:flex;gap:10px;align-items:center;
+#toast{position:fixed;left:50%;top:max(14px,env(safe-area-inset-top));transform:translate(-50%,calc(-100% - 60px));z-index:30;zoom:var(--uiz,1);display:flex;gap:10px;align-items:center;
   background:linear-gradient(180deg,#fff6d1,#ffe07a);color:var(--ink);border:2px solid #c99a00;border-radius:16px;padding:9px 16px 8px 10px;box-shadow:0 10px 30px rgba(0,0,0,.35);
   font:700 14px/1.25 var(--body);transition:transform .35s cubic-bezier(.2,1.4,.4,1);max-width:calc(100vw - 24px);pointer-events:none}
 #toast.show{transform:translate(-50%,0)}
@@ -172,3 +172,32 @@ html,body{height:100%;margin:0;overflow:hidden;background:var(--night);color:var
 .tcard:focus-visible{outline:3px solid #ffcc00;outline-offset:2px}
 .tsw{height:58px;border-radius:11px;display:grid;place-items:center;box-shadow:inset 0 -3px 0 rgba(0,0,0,.25)}
 .tsw svg{width:30px;height:30px;filter:drop-shadow(0 2px 2px rgba(0,0,0,.4))}
+
+/* Main menu: two groups that act as one column, except on short landscape screens (phones held sideways),
+   where they sit side by side so the play button is visible without scrolling */
+.menu-l,.menu-r{display:contents}
+@media (max-height:560px) and (min-width:600px) and (min-aspect-ratio:5/4){
+  .card.menu{width:min(780px,100%);display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);grid-template-rows:auto 1fr;column-gap:22px;align-items:start;padding:16px 20px}
+  .card.menu .mascot{grid-column:1;width:72px;height:72px;margin:-4px auto -6px}
+  .card.menu .menu-l{display:block;grid-column:1}
+  .card.menu .menu-r{display:block;grid-column:2;grid-row:1 / span 2}
+  .card.menu .title{font-size:min(44px,6.2vw)}
+  .card.menu .lead{font-size:14px;margin:0 auto 10px}
+  .card.menu .stats{margin-bottom:0}
+}
+/* short and narrow windows: a tighter single column so the play button fits on screen */
+@media (max-height:480px) and (max-width:599.98px){
+  .card.menu{padding:12px 16px}
+  .card.menu .mascot{width:56px;height:56px;margin:-4px auto -6px}
+  .card.menu .title{font-size:min(36px,9vw)}
+  .card.menu .lead{font-size:13px;margin:0 auto 8px}
+  .card.menu .stats{margin-bottom:8px}
+  .card.menu .stat{padding:4px 4px 3px}
+}
+/* very narrow phones: the two half-width buttons would not fit side by side and pushed the menu off screen */
+@media (max-width:350px){
+  .start .menu-btns .two{grid-template-columns:1fr}
+}
+@media (max-width:300px){
+  .tgrid{grid-template-columns:1fr}
+}

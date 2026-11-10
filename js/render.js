@@ -153,20 +153,37 @@ function drawCup(x, y, s) {
   ctx.fillStyle = 'rgba(255,255,255,0.6)'; ctx.fillRect(-0.5, -0.85, 0.18, 0.7);
   ctx.restore();
 }
-// the wagon is drawn in layers: static parts are cached in bitmaps and only redrawn when something changes
+// the wagon is drawn in layers: static parts are cached in bitmaps and only redrawn when something changes.
+// A layer is made of pieces that cover only the areas where the layer has something to draw (in world units),
+// cut on whole device pixels and never overlapping, so the result lands on exactly the same pixels as direct
+// drawing while far fewer empty pixels are copied every frame.
+const WAGON_AREA = [[VX0 - 0.5, VY0 - 0.5, VX1 + 0.5, VY1 + 0.5]];
 const jarLayers = {};
-function cachedLayer(name, key, draw, sx, sy) {
-  const L = jarLayers[name] || (jarLayers[name] = { cv: document.createElement('canvas'), key: '' });
+function cachedLayer(name, key, draw, sx, sy, areas) {
+  const L = jarLayers[name] || (jarLayers[name] = { parts: [], key: '' });
   if (L.key !== key) {
-    L.cv.width = canvas.width; L.cv.height = canvas.height;
-    const c = L.cv.getContext('2d'), keep = ctx;
-    c.setTransform(dpr * SC, 0, 0, dpr * SC, dpr * OX, dpr * OY);
-    ctx = c;
-    try { draw(); } finally { ctx = keep; }
-    L.key = key;
+    const px = x => Math.round(dpr * (OX + x * SC)), py = y => Math.round(dpr * (OY + y * SC));
+    L.parts = (areas || WAGON_AREA).map(([ax0, ay0, ax1, ay1], k) => {
+      const p = L.parts[k] || { cv: document.createElement('canvas') };
+      p.x = px(ax0); p.y = py(ay0);
+      p.cv.width = Math.max(1, px(ax1) - p.x); p.cv.height = Math.max(1, py(ay1) - p.y);
+      const c = p.cv.getContext('2d'), keep = ctx;
+      c.setTransform(dpr * SC, 0, 0, dpr * SC, dpr * OX - p.x, dpr * OY - p.y);
+      ctx = c;
+      try { draw(); } finally { ctx = keep; }
+      return p;
+    });
+    L.key = key; heavyFrame = true;
   }
-  ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(L.cv, Math.round(dpr * sx), Math.round(dpr * sy)); ctx.restore();
+  const ox = Math.round(dpr * sx), oy = Math.round(dpr * sy);
+  ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
+  for (const p of L.parts) ctx.drawImage(p.cv, p.x + ox, p.y + oy);
+  ctx.restore();
 }
+// where the front of the wagon has something to draw: the two side walls (with the viking shields) and the floor beam
+const FRONT_AREAS = [[VX0 - 0.5, VY0 - 0.5, 0.1, VY1 + 0.5], [WORLD_W - 0.1, VY0 - 0.5, VX1 + 0.5, VY1 + 0.5], [0.1, FLOOR_Y - 0.1, WORLD_W - 0.1, FLOOR_Y + 0.6]];
+// the trophy shelves above the floor
+const SHELF_AREAS = [[-0.4, FLOOR_Y - 2.6, WORLD_W + 0.4, FLOOR_Y + 0.3]];
 function jarParams() {
   const th = theme();
   return { th, wT: 0.34, gold: goldEdges() && th.id === 'eu', trim: goldEdges() && th.id !== 'eu', roll: reduceMotion ? 0 : time };
@@ -232,11 +249,10 @@ function jarFront() {
       ctx.fillStyle = '#cfd5de'; ctx.beginPath(); ctx.arc(x, y, 0.09, 0, TAU); ctx.fill();
     }
   }
-  drawTrophyWall();
 }
 function drawJar(sx, sy) {
   const { th, wT, roll } = jarParams();
-  const base = canvas.width + 'x' + canvas.height + '|' + SC + '|' + OX + '|' + OY + '|' + th.id + '|' + goldEdges();
+  const base = canvas.width + 'x' + canvas.height + '|' + SC + '|' + OX + '|' + OY + '|' + th.id + '|' + goldEdges() + '|' + fontGen;
   cachedLayer('back', base, jarBack, sx, sy);
   // track across the whole screen: ballast, sleepers scrolling past on a fixed grid, rail
   const ry = FLOOR_Y + 1.12, tx0 = Math.floor((-OX) / SC) - 2, tx1 = Math.ceil((vw - OX) / SC) + 2;
@@ -273,10 +289,13 @@ function drawJar(sx, sy) {
   const lamp = 0.5 + 0.5 * Math.sin(time * 3);
   ctx.fillStyle = `rgba(255,60,60,${0.25 * lamp})`; ctx.beginPath(); ctx.arc(WORLD_W + wT + 0.05, FLOOR_Y + 0.05, 0.3, 0, TAU); ctx.fill();
   ctx.fillStyle = '#ff4040'; ctx.beginPath(); ctx.arc(WORLD_W + wT + 0.05, FLOOR_Y + 0.05, 0.1, 0, TAU); ctx.fill();
-  const now = Date.now(), popping = ACH.some(a => achGot[a[0]] && now - achGot[a[0]] < 1300);
-  cachedLayer('front', base + '|' + achCount() + '|' + trophies() + '|' + Object.keys(TOBJ).join() + (popping ? '|' + now : ''), jarFront, sx, sy);
+  cachedLayer('front', base, jarFront, sx, sy, FRONT_AREAS);
   // gold milestone cups ride on the wagon's side
   for (let k = 0, n = trophies(); k < n; k++) drawCup(WORLD_W - 0.5 - k * 0.62, FLOOR_Y + 0.25, 0.22 + k * 0.012);
+  // the trophy shelves: cached, except while a newly won trophy is still popping
+  const now = Date.now(), popping = ACH.some(a => achGot[a[0]] && now - achGot[a[0]] < 1300);
+  if (popping) drawTrophyWall();
+  else cachedLayer('shelf', base + '|' + ACH.map(a => achGot[a[0]] ? 1 : 0).join('') + '|' + Object.keys(TOBJ).join(), drawTrophyWall, sx, sy, SHELF_AREAS);
 }
 function rivet(x, y, r, col, kind) {
   ctx.fillStyle = col;
@@ -593,18 +612,18 @@ function drawFloaters(sx, sy) {
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
   for (const f of floaters) {
     const u = 1 - f.life / f.max, a = f.life < 0.35 ? f.life / 0.35 : 1, pop = u < 0.12 ? 0.6 + (u / 0.12) * 0.4 : 1;
-    const px = clamp(OX + sx + f.x * SC, 70, vw - 70), py = OY + sy + f.y * SC;
+    const px = clamp(OX + sx + f.x * SC, 70 * ui, vw - 70 * ui), py = OY + sy + f.y * SC;
     ctx.globalAlpha = a;
-    ctx.font = `800 ${Math.round(f.size * pop)}px ${FONT}`;
-    ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(23,21,58,0.85)'; ctx.strokeText(f.text, px, py);
+    ctx.font = `800 ${Math.round(f.size * pop * ui)}px ${FONT}`;
+    ctx.lineWidth = 5 * ui; ctx.strokeStyle = 'rgba(23,21,58,0.85)'; ctx.strokeText(f.text, px, py);
     ctx.fillStyle = f.color; ctx.fillText(f.text, px, py);
   }
   ctx.globalAlpha = 1;
   if (blockedT > 0) {
     ctx.globalAlpha = Math.min(1, blockedT / 0.3);
-    ctx.font = `800 18px ${FONT}`;
+    ctx.font = `800 ${Math.round(18 * ui)}px ${FONT}`;
     const px = OX + sx + LX * SC, py = OY + sy + (LY + RADII[cur] + 0.8) * SC;
-    ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(23,21,58,0.85)'; ctx.strokeText(T('Ei mahdu!'), px, py);
+    ctx.lineWidth = 5 * ui; ctx.strokeStyle = 'rgba(23,21,58,0.85)'; ctx.strokeText(T('Ei mahdu!'), px, py);
     ctx.fillStyle = '#ff4f7b'; ctx.fillText(T('Ei mahdu!'), px, py);
     ctx.globalAlpha = 1;
   }
@@ -620,26 +639,29 @@ const hudLabel = (t, x, y, a) => hudText(t, x, y, a, `700 12px ${FONT}`, '#a9c1f
 const hudNum = (t, x, y, size, a) => hudText(String(t), x, y, a, `800 ${size}px ${FONT}`, '#fff7ee');
 const hudSmall = (t, x, y, a) => hudText(t, x, y, a, `600 14px ${FONT}`, 'rgba(255,247,238,0.68)');
 
-const chainCache = { cv: null, key: '' };
-function drawChain(x0, y0, vertical, room) {
-  // the row of countries changes rarely, so it is drawn once into a bitmap
-  const seenNow = Math.max(4, maxLevel, bestLevel), maxR = 8 + RADII[MAXL] * 2.6 + 2;
-  const bw = vertical ? maxR * 2 + 4 : room + 8, bh = vertical ? room + 8 : maxR * 2 + 4, bx = vertical ? x0 - bw / 2 : x0 - bw / 2, by = vertical ? y0 - 4 : y0 - bh / 2;
-  const key = [x0, y0, vertical, room, seenNow, dpr].join('|');
+const chainCache = { cv: null, key: '', x: 0, y: 0 };
+function drawChain(x0, y0, vertical, room, u) {
+  // the row of countries changes rarely, so it is drawn once into a bitmap. The bitmap sits on whole
+  // device pixels and keeps the exact sub-pixel position, so it looks the same as drawing directly.
+  const seenNow = Math.max(4, maxLevel, bestLevel), maxR = (8 + RADII[MAXL] * 2.6 + 2) * u;
+  const bw = vertical ? maxR * 2 + 4 : room + 8 * u, bh = vertical ? room + 8 * u : maxR * 2 + 4, bx = x0 - bw / 2, by = vertical ? y0 - 4 * u : y0 - bh / 2;
+  const key = [x0, y0, vertical, room, u, seenNow, dpr, fontGen].join('|');
   if (chainCache.key !== key) {
     const cv = chainCache.cv || (chainCache.cv = document.createElement('canvas'));
-    cv.width = Math.max(1, Math.ceil(bw * dpr)); cv.height = Math.max(1, Math.ceil(bh * dpr));
+    const dx = Math.floor(bx * dpr), dy = Math.floor(by * dpr);
+    cv.width = Math.max(1, Math.ceil((bx + bw) * dpr) - dx); cv.height = Math.max(1, Math.ceil((by + bh) * dpr) - dy);
+    chainCache.x = dx; chainCache.y = dy;
     const c = cv.getContext('2d'), keep = ctx;
-    c.setTransform(dpr, 0, 0, dpr, -bx * dpr, -by * dpr);
+    c.setTransform(dpr, 0, 0, dpr, -dx, -dy);
     ctx = c;
-    try { drawChainRaw(x0, y0, vertical, room); } finally { ctx = keep; }
-    chainCache.key = key;
+    try { drawChainRaw(x0, y0, vertical, room, u); } finally { ctx = keep; }
+    chainCache.key = key; heavyFrame = true;
   }
-  ctx.drawImage(chainCache.cv, bx, by, bw, bh);
+  ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(chainCache.cv, chainCache.x, chainCache.y); ctx.restore();
 }
-function drawChainRaw(x0, y0, vertical, room) {
-  const base = RADII.map(r => 8 + r * 2.6), full = base.reduce((a, r) => a + 2 * r, 0) + 5 * (base.length - 1);
-  const scale = Math.min(1, room / full), sizes = base.map(r => r * scale), gap = 5 * scale;
+function drawChainRaw(x0, y0, vertical, room, u) {
+  const base = RADII.map(r => (8 + r * 2.6) * u), full = base.reduce((a, r) => a + 2 * r, 0) + 5 * u * (base.length - 1);
+  const scale = Math.min(1, room / full), sizes = base.map(r => r * scale), gap = 5 * u * scale;
   const total = sizes.reduce((a, r) => a + 2 * r, 0) + gap * (sizes.length - 1);
   const seen = Math.max(4, maxLevel, bestLevel);
   let p = vertical ? y0 : x0 - total / 2;
@@ -647,10 +669,10 @@ function drawChainRaw(x0, y0, vertical, room) {
     const r = sizes[k], cx = vertical ? x0 : p + r, cy = vertical ? p + r : y0;
     if (k <= seen) drawRoundBlob(k, cx, cy, r, 1, Math.max(1, r * 0.08), r > 9);
     else {
-      ctx.fillStyle = 'rgba(255,255,255,0.08)'; ctx.strokeStyle = 'rgba(255,255,255,0.25)'; ctx.lineWidth = 1.2;
+      ctx.fillStyle = 'rgba(255,255,255,0.08)'; ctx.strokeStyle = 'rgba(255,255,255,0.25)'; ctx.lineWidth = 1.2 * u;
       ctx.beginPath(); ctx.arc(cx, cy, r, 0, TAU); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = 'rgba(255,255,255,0.45)'; ctx.font = `700 ${Math.max(9, r * 1.1)}px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText('?', cx, cy + 1); ctx.textBaseline = 'alphabetic';
+      ctx.fillStyle = 'rgba(255,255,255,0.45)'; ctx.font = `700 ${Math.max(9 * u, r * 1.1)}px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('?', cx, cy + u); ctx.textBaseline = 'alphabetic';
     }
     p += 2 * r + gap;
   }
@@ -673,28 +695,56 @@ function modeLine() {
 function drawHUD() {
   const fl = OX + VX0 * SC, fr = OX + VX1 * SC, ft = OY + VY0 * SC, fb = OY + VY1 * SC, fc = OX + LX * SC;
   ctx.textBaseline = 'alphabetic';
-  const sc = Math.round(shownScore), info = modeLine();
+  const sc = Math.round(shownScore), info = modeLine(), u = ui;
+  // each HUD group is drawn around an anchor point and scaled by ui (1 on phones, so nothing changes there)
+  const at = (x, y) => ctx.setTransform(dpr * u, 0, 0, dpr * u, dpr * x, dpr * y);
   if (mode === 'top') {
-    hudLabel(gmode === 'zen' ? 'ZEN' : gmode === 'classic' ? T('PISTEET') : MODE_INFO[gmode].name.toUpperCase(), fl + 6, ft - 64, 'left');
-    hudNum(gmode === 'zen' ? '∞' : sc, fl + 4, ft - 28, 36, 'left');
-    hudSmall(info, fl + 6, ft - 9, 'left');
-    hudLabel(T('SEURAAVA'), fc, ft - 64, 'center');
+    const [hl, hr] = hudEdges();
+    at(hl, ft);
+    hudLabel(gmode === 'zen' ? 'ZEN' : gmode === 'classic' ? T('PISTEET') : MODE_INFO[gmode].name.toUpperCase(), 6, -64, 'left');
+    hudNum(gmode === 'zen' ? '∞' : sc, 4, -28, 36, 'left');
+    hudSmall(info, 6, -9, 'left');
+    at(fc, ft);
+    hudLabel(T('SEURAAVA'), 0, -64, 'center');
     const pr = 8 + nxt * 2.6;
-    drawRoundBlob(nxt, fc, ft - 32, pr, 1, Math.max(1, pr * 0.07), pr > 9);
-    hudSmall(NAMES[nxt], fc + pr + 8, ft - 27, 'left');
-    drawChain(fc, fb + 78, false, Math.min(vw - 12, fr - fl + 40));
+    drawRoundBlob(nxt, 0, -32, pr, 1, Math.max(1, pr * 0.07), pr > 9);
+    hudSmall(NAMES[nxt], pr + 8, -27, 'left');
+    screenTf();
+    drawChain(fc, fb + 78 * u, false, Math.min(vw - 12, hr - hl + 40), u);
   } else {
-    const x = fl - 30;
-    hudLabel(gmode === 'classic' ? T('PISTEET') : MODE_INFO[gmode].name.toUpperCase(), x, ft + 30, 'right');
-    hudNum(gmode === 'zen' ? '∞' : sc, x, ft + 80, 52, 'right');
-    hudSmall(info, x, ft + 106, 'right');
-    drawMascot(ctx, x - 70, fb - 120, 46, time, mascotBounce);
-    hudLabel(T('SEURAAVA'), x, ft + 160, 'right');
+    at(fl, ft);
+    hudLabel(gmode === 'classic' ? T('PISTEET') : MODE_INFO[gmode].name.toUpperCase(), -30, 30, 'right');
+    hudNum(gmode === 'zen' ? '∞' : sc, -30, 80, 52, 'right');
+    hudSmall(info, -30, 106, 'right');
+    screenTf();
+    drawSideMascot(fl, ft, fb, u);
+    at(fl, ft);
+    hudLabel(T('SEURAAVA'), -30, 160, 'right');
     const pr = 12 + nxt * 3.2;
-    drawRoundBlob(nxt, x - pr, ft + 176 + pr, pr, 1, Math.max(1, pr * 0.07), true);
-    hudSmall(NAMES[nxt], x, ft + 196 + 2 * pr, 'right');
-    drawChain(fr + 44, ft + 76, true, fb - ft - 100);
+    drawRoundBlob(nxt, -30 - pr, 176 + pr, pr, 1, Math.max(1, pr * 0.07), true);
+    hudSmall(NAMES[nxt], -30, 196 + 2 * pr, 'right');
+    screenTf();
+    drawChain(fr + 44 * u, ft + 76 * u, true, fb - ft - 100 * u, u);
   }
+}
+// the mascot under the side HUD; on short screens (phones held sideways) it shrinks or moves so it never covers the HUD
+// measured extent of the mascot drawing in units of its size s (tallest hat, mid-bounce)
+const MASCOT_UP = 2.4, MASCOT_DOWN = 1.55, MASCOT_HALF_W = 1.4;
+function drawSideMascot(fl, ft, fb, u) {
+  let s = 46 * u, cx = fl - 100 * u, cy = fb - 120 * u;
+  const free = ft + 330 * u; // below the next ball and the swing button
+  if (cy - MASCOT_UP * s < free) {
+    const s2 = (fb - 6 * u - free) / (MASCOT_UP + MASCOT_DOWN);
+    if (s2 >= 26 * u) { s = Math.min(s, s2); cy = fb - 6 * u - MASCOT_DOWN * s; }
+    else {
+      // beside the HUD column instead, in the empty space at the screen's left edge
+      const room = fl - 200 * u;
+      s = Math.min(46 * u, room / (2 * MASCOT_HALF_W), (fb - ft) / (MASCOT_UP + MASCOT_DOWN));
+      if (s < 18) return;
+      cx = room / 2; cy = fb - 6 * u - MASCOT_DOWN * s;
+    }
+  }
+  drawMascot(ctx, cx, cy, s, time, mascotBounce);
 }
 
 function render() {

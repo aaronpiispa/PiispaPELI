@@ -2,25 +2,44 @@
 'use strict';
 
 // ------------------------------ layout ------------------------------
-let vw = 0, vh = 0, dpr = 1, SC = 40, OX = 0, OY = 0, mode = 'top';
+// ui: size of the HUD, buttons and menus; 1 on phones and laptops, bigger on large screens
+let vw = 0, vh = 0, dpr = 1, SC = 40, OX = 0, OY = 0, mode = 'top', ui = 1;
 // adaptive quality for slower phones: lower the render resolution step by step, then drop decorative effects
 const QUALITY_DPR = [2, 1.5, 1.2, 1];
-let quality = (() => {
-  const weak = (navigator.hardwareConcurrency || 8) <= 4 || (navigator.deviceMemory || 8) <= 3;
-  const q = Number(store.get('piispanpeli-quality', weak ? 1 : 0));
-  return q >= 0 && q < QUALITY_DPR.length ? q : 0;
+const QUALITY_KEY = 'piispanpeli-quality';
+// a lowered level is tried one step better again after a few days, so one slow moment never sticks for good
+const QUALITY_RETRY_MS = 3 * 864e5;
+const QUALITY_BASE = (navigator.hardwareConcurrency || 8) <= 2 || (navigator.deviceMemory || 8) <= 2 ? 1 : 0;
+// saved as { q: level, at: time it was lowered }; older versions saved just the level
+let qSaved = (() => {
+  const v = store.get(QUALITY_KEY, null);
+  const q = typeof v === 'number' ? v : v && typeof v === 'object' ? v.q : NaN;
+  if (!Number.isInteger(q) || q < 0 || q >= QUALITY_DPR.length) return { q: QUALITY_BASE, at: 0 };
+  return { q, at: v && typeof v === 'object' ? Number(v.at) || 0 : 0 };
 })();
+let quality = qSaved.q > QUALITY_BASE && Date.now() - qSaved.at > QUALITY_RETRY_MS ? qSaved.q - 1 : qSaved.q;
 const lowFx = () => quality >= 2;
-let qSum = 0, qN = 0, qWarm = 0, qSlow = 0;
+let qSum = 0, qN = 0, qWarm = 0, qSlow = 0, qGood = 0;
 function watchFrameTime(ms) {
+  // a frame that rebuilt a cached bitmap is slow once by design; it says nothing about the phone
+  const heavy = heavyFrame; heavyFrame = false;
   // only judge while actually playing and visible, after a short warm-up; two slow 1.5 s windows in a row step quality down
   if (document.hidden || state !== 'play' || ms > 250) { qWarm = 0; qSum = 0; qN = 0; return; }
+  if (heavy) return;
   if (qWarm < 2000) { qWarm += ms; return; }
   qSum += ms; qN++;
   if (qSum < 1500 || qN < 10) return;
   const avg = qSum / qN; qSum = 0; qN = 0;
   qSlow = avg > 26 ? qSlow + 1 : 0;
-  if (qSlow >= 2 && quality < QUALITY_DPR.length - 1) { qSlow = 0; quality++; store.set('piispanpeli-quality', quality); layout(); }
+  qGood = avg > 26 ? 0 : qGood + 1;
+  if (qSlow >= 2 && quality < QUALITY_DPR.length - 1) {
+    qSlow = 0; qGood = 0; quality++;
+    qSaved = { q: quality, at: Date.now() }; store.set(QUALITY_KEY, qSaved);
+    layout();
+  } else if (qGood >= 20 && quality < qSaved.q) {
+    // half a minute of smooth play on the better level that was being retried: keep it
+    qSaved = { q: quality, at: qSaved.at }; store.set(QUALITY_KEY, qSaved);
+  }
 }
 const bg = document.createElement('canvas'), bgx = bg.getContext('2d');
 
@@ -35,31 +54,49 @@ function layout() {
   const iB = parseFloat(ps.paddingBottom) || 0, iL = parseFloat(ps.paddingLeft) || 0;
   const aw = Math.max(1, vw - iL - iR), ah = Math.max(1, vh - iT - iB);
   const ww = VX1 - VX0, wh = VY1 - VY0;
-  const sTop = Math.min((aw - 24) / ww, (ah - 196) / wh);
-  const sSide = Math.min((aw - 400) / ww, (ah - 32) / wh);
+  // the HUD needs a band of TOP_H px above and below the wagon, or SIDE_W px beside it
+  const TOP_H = 196, SIDE_W = 400;
+  const sTop = Math.min((aw - 24) / ww, (ah - TOP_H) / wh);
+  const sSide = Math.min((aw - SIDE_W) / ww, (ah - 32) / wh);
   if (sSide > sTop * 1.08) {
     mode = 'side'; SC = sSide;
     OX = iL + (aw - ww * SC) / 2 - VX0 * SC;
     OY = iT + (ah - wh * SC) / 2 - VY0 * SC;
+    // big screens get a bigger HUD, as long as it still fits beside the wagon
+    ui = clamp(Math.min(SC / 36, (aw - ww * SC) / 2 / (SIDE_W / 2)), 1, 2.4);
   } else {
-    mode = 'top'; SC = Math.max(8, sTop);
+    mode = 'top';
+    // a bigger HUD needs a taller band, which makes the wagon a little smaller: settle both together
+    ui = 1; SC = Math.max(8, sTop);
+    for (let k = 0; k < 4; k++) { ui = clamp(SC / 36, 1, 1.8); SC = Math.max(8, Math.min((aw - 24) / ww, (ah - TOP_H * ui) / wh)); }
     OX = iL + (aw - ww * SC) / 2 - VX0 * SC;
-    OY = iT + Math.max(0, (ah - (wh * SC + 196)) / 2) + 88 - VY0 * SC;
+    OY = iT + Math.max(0, (ah - (wh * SC + TOP_H * ui)) / 2) + 88 * ui - VY0 * SC;
   }
+  const rs = document.documentElement.style;
+  rs.setProperty('--ui', String(ui));
+  // menus grow on big screens too (never shrink: small screens scroll or use the compact layout instead)
+  rs.setProperty('--uiz', String(clamp(Math.min(vw / 440, vh / 820), 1, 2)));
   placeButtons(); buildBg();
 }
 
+// left and right edge of the HUD in the 'top' layout: the wagon's width, but never so narrow that texts collide
+function hudEdges() {
+  const fl = OX + VX0 * SC, fr = OX + VX1 * SC, c = (fl + fr) / 2, half = Math.max((fr - fl) / 2, 136 * ui);
+  return [Math.max(4, c - half), Math.min(vw - 4, c + half)];
+}
+
 function placeButtons() {
-  const fr = OX + VX1 * SC, ft = OY + VY0 * SC;
-  const fl = OX + VX0 * SC, fb = OY + VY1 * SC;
+  const ft = OY + VY0 * SC, fb = OY + VY1 * SC, u = ui;
   if (mode === 'top') {
-    pauseBtn.style.left = (fr - 44) + 'px'; soundBtn.style.left = (fr - 92) + 'px';
-    pauseBtn.style.top = soundBtn.style.top = (ft - 74) + 'px';
-    abilBtn.style.left = (fl + 4) + 'px'; abilBtn.style.top = (fb + 14) + 'px'; abilBtn.style.right = 'auto';
+    const [hl, hr] = hudEdges();
+    pauseBtn.style.left = (hr - 44 * u) + 'px'; soundBtn.style.left = (hr - 92 * u) + 'px';
+    pauseBtn.style.top = soundBtn.style.top = (ft - 74 * u) + 'px';
+    abilBtn.style.left = (hl + 4 * u) + 'px'; abilBtn.style.top = (fb + 14 * u) + 'px'; abilBtn.style.right = 'auto';
   } else {
-    soundBtn.style.left = (fr + 24) + 'px'; pauseBtn.style.left = (fr + 72) + 'px';
-    pauseBtn.style.top = soundBtn.style.top = (ft + 4) + 'px';
-    abilBtn.style.left = 'auto'; abilBtn.style.right = (vw - fl + 30) + 'px'; abilBtn.style.top = (ft + 290) + 'px';
+    const fl = OX + VX0 * SC, fr = OX + VX1 * SC;
+    soundBtn.style.left = (fr + 24 * u) + 'px'; pauseBtn.style.left = (fr + 72 * u) + 'px';
+    pauseBtn.style.top = soundBtn.style.top = (ft + 4 * u) + 'px';
+    abilBtn.style.left = 'auto'; abilBtn.style.right = (vw - fl + 30 * u) + 'px'; abilBtn.style.top = (ft + 290 * u) + 'px';
   }
 }
 
@@ -338,7 +375,7 @@ function drawScenery() {
   if (want !== sceneIdx) { scenePrev = sceneIdx; sceneIdx = want; sceneFade = 0; sceneParticles(want); }
   if (!sceneParts.length && SCENES[sceneIdx].anim !== 'aurora') sceneParticles(sceneIdx);
   sceneFade = Math.min(1, sceneFade + 0.012);
-  const get = k => sceneCache[k] || (sceneCache[k] = buildScene(k));
+  const get = k => sceneCache[k] || (heavyFrame = true, sceneCache[k] = buildScene(k));
   if (sceneFade < 1) ctx.drawImage(get(scenePrev), 0, 0, vw, vh);
   ctx.globalAlpha = sceneFade; ctx.drawImage(get(sceneIdx), 0, 0, vw, vh); ctx.globalAlpha = 1;
   if (lowFx()) return;

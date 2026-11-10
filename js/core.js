@@ -37,6 +37,10 @@ const SPAWN_W = [0.112, 0.14, 0.2, 0.12, 0.08, 0.06, 0.04];
 const VX0 = -1.5, VX1 = WORLD_W + 1.5, VY0 = -0.55, VY1 = FLOOR_Y + 1.45;
 const reduceMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 const FONT = '"Baloo 2", system-ui, -apple-system, "Segoe UI", sans-serif';
+// goes up every time a web font finishes loading, so cached bitmaps that contain text get redrawn with the real font
+let fontGen = 0;
+// set when a frame had to redraw a cached bitmap; such a frame is not used to judge the phone's speed
+let heavyFrame = false;
 
 function hexRgb(h) { const n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; }
 function mix(c, t, f) { return [0, 1, 2].map(i => Math.round(c[i] + (t[i] - c[i]) * f)); }
