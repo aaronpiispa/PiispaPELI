@@ -1,5 +1,5 @@
 // PiispanPELI service worker: keeps the game playable offline
-const CACHE = 'piispanpeli-v33';
+const CACHE = 'piispanpeli-v37';
 const FONTS = 'piispanpeli-fonts-v1';
 const ASSETS = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png', './icons/icon-maskable-512.png', './icons/apple-touch-icon.png', './icons/favicon-32.png'];
 
