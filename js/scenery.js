@@ -88,9 +88,11 @@ function hudEdges() {
 function placeButtons() {
   const ft = OY + VY0 * SC, fb = OY + VY1 * SC, u = ui;
   if (mode === 'top') {
-    const [hl, hr] = hudEdges();
+    const [hl, hr] = hudEdges(), fc = OX + LX * SC;
     pauseBtn.style.left = (hr - 44 * u) + 'px'; soundBtn.style.left = (hr - 92 * u) + 'px';
-    pauseBtn.style.top = soundBtn.style.top = (ft - 74 * u) + 'px';
+    // on narrow screens the buttons come close to the next ball's name below them: lift them a little
+    const lift = hr - 92 * u < fc + 100 * u ? 10 * u : 0;
+    pauseBtn.style.top = soundBtn.style.top = (ft - 74 * u - lift) + 'px';
     abilBtn.style.left = (hl + 4 * u) + 'px'; abilBtn.style.top = (fb + 14 * u) + 'px'; abilBtn.style.right = 'auto';
   } else {
     const fl = OX + VX0 * SC, fr = OX + VX1 * SC;
@@ -375,6 +377,9 @@ function drawScenery() {
   if (want !== sceneIdx) { scenePrev = sceneIdx; sceneIdx = want; sceneFade = 0; sceneParticles(want); }
   if (!sceneParts.length && SCENES[sceneIdx].anim !== 'aurora') sceneParticles(sceneIdx);
   sceneFade = Math.min(1, sceneFade + 0.012);
+  // keep only the scenes on screen: each one is a full-screen bitmap (about 6 MB on a phone), and keeping every
+  // visited one made memory grow through a long game. Scenes are drawn from a fixed seed, so a rebuilt one is identical.
+  for (const k in sceneCache) if (+k !== sceneIdx && (sceneFade >= 1 || +k !== scenePrev)) delete sceneCache[k];
   const get = k => sceneCache[k] || (heavyFrame = true, sceneCache[k] = buildScene(k));
   if (sceneFade < 1) ctx.drawImage(get(scenePrev), 0, 0, vw, vh);
   ctx.globalAlpha = sceneFade; ctx.drawImage(get(sceneIdx), 0, 0, vw, vh); ctx.globalAlpha = 1;

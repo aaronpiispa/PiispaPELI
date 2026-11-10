@@ -7,8 +7,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
-let playwright = null;
-try { playwright = require('playwright'); } catch (e) { /* optional dependency */ }
+const { playwright, launchBrowser } = require('../helpers/browser');
 const ROOT = path.join(__dirname, '..', '..');
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.webmanifest': 'application/manifest+json' };
 
@@ -31,7 +30,7 @@ test.before(async () => {
   if (skip) return;
   server = await serve();
   base = `http://127.0.0.1:${server.address().port}/`;
-  browser = await playwright.chromium.launch(process.env.CHROME_PATH ? { executablePath: process.env.CHROME_PATH } : {});
+  browser = await launchBrowser();
 });
 test.after(async () => { if (browser) await browser.close(); if (server) server.close(); });
 

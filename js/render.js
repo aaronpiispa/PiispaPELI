@@ -184,6 +184,18 @@ function cachedLayer(name, key, draw, sx, sy, areas) {
 const FRONT_AREAS = [[VX0 - 0.5, VY0 - 0.5, 0.1, VY1 + 0.5], [WORLD_W - 0.1, VY0 - 0.5, VX1 + 0.5, VY1 + 0.5], [0.1, FLOOR_Y - 0.1, WORLD_W - 0.1, FLOOR_Y + 0.6]];
 // the trophy shelves above the floor
 const SHELF_AREAS = [[-0.4, FLOOR_Y - 2.6, WORLD_W + 0.4, FLOOR_Y + 0.3]];
+// Text sized in world units (a fraction of a ball). Firefox draws boxes for characters missing from every font
+// (like the viking runes on computers without a runic font) at a minimum pixel size, which at a 0.26 px font
+// covered the whole wagon. Such text measures far wider than its characters could be; only then it is drawn
+// at a normal pixel size and scaled down. Everything else is drawn exactly as before.
+const TEXT_K = 100;
+function worldText(text, x, y, size, weight) {
+  ctx.font = `${weight} ${size}px ${FONT}`;
+  if (ctx.measureText(text).width <= size * text.length) { ctx.fillText(text, x, y); return; }
+  ctx.save(); ctx.translate(x, y); ctx.scale(1 / TEXT_K, 1 / TEXT_K);
+  ctx.font = `${weight} ${size * TEXT_K}px ${FONT}`; ctx.fillText(text, 0, 0);
+  ctx.restore();
+}
 function jarParams() {
   const th = theme();
   return { th, wT: 0.34, gold: goldEdges() && th.id === 'eu', trim: goldEdges() && th.id !== 'eu', roll: reduceMotion ? 0 : time };
@@ -223,8 +235,8 @@ function jarFront() {
   ctx.fillStyle = fg; rrect(-wT, FLOOR_Y, WORLD_W + 2 * wT, 0.5, 0.12); ctx.fill();
   ctx.fillStyle = gold || trim ? '#fff3b0' : th.stripe; ctx.fillRect(-wT + 0.15, FLOOR_Y + 0.05, WORLD_W + 2 * wT - 0.3, 0.04);
   for (let x = 0.3; x < WORLD_W; x += 0.6) rivet(x, FLOOR_Y + 0.4, 0.035, gold ? '#fffbe6' : th.rivet, th.id);
-  ctx.font = `800 0.26px ${FONT}`; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-  ctx.fillStyle = gold ? '#5a3c00' : th.text; ctx.fillText(th.label, 0.35, FLOOR_Y + 0.25);
+  ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = gold ? '#5a3c00' : th.text; worldText(th.label, 0.35, FLOOR_Y + 0.25, 0.26, 800);
   ctx.textBaseline = 'alphabetic';
   // side walls with gold rivets
   for (const side of [0, 1]) {
@@ -319,10 +331,10 @@ function drawThemeDeco(th) {
     }
   } else if (th.id === 'uni') {
     // chalkboard with formulas in a wooden frame
-    ctx.font = `600 0.42px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     CHALK.forEach((t, i) => {
       const x = 1.6 + (i % 3) * 4.4 + ((i * 37) % 10) / 10 - 0.5, y = FUN_Y + 1.1 + Math.floor(i / 3) * (h - 3.4) / 3.2;
-      ctx.save(); ctx.translate(x, y); ctx.rotate(((i * 53) % 9 - 4) * 0.02); ctx.fillStyle = 'rgba(240,240,225,0.2)'; ctx.fillText(t, 0, 0); ctx.restore();
+      ctx.save(); ctx.translate(x, y); ctx.rotate(((i * 53) % 9 - 4) * 0.02); ctx.fillStyle = 'rgba(240,240,225,0.2)'; worldText(t, 0, 0, 0.42, 600); ctx.restore();
     });
     ctx.textBaseline = 'alphabetic';
     ctx.strokeStyle = 'rgba(240,240,225,0.12)'; ctx.lineWidth = 0.04; ctx.beginPath(); ctx.ellipse(WORLD_W * 0.72, FUN_Y + h * 0.55, 0.9, 0.5, -0.2, 0, TAU); ctx.stroke();
@@ -635,7 +647,23 @@ function hudText(text, x, y, align, font, color, spacing) {
   ctx.fillText(text, x, y);
   if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
 }
-const hudLabel = (t, x, y, a) => hudText(t, x, y, a, `700 12px ${FONT}`, '#a9c1f0', '1.6px');
+const HUD_LABEL_FONT = `700 12px ${FONT}`;
+const hudLabel = (t, x, y, a) => hudText(t, x, y, a, HUD_LABEL_FONT, '#a9c1f0', '1.6px');
+let hudLayout = {};
+// a HUD label shrunk to fit `room` (local units): down to half size, then shortened with an ellipsis
+function fitHudLabel(text, room) {
+  const full = hudTextWidth(text, HUD_LABEL_FONT, '1.6px');
+  if (full <= room) return { t: text, k: 1, w: full };
+  const k = Math.max(0.5, room / full), font = `700 ${12 * k}px ${FONT}`, sp = `${1.6 * k}px`;
+  let t = text;
+  while (t.length > 1 && hudTextWidth(t, font, sp) > room) t = t.slice(0, -2) + '…';
+  return { t, k, w: hudTextWidth(t, font, sp) };
+}
+const hudLabelSized = (f, x, y, a) => hudText(f.t, x, y, a, `700 ${12 * f.k}px ${FONT}`, '#a9c1f0', `${1.6 * f.k}px`);
+function hudTextWidth(text, font, spacing) {
+  ctx.save(); ctx.font = font; if ('letterSpacing' in ctx) ctx.letterSpacing = spacing || '0px';
+  const w = ctx.measureText(text).width; ctx.restore(); return w;
+}
 const hudNum = (t, x, y, size, a) => hudText(String(t), x, y, a, `800 ${size}px ${FONT}`, '#fff7ee');
 const hudSmall = (t, x, y, a) => hudText(t, x, y, a, `600 14px ${FONT}`, 'rgba(255,247,238,0.68)');
 
@@ -700,17 +728,31 @@ function drawHUD() {
   const at = (x, y) => ctx.setTransform(dpr * u, 0, 0, dpr * u, dpr * x, dpr * y);
   if (mode === 'top') {
     const [hl, hr] = hudEdges();
+    // Labels are placed in units local to the HUD (scaled by ui). On ordinary screens both sit exactly where they
+    // always did; only when a long translation on a narrow screen would collide, the next-ball label moves left
+    // of the sound button and the labels get smaller (down to half size, then shortened with an ellipsis).
+    const label = gmode === 'zen' ? 'ZEN' : gmode === 'classic' ? T('PISTEET') : MODE_INFO[gmode].name.toUpperCase(), nl = T('SEURAAVA');
+    const lw = hudTextWidth(label, HUD_LABEL_FONT, '1.6px'), nw = hudTextWidth(nl, HUD_LABEL_FONT, '1.6px');
+    const cx = (fc - hl) / u, limit = (hr - 92 * u - hl) / u - 6;
+    let next = { t: nl, k: 1, x0: cx - nw / 2, w: nw, align: 'center', x: cx };
+    if (cx + nw / 2 > limit) {
+      const fit = fitHudLabel(nl, limit - 56);
+      next = { ...fit, x0: limit - fit.w, align: 'right', x: limit };
+    }
+    const modeLbl = (6 + lw <= next.x0 - 10) ? { t: label, k: 1, w: lw } : fitHudLabel(label, next.x0 - 10 - 6);
     at(hl, ft);
-    hudLabel(gmode === 'zen' ? 'ZEN' : gmode === 'classic' ? T('PISTEET') : MODE_INFO[gmode].name.toUpperCase(), 6, -64, 'left');
+    if (modeLbl.k === 1 && modeLbl.t === label) hudLabel(label, 6, -64, 'left'); else hudLabelSized(modeLbl, 6, -64, 'left');
     hudNum(gmode === 'zen' ? '∞' : sc, 4, -28, 36, 'left');
     hudSmall(info, 6, -9, 'left');
+    if (next.align === 'center' && next.k === 1) hudLabel(nl, next.x, -64, 'center'); else hudLabelSized(next, next.x, -64, next.align);
     at(fc, ft);
-    hudLabel(T('SEURAAVA'), 0, -64, 'center');
     const pr = 8 + nxt * 2.6;
     drawRoundBlob(nxt, 0, -32, pr, 1, Math.max(1, pr * 0.07), pr > 9);
     hudSmall(NAMES[nxt], pr + 8, -27, 'left');
     screenTf();
     drawChain(fc, fb + 78 * u, false, Math.min(vw - 12, hr - hl + 40), u);
+    // where the labels ended up, in CSS pixels (used by the layout tests)
+    hudLayout = { modeLabel: [hl + 6 * u, ft - 76 * u, hl + (6 + modeLbl.w) * u, ft - 62 * u], nextLabel: [hl + next.x0 * u, ft - 76 * u, hl + (next.x0 + next.w) * u, ft - 62 * u] };
   } else {
     at(fl, ft);
     hudLabel(gmode === 'classic' ? T('PISTEET') : MODE_INFO[gmode].name.toUpperCase(), -30, 30, 'right');
@@ -725,6 +767,8 @@ function drawHUD() {
     hudSmall(NAMES[nxt], -30, 196 + 2 * pr, 'right');
     screenTf();
     drawChain(fr + 44 * u, ft + 76 * u, true, fb - ft - 100 * u, u);
+    const lw = hudTextWidth(gmode === 'classic' ? T('PISTEET') : MODE_INFO[gmode].name.toUpperCase(), HUD_LABEL_FONT, '1.6px'), nw = hudTextWidth(T('SEURAAVA'), HUD_LABEL_FONT, '1.6px');
+    hudLayout = { modeLabel: [fl - (30 + lw) * u, ft + 18 * u, fl - 30 * u, ft + 32 * u], nextLabel: [fl - (30 + nw) * u, ft + 148 * u, fl - 30 * u, ft + 162 * u] };
   }
 }
 // the mascot under the side HUD; on short screens (phones held sideways) it shrinks or moves so it never covers the HUD

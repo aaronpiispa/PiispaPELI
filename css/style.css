@@ -197,6 +197,12 @@ html,body{height:100%;margin:0;overflow:hidden;background:var(--night);color:var
 /* very narrow phones: the two half-width buttons would not fit side by side and pushed the menu off screen */
 @media (max-width:350px){
   .start .menu-btns .two{grid-template-columns:1fr}
+  /* the three record boxes: long words like ACHIEVEMENTS get tighter letters instead of pushing the menu wider */
+  .stat{min-width:0}
+  .stat small{letter-spacing:0;font-size:10px;overflow-wrap:anywhere}
+  /* lists of game modes and missions: a long name wraps instead of pushing its button off the card */
+  .list li{grid-template-columns:minmax(0,1fr) auto}
+  .list b,.list small{overflow-wrap:anywhere}
 }
 @media (max-width:300px){
   .tgrid{grid-template-columns:1fr}

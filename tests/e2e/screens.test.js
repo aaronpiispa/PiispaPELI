@@ -4,7 +4,7 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { playwright, serve, openPage, frames } = require('../helpers/browser');
+const { playwright, serve, openPage, frames, launchBrowser, BROWSER } = require('../helpers/browser');
 
 const skip = !playwright && 'Playwright is not installed (npm install)';
 let browser, server, base;
@@ -12,7 +12,7 @@ test.before(async () => {
   if (skip) return;
   server = await serve();
   base = `http://127.0.0.1:${server.address().port}/`;
-  browser = await playwright.chromium.launch(process.env.CHROME_PATH ? { executablePath: process.env.CHROME_PATH } : {});
+  browser = await launchBrowser();
 });
 test.after(async () => { if (browser) await browser.close(); if (server) server.close(); });
 
@@ -143,3 +143,116 @@ test('upright phones keep the original one-column menu', { skip }, async t => {
   assert.equal(r.display, 'contents');
   assert.equal(Math.round(r.card), 361, 'same width as before (380 px or the screen minus margins)');
 });
+
+// ------------------------------ every language ------------------------------
+// HUD texts of every game mode and the longest next-ball name must stay clear of the buttons in all languages
+const MEASURE_ALL_MODES = () => {
+  const rect = el => { const b = el.getBoundingClientRect(); return b.width ? [b.left, b.top, b.right, b.bottom] : null; };
+  const textW = (t, font, spacing) => { ctx.save(); ctx.font = font; if ('letterSpacing' in ctx) ctx.letterSpacing = spacing || '0px'; const w = ctx.measureText(t).width; ctx.restore(); return w; };
+  const u = ui, fl = OX + VX0 * SC, ft = OY + VY0 * SC, fc = OX + LX * SC;
+  const widest = (list, font, sp) => Math.max(...list.map(t => textW(t, font, sp)));
+  const names = NAMES.slice(0, 7), namew = widest(names, `600 14px ${FONT}`) * u;
+  const ascent = (() => { ctx.save(); ctx.font = `600 14px ${FONT}`; const a = Math.max(...names.map(n => ctx.measureText(n).actualBoundingBoxAscent || 11)); ctx.restore(); return a * u; })();
+  // draw the HUD in every game mode and collect where the game put its labels
+  const boxes = {}, keepMode = gmode;
+  ['classic', 'time', 'daily', 'zen', 'gravity', 'map'].forEach(g => {
+    gmode = g;
+    drawHUD(); ctx.setTransform(1, 0, 0, 1, 0, 0);
+    boxes['modeLabel-' + g] = hudLayout.modeLabel; boxes['nextLabel-' + g] = hudLayout.nextLabel;
+  });
+  gmode = keepMode;
+  if (mode === 'top') { const pr = (8 + 6 * 2.6) * u; boxes.nextName = [fc + pr + 8 * u, ft - 27 * u - ascent, fc + pr + 8 * u + namew, ft - 24 * u]; }
+  return { mode, boxes, pause: rect(pauseBtn), sound: rect(soundBtn), abil: rect(abilBtn), w: innerWidth, h: innerHeight };
+};
+const LANG_SCREENS = [['small phone', 320, 568, 2, true], ['folded phone', 280, 653, 3, true], ['phone sideways', 852, 393, 3, true], ['small window', 500, 400, 1, false], ['desktop', 1920, 1080, 1, false]];
+const LANG_CODES = ['fi', 'en', 'et', 'lv', 'ga', 'de', 'hu', 'ro', 'it', 'sv', 'fr', 'uk', 'tr', 'kl', 'da', 'ru'];
+for (const [name, w, h, dsf, touch] of LANG_SCREENS) {
+  test(`every language fits: ${name} ${w}x${h}`, { skip }, async t => {
+    for (const lang of LANG_CODES) {
+      const { ctx, page, errors } = await openPage(browser, base, null, { viewport: { width: w, height: h }, dsf, touch, lang });
+      try {
+        for (const btn of [null, '#modesBtn', '#rulesBtn', '#themeBtn']) {
+          if (btn) await page.click(btn);
+          const r = await page.evaluate(() => {
+            const c = document.getElementById('card'), b = c.getBoundingClientRect(), s = document.getElementById('startBtn');
+            const sb = s && s.getBoundingClientRect();
+            return { wide: c.scrollWidth > c.clientWidth + 1, box: [b.left, b.top, b.right, b.bottom], start: sb && [sb.left, sb.top, sb.right, sb.bottom] };
+          });
+          assert.equal(r.wide, false, `${lang} ${btn || 'main menu'}: nothing sticks out sideways`);
+          assert.ok(inside(r.box, w, h), `${lang} ${btn || 'main menu'}: card on screen`);
+          if (!btn) assert.ok(inside(r.start, w, h), `${lang}: play button visible`);
+          await page.evaluate(() => showMenu());
+        }
+        await page.click('#startBtn');
+        await frames(page, 2);
+        const m = await page.evaluate(`(${MEASURE_ALL_MODES.toString()})()`);
+        for (const [k, box] of Object.entries(m.boxes)) {
+          assert.ok(inside(box, w, h), `${lang}: ${k} on screen ${box.map(Math.round)}`);
+          for (const b of ['pause', 'sound', 'abil']) assert.ok(!overlap(box, m[b]), `${lang}: ${k} clear of the ${b} button`);
+        }
+        for (const g of ['classic', 'time', 'daily', 'zen', 'gravity', 'map']) assert.ok(!overlap(m.boxes['modeLabel-' + g], m.boxes['nextLabel-' + g]), `${lang}/${g}: mode and next labels apart`);
+        assert.deepEqual(errors, [], lang);
+      } finally { await ctx.close(); }
+    }
+  });
+}
+
+// ------------------------------ other screens of the game ------------------------------
+for (const [name, w, h, dsf, touch] of SCREENS) {
+  test(`pause, save, admin and game over screens fit: ${name} ${w}x${h}`, { skip }, async t => {
+    const { page, errors } = await openPage(browser, base, t, { viewport: { width: w, height: h }, dsf, touch });
+    const check = async (label, mainBtn) => {
+      const r = await page.evaluate(id => {
+        const c = document.getElementById('card'), b = c.getBoundingClientRect(), m = id && document.getElementById(id), mb = m && m.getBoundingClientRect();
+        return { wide: c.scrollWidth > c.clientWidth + 1, box: [b.left, b.top, b.right, b.bottom], main: mb && [mb.left, mb.top, mb.right, mb.bottom], visible: !document.getElementById('overlay').hidden };
+      }, mainBtn);
+      assert.ok(r.visible, `${label} shown`);
+      assert.equal(r.wide, false, `${label}: nothing sticks out sideways`);
+      assert.ok(inside(r.box, w, h), `${label}: card on screen ${r.box.map(Math.round)}`);
+      if (mainBtn) assert.ok(r.main && inside(r.main, w, h), `${label}: main button visible ${r.main && r.main.map(Math.round)}`);
+    };
+    // a button that may need scrolling inside the card, but must be reachable
+    const reachable = async (label, id) => {
+      const r = await page.evaluate(id => { const e = document.getElementById(id); e.scrollIntoView({ block: 'nearest' }); const b = e.getBoundingClientRect(); return [b.left, b.top, b.right, b.bottom]; }, id);
+      assert.ok(inside(r, w, h), `${label}: ${id} can be scrolled into view ${r.map(Math.round)}`);
+    };
+    await page.click('#startBtn');
+    await frames(page, 2);
+    await page.click('#pauseBtn');
+    await check('pause', 'resumeBtn');
+    await page.click('#saveBtn');
+    await check('save slots', null);
+    await page.click('#backBtn');
+    await page.click('#resumeBtn');
+    await page.keyboard.type('admin123');
+    await check('admin', null);
+    await reachable('admin', 'admClose');
+    await reachable('admin', 'admLose');
+    await page.click('#admLose');
+    await page.waitForFunction(() => state === 'over' && !document.getElementById('overlay').hidden, null, { timeout: 8000 });
+    await check('game over', 'againBtn');
+    await page.click('#againBtn');
+    assert.equal(await page.evaluate(() => state), 'play', 'play again starts a new game');
+    assert.deepEqual(errors, []);
+  });
+}
+
+// ------------------------------ phones with a notch ------------------------------
+for (const [name, w, h, pad] of [['notched phone', 393, 852, '59px 0 34px 0'], ['notched phone sideways', 852, 393, '0 59px 21px 59px']]) {
+  test(`HUD, buttons and wagon stay inside the safe area: ${name}`, { skip }, async t => {
+    const { page, errors } = await openPage(browser, base, t, { viewport: { width: w, height: h }, dsf: 3, touch: true });
+    // the game reads the notch insets from #safe, which normally gets them from env(safe-area-inset-*)
+    await page.addStyleTag({ content: `#safe{padding:${pad} !important}` });
+    await page.evaluate(() => layout());
+    await page.click('#startBtn');
+    await frames(page, 3);
+    const m = await page.evaluate(`(${MEASURE.toString()})()`);
+    const [pt, pr, pb, pl] = pad.split(' ').map(parseFloat).concat([0, 0, 0]).slice(0, 4);
+    const safe = [pl || 0, pt, w - (pr || 0), h - (pb || 0)];
+    const within = r => r[0] >= safe[0] - 0.5 && r[1] >= safe[1] - 0.5 && r[2] <= safe[2] + 0.5 && r[3] <= safe[3] + 0.5;
+    assert.ok(within([m.fl, m.ft, m.fr, m.fb]), `wagon inside the safe area ${[m.fl, m.ft, m.fr, m.fb].map(Math.round)}`);
+    for (const b of ['pause', 'sound']) assert.ok(within(m[b]), `${b} button inside the safe area`);
+    for (const [k, box] of Object.entries(m.texts)) assert.ok(within(box), `${k} inside the safe area ${box.map(Math.round)}`);
+    assert.deepEqual(errors, []);
+  });
+}

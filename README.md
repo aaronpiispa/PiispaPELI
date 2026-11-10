@@ -50,3 +50,14 @@ npm install
 npx playwright install chromium
 npm run test:e2e
 ```
+
+Samat selaintestit muilla moottoreilla ja oikealla näytönohjaimella:
+
+```
+npx playwright install firefox webkit
+npm run test:e2e:firefox
+npm run test:e2e:webkit     # Safarin moottori; Linuxilla voi tarvita kirjastot: sudo npx playwright install-deps webkit
+npm run test:e2e:gpu        # Chromium piirtää koneen näytönohjaimella
+```
+
+Selaintestit kattavat mm. 15 näyttökokoa ja 16 kieltä, tauko- ja loppunäkymät, puhelimen loven, offline-tilan ja päivityksen edellisestä versiosta, hitaan puhelimen, pitkän pelisession, näppäimistön ja liikkeen vähentämisen.
