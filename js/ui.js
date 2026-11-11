@@ -177,6 +177,19 @@ function showMenu() {
     '<div class="install" id="installRow"></div>' +
     '<p class="keys">' + T('Näppäimistö: ← → tähtää · ↑ ↓ voima · välilyönti ampuu · H heilauta · P tauko') + '</p></div>', 'menu');
   renderInstall();
+  fitMenu();
+}
+// the play button of the main menu must be visible without scrolling. Long texts (some languages need twice the
+// lines of Finnish) are tightened step by step until it fits: smaller mascot and texts, then the stage goal goes
+// (the (i) button still shows it), then the description is cut to three lines, and last it goes too
+const FIT_STEPS = ['fit1', 'fit2', 'fit3', 'fit4'];
+function fitMenu() {
+  if (overlay.hidden || !card.classList.contains('menu')) return;
+  card.classList.remove(...FIT_STEPS);
+  const play = card.querySelector('#startBtn');
+  if (!play) return;
+  const fits = () => play.getBoundingClientRect().bottom <= card.getBoundingClientRect().bottom - 4;
+  for (const step of FIT_STEPS) { if (fits()) return; card.classList.add(step); }
 }
 function showThemes() {
   const ICON = { eu: 'train', viking: 'shield', heart: 'heart', uni: 'cap' }, cur = theme().id;
@@ -473,7 +486,7 @@ window.addEventListener('keyup', e => { keys[e.code] = false; });
 window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
 document.addEventListener('visibilitychange', () => { if (document.hidden) { if (state === 'play') pause(); else autoSave(); sfx.suspend(); } else sfx.resume(); });
 window.addEventListener('pagehide', autoSave);
-window.addEventListener('resize', layout);
+window.addEventListener('resize', () => { layout(); fitMenu(); });
 
 function syncSound() {
   soundBtn.innerHTML = sfx.muted ? ICON_OFF : ICON_ON;

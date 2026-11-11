@@ -76,8 +76,10 @@ for (const [label, opts] of [
         }, [th, gold, COMPARE_LAYERS.toString()]);
         // Chromium drawing in software is held to the strict limits it was tuned and checked against by eye. Firefox,
         // Safari's engine and Chromium on a graphics chip smooth edges (like the gold trim's hard colour step)
-        // a little differently on small canvases than on the big screen canvas
-        const strict = BROWSER === 'chromium' && process.env.GPU !== '1', lim = strict ? { missing: 0, mean: 1.5, max: 20 } : { missing: ink => ink * 0.02, mean: 3, max: 96 };
+        // a little differently on small canvases than on the big screen canvas. Chromium in software also smooths the
+        // tiny text on the trophies (like "10K", about 4 pixels tall) slightly differently on a small canvas: up to
+        // about 30/255 on a few edge pixels of a glyph, depending on where the trophy sits on the shelf
+        const strict = BROWSER === 'chromium' && process.env.GPU !== '1', lim = strict ? { missing: 0, mean: 1.5, max: 32 } : { missing: ink => ink * 0.02, mean: 3, max: 96 };
         for (const [name, { ink, max, missing, where, mean }] of Object.entries(r)) {
           assert.ok(ink > 1000, `${th}/${gold}: the ${name} layer draws something (${ink} px)`);
           assert.ok(missing <= (strict ? 0 : lim.missing(ink)), `${th}/gold=${gold}: ${name} layer lost ${missing} pixels`);

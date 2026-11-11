@@ -229,3 +229,13 @@ html,body{height:100%;margin:0;overflow:hidden;background:var(--night);color:var
 .stages{margin-top:8px}
 .wsw{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:6px;vertical-align:-1px;box-shadow:0 0 0 1.5px rgba(255,255,255,.7)}
 .witem{min-width:0}.witem b,.witem small{overflow-wrap:anywhere;hyphens:auto}
+/* main menu that does not fit: js fitMenu() adds these one by one until the play button is on screen */
+.card.menu.fit1 .mascot{width:60px;height:60px;margin:-6px auto -8px}
+.card.menu.fit1 .lead{font-size:14px;line-height:1.3;margin:0 auto 8px}
+.card.menu.fit1 .stats{margin-bottom:8px}
+.card.menu.fit1 .stat{padding:4px 4px 3px}
+.card.menu.fit1 .stgoal{font-size:11.5px;margin-bottom:6px}
+.card.menu.fit2 .stgoal{display:none}
+.card.menu.fit2 .stages{margin-bottom:10px}
+.card.menu.fit3 .lead{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;line-clamp:3;overflow:hidden}
+.card.menu.fit4 .lead{display:none}
