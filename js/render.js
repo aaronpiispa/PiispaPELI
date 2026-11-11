@@ -726,6 +726,11 @@ function hudTextWidth(text, font, spacing) {
   ctx.save(); ctx.font = font; if ('letterSpacing' in ctx) ctx.letterSpacing = spacing || '0px';
   const w = ctx.measureText(text).width; ctx.restore(); return w;
 }
+function hudPanel(x, y, w, h) {
+  ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x, y, w, h, 20) : ctx.rect(x, y, w, h);
+  ctx.fillStyle = 'rgba(14,24,60,0.42)'; ctx.fill();
+  ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.stroke();
+}
 const hudNum = (t, x, y, size, a) => hudText(String(t), x, y, a, `800 ${size}px ${FONT}`, '#fff7ee');
 const hudSmall = (t, x, y, a) => hudText(t, x, y, a, `600 14px ${FONT}`, 'rgba(255,247,238,0.68)');
 
@@ -864,6 +869,18 @@ function drawHUD() {
     // where the labels ended up, in CSS pixels (used by the layout tests)
     hudLayout = { modeLabel: [hl + 6 * u, ft - 76 * u, hl + (6 + modeLbl.w) * u, ft - 62 * u], nextLabel: [hl + next.x0 * u, ft - 76 * u, hl + (next.x0 + next.w) * u, ft - 62 * u] };
   } else {
+    // glass panels behind the score column and the row of countries, so the HUD reads as two calm groups
+    {
+      const lbl = gmode === 'classic' ? T('PISTEET') : MODE_INFO[gmode].name.toUpperCase(), pr = 12 + nxt * 3.2;
+      const w = Math.max(96, hudTextWidth(lbl, HUD_LABEL_FONT, '1.6px'), hudTextWidth(T('SEURAAVA'), HUD_LABEL_FONT, '1.6px'),
+        hudTextWidth(gmode === 'zen' ? '∞' : String(sc), `800 52px ${FONT}`), hudTextWidth(info, `600 14px ${FONT}`), hudTextWidth(NAMES[nxt], `600 14px ${FONT}`), pr * 2);
+      at(fl, ft);
+      hudPanel(-30 - w - 18, 8, w + 36, 206 + 2 * pr);
+      const mr = (8 + RADII[MAXL] * 2.6 + 2) * u;
+      screenTf();
+      at(fr + 44 * u, ft);
+      hudPanel(-mr / u - 10, 62, (mr / u + 10) * 2, (fb - ft) / u - 76);
+    }
     at(fl, ft);
     hudLabel(gmode === 'classic' ? T('PISTEET') : MODE_INFO[gmode].name.toUpperCase(), -30, 30, 'right');
     hudNum(gmode === 'zen' ? '∞' : sc, -30, 80, 52, 'right');

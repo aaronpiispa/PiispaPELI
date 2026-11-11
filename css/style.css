@@ -239,3 +239,61 @@ html,body{height:100%;margin:0;overflow:hidden;background:var(--night);color:var
 .card.menu.fit2 .stages{margin-bottom:10px}
 .card.menu.fit3 .lead{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;line-clamp:3;overflow:hidden}
 .card.menu.fit4 .lead{display:none}
+
+/* ======================= Materials and controls in the spirit of Apple's Human Interface Guidelines =======================
+   Translucent glass instead of solid slabs, hairline borders instead of glowing outlines, soft depth instead of
+   hard 3D ledges, presses that shrink slightly, touch targets of at least 44 px and text of at least 11 px. */
+:root{
+  --glass:rgba(22,34,78,.62);
+  --glass-strong:rgba(14,24,60,.78);
+  --hair:rgba(255,255,255,.14);
+  --hair-strong:rgba(255,255,255,.22);
+  --ease:cubic-bezier(.32,.72,0,1);
+}
+/* the game stays visible behind menus, softly blurred, so the menu reads as a layer on top of it */
+#overlay{background:rgba(4,8,26,.34);-webkit-backdrop-filter:blur(20px) saturate(160%);backdrop-filter:blur(20px) saturate(160%)}
+.card.start{background:linear-gradient(180deg,rgba(34,56,124,.78) 0,rgba(12,22,60,.86) 100%);border:1px solid var(--hair);
+  box-shadow:0 30px 80px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.12)}
+.start .mascot{background:radial-gradient(circle,rgba(255,204,0,.18) 0,rgba(255,204,0,0) 62%)}
+/* quieter tiles: one hairline, no glow */
+.stat,.mb,.stg,.tcard,.start .list li,.start .ach li,.start .saves li,.start .audio,.start .witem{border-color:var(--hair)}
+.stat{background:rgba(255,255,255,.06)}
+.mb{background:rgba(255,255,255,.06);transition:background .2s var(--ease),transform .25s var(--ease)}
+.mb:hover{background:rgba(255,255,255,.11);border-color:var(--hair-strong)}
+.mb:active{transform:scale(.97)}
+.mb .ic{box-shadow:inset 0 1px 0 rgba(255,255,255,.3)}
+.stg.on{box-shadow:none}
+/* primary actions: a flat fill with a soft shadow; pressing shrinks instead of sinking into a ledge */
+.mb.primary{background:linear-gradient(180deg,#ffd84d,#ffbf1a);box-shadow:0 10px 28px rgba(255,190,0,.28),inset 0 1px 0 rgba(255,255,255,.55)}
+.mb.primary:active{transform:scale(.97);box-shadow:0 4px 14px rgba(255,190,0,.25),inset 0 1px 0 rgba(255,255,255,.55)}
+.btn{min-height:44px;box-shadow:0 10px 24px rgba(181,143,0,.28),inset 0 1px 0 rgba(255,255,255,.55);transition:transform .25s var(--ease),box-shadow .25s var(--ease)}
+.btn:active{transform:scale(.97);box-shadow:0 4px 12px rgba(181,143,0,.25),inset 0 1px 0 rgba(255,255,255,.55)}
+.btn.alt,.btn.alt:active{box-shadow:inset 0 0 0 1px rgba(15,35,80,.12)}
+.start .btn.alt,.start .btn.alt:active{background:rgba(255,255,255,.1);box-shadow:inset 0 0 0 1px var(--hair)}
+/* round glass buttons over the game, 44 px */
+.iconbtn{width:calc(44px * var(--ui,1));height:calc(44px * var(--ui,1));background:rgba(255,255,255,.12);box-shadow:inset 0 0 0 1px var(--hair);
+  -webkit-backdrop-filter:blur(14px) saturate(160%);backdrop-filter:blur(14px) saturate(160%);transition:background .2s var(--ease),transform .25s var(--ease)}
+.iconbtn:active{transform:scale(.92)}
+/* swing button: a glass capsule that fills with gold as it charges */
+.abil{border:1px solid rgba(255,216,77,.55);border-radius:999px;height:calc(40px * var(--ui,1));padding:0 calc(16px * var(--ui,1));
+  background:linear-gradient(90deg,#ffc61a 0,#ffd84d var(--p,0%),var(--glass-strong) var(--p,0%),var(--glass-strong) 100%);
+  box-shadow:0 8px 22px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.2);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+.abil.ready{box-shadow:0 8px 26px rgba(255,190,0,.45),inset 0 1px 0 rgba(255,255,255,.5)}
+@keyframes abilpulse{50%{transform:scale(1.04)}}
+/* notifications: a dark glass banner, like a system notification */
+#toast{width:max-content;background:rgba(20,28,58,.78);color:#fff;border:1px solid var(--hair);border-radius:20px;padding:8px 18px 8px 10px;
+  box-shadow:0 16px 40px rgba(0,0,0,.4);-webkit-backdrop-filter:blur(24px) saturate(180%);backdrop-filter:blur(24px) saturate(180%);
+  transition:transform .5s var(--ease)}
+#toast small{color:rgba(255,255,255,.7)}
+#toast svg,#toast img{width:28px;height:28px}
+/* small controls keep their look but get a 44 px touch area */
+.info,.mini{position:relative}
+.stgw .info{position:absolute}
+.info::after,.mini::after,.abil::after{content:"";position:absolute;inset:-10px}
+.mini::after{inset:-6px -2px}
+.abil::after{inset:-2px}
+.info{box-shadow:0 2px 6px rgba(0,0,0,.25)}
+/* nothing smaller than 11 px */
+@media (max-width:350px){.stat small{font-size:11px}}
+.witem small{font-size:12px}
+@media (prefers-reduced-motion: reduce){.mb,.iconbtn,#toast{transition:none}.mb:active,.btn:active,.iconbtn:active{transform:none}}

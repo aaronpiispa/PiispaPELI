@@ -93,11 +93,14 @@ function placeButtons() {
     // on narrow screens the buttons come close to the next ball's name below them: lift them a little
     const lift = hr - 92 * u < fc + 100 * u ? 10 * u : 0;
     pauseBtn.style.top = soundBtn.style.top = (ft - 74 * u - lift) + 'px';
+    // notifications go above the sound and pause buttons when there is room, otherwise just below them; never over them
+    toastEl.dataset.above = String(ft - 74 * u - lift); toastEl.dataset.below = String(ft - 74 * u - lift + 44 * u + 6);
     abilBtn.style.left = (hl + 4 * u) + 'px'; abilBtn.style.top = (fb + 14 * u) + 'px'; abilBtn.style.right = 'auto';
   } else {
     const fl = OX + VX0 * SC, fr = OX + VX1 * SC;
     soundBtn.style.left = (fr + 24 * u) + 'px'; pauseBtn.style.left = (fr + 72 * u) + 'px';
     pauseBtn.style.top = soundBtn.style.top = (ft + 4 * u) + 'px';
+    delete toastEl.dataset.above; delete toastEl.dataset.below; toastEl.style.top = '';
     abilBtn.style.left = 'auto'; abilBtn.style.right = (vw - fl + 30 * u) + 'px'; abilBtn.style.top = (ft + 290 * u) + 'px';
   }
 }
@@ -115,7 +118,7 @@ function buildBg() {
   if (word === '♥') {
     // the heart theme gets one big two-tone heart instead of words
     const hs = Math.min(vw * 0.85, vh * 0.62);
-    bgx.save(); bgx.translate(vw / 2, vh * 0.5); bgx.rotate(-0.08); bgx.globalAlpha = 0.5; bgx.lineJoin = 'round';
+    bgx.save(); bgx.translate(vw / 2, vh * 0.5); bgx.rotate(-0.08); bgx.globalAlpha = 0.11; bgx.lineJoin = 'round';
     bgx.fillStyle = c2; heartPath(bgx, hs * 0.03, hs * 0.22 + hs * 0.035, hs); bgx.fill();
     bgx.fillStyle = c1; heartPath(bgx, 0, hs * 0.22, hs); bgx.fill();
     bgx.lineWidth = hs * 0.035; bgx.strokeStyle = c2; bgx.stroke();
@@ -129,7 +132,8 @@ function buildBg() {
   bgx.font = `400 ${f1 * 1.15}px "Lilita One", "Baloo 2", sans-serif`;
   const f2 = f1 * 1.15 * Math.min(1, vw * 0.94 / Math.max(1, bgx.measureText(word).width));
   bgx.font = `400 ${f1}px "Lilita One", "Baloo 2", sans-serif`;
-  bgx.globalAlpha = 0.5;
+  // kept faint: the balls are what matters, the brand word is only a watermark behind them
+  bgx.globalAlpha = 0.11;
   bgx.fillStyle = '#000'; bgx.fillText('PIISPAN', f1 * 0.05, -f1 * 0.55 + f1 * 0.06);
   bgx.lineWidth = f1 * 0.08; bgx.strokeStyle = '#000'; bgx.strokeText('PIISPAN', 0, -f1 * 0.55);
   bgx.fillStyle = c1; bgx.fillText('PIISPAN', 0, -f1 * 0.55);

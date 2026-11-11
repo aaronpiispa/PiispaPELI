@@ -464,6 +464,11 @@ function nextToast() {
   if (!t) { toastBusy = false; return; }
   toastBusy = true;
   toastEl.innerHTML = (t[2] ? `<img src="${trophyImg(t[2])}" alt="" width="34" height="34">` : CUP('#ffcc00', '#a07800')) + `<div>${t[0]}<small>${t[1]}</small></div>`;
+  if (toastEl.dataset.above) {
+    const h = toastEl.getBoundingClientRect().height, top = parseFloat(getComputedStyle(document.getElementById('safe')).paddingTop) || 0;
+    const above = +toastEl.dataset.above - 6 - h;
+    toastEl.style.top = (above >= top + 4 ? above : +toastEl.dataset.below) + 'px';
+  }
   requestAnimationFrame(() => toastEl.classList.add('show'));
   setTimeout(() => { toastEl.classList.remove('show'); setTimeout(nextToast, 400); }, 2800);
 }

@@ -4,6 +4,8 @@ Lippupallopeli junavaunussa: ammu Euroopan maiden lippupalloja vaunuun, ja kaksi
 
 Pelaa: https://aaronpiispa.github.io/PiispaPELI/
 
+Muutokset tehdään ensin `test`-haaraan ja julkaistaan mainiin vasta testattuina. Katso [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ## Rakenne
 
 | Tiedosto | Sisältö |
