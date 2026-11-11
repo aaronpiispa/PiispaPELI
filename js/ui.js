@@ -298,18 +298,24 @@ function showAdmin(note) {
   const opts = NAMES.map((n, i) => `<option value="${i}"${i === cur ? ' selected' : ''}>${n}</option>`).join('');
   const inGame = state === 'paused' || state === 'play';
   showOverlay('<h2 class="h2">Admin</h2>' + (note ? `<p class="note">${note}</p>` : '') +
+    (inGame && cheated ? `<p class="sub">${T('Huijaukset käytössä – ennätystä ei tallenneta tästä pelistä.')}</p>` : '') +
     (inGame
       ? `<div class="audio"><label for="adminBall">${T('Seuraava pallo')}</label><select id="adminBall">${opts}</select></div>` +
         '<div class="row" style="margin-top:14px"><button class="btn alt" id="admCharge" type="button">' + T('+1 heilautus') + '</button><button class="btn alt" id="admPts" type="button">' + T('+10 000 pistettä') + '</button></div>' +
         '<div class="row" style="margin-top:12px"><button class="btn alt" id="admClear" type="button">' + T('Tyhjennä vaunu') + '</button>' +
         `<button class="btn alt" id="admGod" type="button" aria-pressed="${invincible}">${T('Kuolemattomuus: {0}', T(invincible ? 'päällä' : 'pois'))}</button></div>` +
+        `<div class="row" style="margin-top:12px"><button class="btn alt" id="admInf" type="button" aria-pressed="${infSwing}">${T('Loputtomat heilautukset: {0}', T(infSwing ? 'päällä' : 'pois'))}</button></div>` +
         '<div class="row" style="margin-top:12px"><button class="btn alt" id="admLose" type="button">' + T('Häviä peli') + '</button></div>' +
         '<div class="row" style="margin-top:12px"><button class="btn" id="admAll" type="button">' + T('Avaa kaikki') + '</button></div>'
       : '<p class="sub">' + T('Aloita peli, niin voit muokata sitä täällä.') + '</p>' +
         `<div class="row" style="margin-bottom:12px"><button class="btn" id="admAll" type="button">${T('Avaa kaikki')}</button></div>` +
-        `<div class="row"><button class="btn alt" id="admGod" type="button" aria-pressed="${invincible}">${T('Kuolemattomuus: {0}', T(invincible ? 'päällä' : 'pois'))}</button></div>`) +
+        `<div class="row"><button class="btn alt" id="admGod" type="button" aria-pressed="${invincible}">${T('Kuolemattomuus: {0}', T(invincible ? 'päällä' : 'pois'))}</button></div>` +
+        `<div class="row" style="margin-top:12px"><button class="btn alt" id="admInf" type="button" aria-pressed="${infSwing}">${T('Loputtomat heilautukset: {0}', T(infSwing ? 'päällä' : 'pois'))}</button></div>`) +
     '<div class="row" style="margin-top:16px"><button class="btn" id="admClose" type="button">' + T('Sulje') + '</button></div>');
 }
+// a game in which the admin panel changed something keeps no records, achievements or progress. Toggles switched
+// on in the menu make the next game count as cheated when it starts
+function cheat() { if (state === 'play' || state === 'paused') cheated = true; }
 function closeAdmin() { if (state === 'paused') { state = 'play'; hideOverlay(); syncUI(); } else if (state === 'menu') showMenu(); else hideOverlay(); }
 function showSaveSlots() {
   showOverlay('<h2 class="h2">' + T('Tallenna') + '</h2>' + slotsHTML('save') +
@@ -342,6 +348,7 @@ function showOver(newBest) {
     if (endReason === 'win') { title = T('Tehtävä suoritettu!'); main = NAMES[ms.c]; sub = `<p class="sub win">${ms.text}</p>`; if (missionIdx + 1 < MISSIONS.length) extraBtn = 'next'; }
     else { title = T('Tehtävä epäonnistui'); main = NAMES[ms.c]; sub = `<p class="sub">${ms.text}</p>`; }
   }
+  if (cheated) sub = '<p class="sub">' + T('Huijaukset käytössä – ennätystä ei tallennettu.') + '</p>';
   showOverlay(`<h2 class="h2">${title}</h2><div class="final">${main}</div>` + sub +
     (gmode === 'daily' || gmode === 'map' ? '' : `<div class="biggest"><span>${T(theme().id === 'eu' && !stage ? 'Suurin maa' : 'Suurin pallo')}</span><i class="dot" style="background:${COLORS[maxLevel]}"></i><b>${NAMES[maxLevel]} (${maxLevel + 1}/${MAXL + 1})</b></div>`) +
     '<div class="mbs">' + (extraBtn ? mb('nextMission', 'next', '', '', T('Seuraava tehtävä'), '', true) : '') +
@@ -352,7 +359,7 @@ function showOver(newBest) {
 card.addEventListener('change', e => {
   if (e.target.id === 'trackSel') { sfx.ensure(); music.setTrack(Number(e.target.value)); }
   if (e.target.id === 'langSel') { setLang(e.target.value); if (state === 'menu') showMenu(); else if (state === 'paused' && !adminOn) showPause(); }
-  if (e.target.id === 'adminBall') { cur = Number(e.target.value); popT = 0; }
+  if (e.target.id === 'adminBall') { cheat(); cur = Number(e.target.value); popT = 0; }
 });
 card.addEventListener('input', e => { if (e.target.id === 'volRange') { sfx.ensure(); sfx.setVolume(Number(e.target.value) / 100); } });
 card.addEventListener('click', e => {
@@ -399,10 +406,11 @@ card.addEventListener('click', e => {
   else if (btn.id === 'resumeBtn') resume();
   else if (btn.id === 'saveBtn') showSaveSlots();
   else if (btn.id === 'admAll') { unlockEverything(); sfx.ensure(); triggerConfetti(); showAdmin(T('Kaikki avattu: saavutukset, teemat, hahmon tavarat, maat ja tehtävät.')); }
-  else if (btn.id === 'admCharge') { charges++; syncAbil(); showAdmin(T('Heilautus lisätty.')); }
-  else if (btn.id === 'admPts') { addScore(10000); shownScore = score; showAdmin(T('Lisätty 10 000 pistettä.')); }
-  else if (btn.id === 'admClear') { clearAll(); dangerT = 0; jamT = 0; showAdmin(T('Vaunu tyhjennetty.')); }
-  else if (btn.id === 'admGod') { invincible = !invincible; showAdmin(T(invincible ? 'Kuolemattomuus päällä.' : 'Kuolemattomuus pois.')); }
+  else if (btn.id === 'admCharge') { cheat(); charges++; syncAbil(); showAdmin(T('Heilautus lisätty.')); }
+  else if (btn.id === 'admPts') { cheat(); addScore(10000); shownScore = score; showAdmin(T('Lisätty 10 000 pistettä.')); }
+  else if (btn.id === 'admClear') { cheat(); clearAll(); dangerT = 0; jamT = 0; showAdmin(T('Vaunu tyhjennetty.')); }
+  else if (btn.id === 'admGod') { invincible = !invincible; if (invincible) cheat(); showAdmin(T(invincible ? 'Kuolemattomuus päällä.' : 'Kuolemattomuus pois.')); }
+  else if (btn.id === 'admInf') { infSwing = !infSwing; if (infSwing) cheat(); syncAbil(); showAdmin(T(infSwing ? 'Loputtomat heilautukset päällä.' : 'Loputtomat heilautukset pois.')); }
   else if (btn.id === 'admClose') closeAdmin();
   else if (btn.id === 'admLose') { invincible = false; hideOverlay(); state = 'play'; gameOver(gmode === 'map' || gmode === 'daily' ? 'fail' : 'forced'); }
 

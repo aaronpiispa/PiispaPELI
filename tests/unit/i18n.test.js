@@ -77,7 +77,7 @@ test('the T() helper fills in values and falls back correctly', () => {
   assert.equal(T('fi', '{0} pistettä', 120), '120 pistettä');
   assert.equal(T('en', '{0} pistettä', 120), '120 points');
   assert.equal(T('kl', 'Pelaa'), I18N.da.Pelaa, 'Greenlandic uses Danish texts');
-  assert.equal(T('kl', 'Grönlanti'), 'Kalaallit Nunaat');
+  assert.equal(I18N.kl.EU, 'EU', 'Greenlandic has its own entry for the EU ball');
   assert.equal(T('fi', '{0} pistettä', undefined), ' pistettä', 'a missing value never prints a comma');
 });
 

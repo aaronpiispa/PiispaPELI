@@ -167,7 +167,8 @@ const SCENES = [
   { sky: ['#e58c6a', '#f8d4a8'], sun: [0.7, 0.42, '#fff2c8', 0.07], far: ['hills', '#9a7aa0', 0.08], near: ['lavender', '#7b4fa8'], water: null, anim: 'butterflies' },
   { sky: ['#2a2630', '#b0603a'], sun: [0.2, 0.22, '#f0c890', 0.03], far: ['ruins', '#1c1a20', 0.2], near: ['sunflowers', '#2c3a1a'], water: null, anim: 'embers', extra: 'war' },
   { sky: ['#f2a65a', '#ffe1a8'], sun: [0.25, 0.3, '#fff2c0', 0.06], far: ['chimneys', '#c48f62', 0.18], near: ['none', '#000'], water: null, anim: 'balloons' },
-  { sky: ['#071a33', '#3a6d8c'], sun: [0.75, 0.2, '#e8f4ff', 0.03], far: ['icebergs', '#d8ecf6', 0.16], near: ['none', '#000'], water: '#0e3554', anim: 'aurora' },
+  // the European Union: sunset over the Alps, famous buildings from all over Europe, fields and the sea
+  { sky: ['#1b2a63', '#f6a865'], sun: [0.47, 0.6, '#ffe2a8', 0.06], far: ['europe', '#2b2552', 0.15], near: ['europe', '#2c4a2c'], water: null, anim: 'balloons', extra: 'europe' },
   { sky: ['#1a2238', '#5b6a85'], sun: [0.3, 0.2, '#e6ecf5', 0.04], far: ['hills', '#c9d3e0', 0.07], near: ['snowpines', '#1b2a24'], water: null, anim: 'blizzard' },
   // space, for the Solar System and the galaxy stages
   { space: 'solar', anim: 'twinkle' },
@@ -223,6 +224,8 @@ function buildScene(i) {
       }
       x += w + r() * 8;
     }
+  } else if (ft === 'europe') {
+    euroSkyline(c, W, Hh, hz, peakH, fc, r);
   } else if (ft === 'icebergs') {
     for (let k = 0; k < 6; k++) { const x = r() * W, w = 40 + r() * 80, h = peakH * (0.4 + r() * 0.7); c.fillStyle = '#e8f6ff'; c.beginPath(); c.moveTo(x - w, hz); c.lineTo(x - w * 0.4, hz - h * 0.7); c.lineTo(x, hz - h); c.lineTo(x + w * 0.5, hz - h * 0.5); c.lineTo(x + w, hz); c.closePath(); c.fill(); c.fillStyle = '#a9d2ea'; c.beginPath(); c.moveTo(x, hz - h); c.lineTo(x + w * 0.5, hz - h * 0.5); c.lineTo(x + w, hz); c.lineTo(x + w * 0.2, hz); c.closePath(); c.fill(); }
   }
@@ -241,6 +244,8 @@ function buildScene(i) {
     for (let k = 0; k < 26; k++) { const x = r() * W, h = 60 + r() * 100; c.fillStyle = '#3d5a32'; c.beginPath(); c.ellipse(x, base - h, 18 + r() * 14, 26 + r() * 16, 0, 0, TAU); c.fill(); c.fillStyle = '#e8e4da'; c.fillRect(x - 2, base - h, 4, h); c.fillStyle = '#222'; for (let y = base - h + 8; y < base; y += 14) c.fillRect(x - 2, y, 3, 2); }
   } else if (nt === 'cypress') {
     c.fillStyle = nc; for (let k = 0; k < 9; k++) { const x = r() * W, h = 70 + r() * 90; c.beginPath(); c.ellipse(x, base - h / 2, 9 + r() * 5, h / 2, 0, 0, TAU); c.fill(); }
+  } else if (nt === 'europe') {
+    euroFields(c, W, Hh, hz, r);
   } else if (nt === 'lavender' || nt === 'sunflowers' || nt === 'grass') {
     for (let y = base; y < Hh; y += 9) {
       const t = (y - base) / (Hh - base);
@@ -252,6 +257,163 @@ function buildScene(i) {
     }
   }
   return cv;
+}
+// ---- the EU scene ----
+// where its pieces sit, shared by the still picture and the moving details (in CSS pixels)
+function euroLayout(W, Hh) {
+  const hz = Hh * 0.62, u = Math.min(Hh * 0.24, W * 0.3);   // u: the height of the Eiffel Tower
+  return { hz, u, mill: [W * 0.2, hz], sea: W * 0.74, light: [W * 0.965, hz + Hh * 0.03], ring: [W * 0.84, Hh * 0.19, Math.min(W, Hh) * 0.075],
+    flags: [[W * 0.015, hz + Hh * 0.02], [W * 0.345, hz + Hh * 0.015], [W * 0.715, hz + Hh * 0.02]] };
+}
+function euroSkyline(c, W, Hh, hz, peakH, col, r) {
+  const L = euroLayout(W, Hh), u = L.u;
+  // the Alps far away, pale in the haze of the sunset
+  c.fillStyle = '#8c8fbf'; c.beginPath(); c.moveTo(0, hz); let x = -20; const pts = [];
+  while (x < W + 60) { const w = 50 + r() * 90, h = peakH * (0.45 + r() * 0.55); pts.push([x + w / 2, hz - h, w]); c.lineTo(x + w / 2, hz - h); c.lineTo(x + w, hz - h * (0.25 + r() * 0.25)); x += w; }
+  c.lineTo(W, hz); c.closePath(); c.fill();
+  c.fillStyle = '#f3e6f0';
+  for (const [px, py, w] of pts) { const s = Math.min(1, w / 110); c.beginPath(); c.moveTo(px, py); c.lineTo(px - 18 * s, py + 22 * s); c.lineTo(px - 5 * s, py + 17 * s); c.lineTo(px + 5 * s, py + 24 * s); c.lineTo(px + 18 * s, py + 22 * s); c.closePath(); c.fill(); }
+  // the buildings, all in one dark colour against the bright sky, with a few lit windows
+  const lit = (x0, y0, w, h, n) => { for (let k = 0; k < n; k++) { c.fillStyle = r() < 0.6 ? 'rgba(255,207,122,0.85)' : 'rgba(255,240,200,0.5)'; c.fillRect(x0 + r() * w, y0 + r() * h, Math.max(1.2, u * 0.012), Math.max(1.5, u * 0.016)); } c.fillStyle = col; };
+  const b = hz + 1;
+  c.fillStyle = col;
+  // Helsinki Cathedral (Finland): white church with a big dome and four small ones
+  { const x0 = W * 0.06, w = u * 0.34, h = u * 0.16;
+    c.fillRect(x0 - w / 2, b - h, w, h);
+    c.beginPath(); c.moveTo(x0 - w * 0.25, b - h); c.lineTo(x0, b - h - u * 0.05); c.lineTo(x0 + w * 0.25, b - h); c.fill();
+    c.fillRect(x0 - w * 0.13, b - h - u * 0.1, w * 0.26, u * 0.06);
+    c.beginPath(); c.arc(x0, b - h - u * 0.1, w * 0.15, Math.PI, 0); c.fill(); c.fillRect(x0 - 1, b - h - u * 0.22, 2, u * 0.06);
+    for (const dx of [-0.42, 0.42]) { c.beginPath(); c.arc(x0 + dx * w, b - h, w * 0.07, Math.PI, 0); c.fill(); c.fillRect(x0 + dx * w - 1, b - h - w * 0.13, 2, w * 0.07); }
+    lit(x0 - w / 2 + 3, b - h + 4, w - 6, h - 8, 6); }
+  // Tallinn old town (Estonia): town wall with towers and the tall spire of St Olaf's
+  { const x0 = W * 0.135, w = u * 0.3;
+    c.fillRect(x0 - w / 2, b - u * 0.09, w, u * 0.09);
+    for (const [dx, th, tw] of [[-0.42, 0.2, 0.05], [-0.1, 0.5, 0.06], [0.2, 0.26, 0.055], [0.45, 0.17, 0.05]]) {
+      const tx = x0 + dx * w, tW = u * tw, tH = u * th;
+      c.fillRect(tx - tW / 2, b - tH * 0.62, tW, tH * 0.62);
+      c.beginPath(); c.moveTo(tx - tW * 0.65, b - tH * 0.62); c.lineTo(tx, b - tH); c.lineTo(tx + tW * 0.65, b - tH * 0.62); c.fill();
+    }
+    lit(x0 - w / 2, b - u * 0.08, w, u * 0.06, 6); }
+  // a Dutch windmill: the tower here, the turning sails are drawn every frame
+  { const [mx] = L.mill, mh = u * 0.3;
+    c.beginPath(); c.moveTo(mx - mh * 0.16, b); c.lineTo(mx - mh * 0.09, b - mh * 0.8); c.lineTo(mx + mh * 0.09, b - mh * 0.8); c.lineTo(mx + mh * 0.16, b); c.fill();
+    c.beginPath(); c.moveTo(mx - mh * 0.12, b - mh * 0.8); c.quadraticCurveTo(mx, b - mh * 1.02, mx + mh * 0.12, b - mh * 0.8); c.fill();
+    c.fillStyle = 'rgba(255,207,122,0.85)'; c.fillRect(mx - mh * 0.03, b - mh * 0.45, mh * 0.06, mh * 0.08); c.fillStyle = col; }
+  // Brandenburg Gate (Germany): six columns, a wide top and the chariot on it
+  { const x0 = W * 0.27, w = u * 0.42, h = u * 0.2;
+    for (let k = 0; k < 6; k++) c.fillRect(x0 - w / 2 + k * (w - w * 0.06) / 5, b - h, w * 0.06, h);
+    c.fillRect(x0 - w * 0.55, b - h - u * 0.045, w * 1.1, u * 0.05);
+    c.fillRect(x0 - w * 0.2, b - h - u * 0.09, w * 0.4, u * 0.05);
+    c.beginPath(); c.ellipse(x0, b - h - u * 0.11, w * 0.08, u * 0.025, 0, 0, TAU); c.fill();
+    c.beginPath(); c.moveTo(x0 + w * 0.02, b - h - u * 0.12); c.lineTo(x0 + w * 0.05, b - h - u * 0.17); c.lineTo(x0 + w * 0.07, b - h - u * 0.12); c.fill(); }
+  // Eiffel Tower (France)
+  { const x0 = W * 0.41, h = u;
+    c.beginPath(); c.moveTo(x0 - h * 0.21, b);
+    c.quadraticCurveTo(x0 - h * 0.09, b - h * 0.32, x0 - h * 0.05, b - h * 0.58); c.lineTo(x0 - h * 0.016, b - h * 0.9); c.lineTo(x0, b - h);
+    c.lineTo(x0 + h * 0.016, b - h * 0.9); c.lineTo(x0 + h * 0.05, b - h * 0.58); c.quadraticCurveTo(x0 + h * 0.09, b - h * 0.32, x0 + h * 0.21, b);
+    c.lineTo(x0 + h * 0.12, b); c.quadraticCurveTo(x0, b - h * 0.24, x0 - h * 0.12, b); c.closePath(); c.fill();
+    c.fillRect(x0 - h * 0.12, b - h * 0.29, h * 0.24, h * 0.025); c.fillRect(x0 - h * 0.065, b - h * 0.57, h * 0.13, h * 0.02);
+    c.fillStyle = 'rgba(255,214,140,0.9)'; for (let k = 0; k < 14; k++) { const t = k / 14, wy = b - h * (0.05 + t * 0.85), half = h * (0.18 * (1 - t) * (1 - t) + 0.012); c.fillRect(x0 + (r() - 0.5) * 2 * half, wy, 1.6, 1.6); }
+    c.fillStyle = col; }
+  // Colosseum (Italy): the round arena with three rows of arches, one end crumbled
+  { const x0 = W * 0.55, w = u * 0.62, h = u * 0.25;
+    c.beginPath(); c.moveTo(x0 - w / 2, b); c.lineTo(x0 - w / 2, b - h * 0.9); c.quadraticCurveTo(x0, b - h * 1.08, x0 + w * 0.32, b - h); c.lineTo(x0 + w * 0.38, b - h * 0.72); c.lineTo(x0 + w * 0.44, b - h * 0.6); c.lineTo(x0 + w / 2, b - h * 0.42); c.lineTo(x0 + w / 2, b); c.closePath(); c.fill();
+    for (let row = 0; row < 3; row++) for (let k = 0; k < 11; k++) {
+      const ax = x0 - w / 2 + w * (k + 0.5) / 11, ay = b - h * (0.08 + row * 0.27), top = b - h * (0.9 - (ax - x0) / w * 0.1);
+      if (ay - h * 0.17 < top + 2 || (ax > x0 + w * 0.36 && row > 0) || (ax > x0 + w * 0.43 && row > -1 && ay < b - h * 0.4)) continue;
+      c.fillStyle = r() < 0.55 ? 'rgba(255,190,110,0.75)' : 'rgba(20,14,40,0.6)';
+      c.beginPath(); c.moveTo(ax - w * 0.017, ay); c.lineTo(ax - w * 0.017, ay - h * 0.11); c.arc(ax, ay - h * 0.11, w * 0.017, Math.PI, 0); c.lineTo(ax + w * 0.017, ay); c.fill();
+    }
+    c.fillStyle = col; }
+  // the Leaning Tower of Pisa (Italy)
+  { const x0 = W * 0.64, h = u * 0.4, tw = u * 0.075;
+    c.save(); c.translate(x0, b); c.rotate(0.085);
+    c.fillRect(-tw / 2, -h, tw, h); c.fillRect(-tw * 0.38, -h - u * 0.05, tw * 0.76, u * 0.05);
+    c.fillStyle = 'rgba(255,214,150,0.55)'; for (let k = 1; k < 7; k++) c.fillRect(-tw / 2, -h * k / 7, tw, 1.2);
+    c.restore(); c.fillStyle = col; }
+  // Sagrada Familia (Spain): a church crowned with tall rounded spires
+  { const x0 = W * 0.735, w = u * 0.34;
+    c.fillRect(x0 - w / 2, b - u * 0.18, w, u * 0.18);
+    for (const [dx, sh] of [[-0.4, 0.42], [-0.18, 0.55], [0.06, 0.6], [0.3, 0.5], [0.46, 0.36]]) {
+      const sx = x0 + dx * w, sw = u * 0.045, top = b - u * sh;
+      c.beginPath(); c.moveTo(sx - sw, b - u * 0.15); c.lineTo(sx - sw * 0.45, top + sw); c.quadraticCurveTo(sx, top - sw * 0.8, sx + sw * 0.45, top + sw); c.lineTo(sx + sw, b - u * 0.15); c.fill();
+      c.fillStyle = 'rgba(255,207,122,0.8)'; for (let k = 0; k < 3; k++) c.fillRect(sx - 0.8, b - u * (0.2 + k * 0.08), 1.6, 2.4); c.fillStyle = col;
+    }
+    lit(x0 - w / 2 + 2, b - u * 0.16, w - 4, u * 0.12, 7); }
+  // Atomium (Belgium): nine shining balls on the corners and in the middle of a cube standing on one corner
+  { const x0 = W * 0.83, s = u * 0.1, cy = b - u * 0.27, pts3 = [];
+    for (const px of [-1, 1]) for (const py of [-1, 1]) for (const pz of [-1, 1]) pts3.push([px, py, pz]);
+    // turn the cube so that one corner points down: around z by 45 degrees, then tipped forward
+    const proj = ([px, py, pz]) => { const x1 = (px - py) * 0.7071, y1 = (px + py) * 0.7071, y2 = y1 * 0.577 - pz * 0.816, z2 = y1 * 0.816 + pz * 0.577; return [x0 + (x1 + z2 * 0.18) * s, cy + y2 * s]; };
+    c.strokeStyle = col; c.lineWidth = Math.max(1.4, s * 0.1);
+    const low = proj([1, 1, -1]);
+    c.beginPath(); c.moveTo(low[0] - s * 0.6, b); c.lineTo(low[0], low[1]); c.lineTo(low[0] + s * 0.6, b); c.moveTo(low[0], low[1]); c.lineTo(low[0], b); c.stroke();
+    for (const p of pts3) for (let k = 0; k < 3; k++) if (p[k] < 0) { const q = p.slice(); q[k] = 1; const [ax, ay] = proj(p), [bx2, by2] = proj(q); c.beginPath(); c.moveTo(ax, ay); c.lineTo(bx2, by2); c.stroke(); }
+    for (const p of pts3) { const [ax, ay] = proj(p); c.beginPath(); c.moveTo(ax, ay); c.lineTo(x0, cy); c.stroke(); }
+    for (const [ax, ay] of [...pts3.map(proj), [x0, cy]]) {
+      const gg = c.createRadialGradient(ax - s * 0.1, ay - s * 0.1, 0, ax, ay, s * 0.3); gg.addColorStop(0, '#fbf6ff'); gg.addColorStop(0.45, '#a6a4d2'); gg.addColorStop(1, col);
+      c.fillStyle = gg; c.beginPath(); c.arc(ax, ay, s * 0.27, 0, TAU); c.fill();
+    }
+    c.fillStyle = col; }
+  // the Acropolis of Athens (Greece): a rocky hill with the Parthenon
+  { const x0 = W * 0.93, w = u * 0.5;
+    c.beginPath(); c.moveTo(x0 - w * 0.75, b); c.quadraticCurveTo(x0 - w * 0.55, b - u * 0.12, x0 - w * 0.35, b - u * 0.13); c.lineTo(x0 + w * 0.4, b - u * 0.13); c.quadraticCurveTo(x0 + w * 0.6, b - u * 0.1, x0 + w * 0.8, b); c.fill();
+    const tb = b - u * 0.13, tw2 = w * 0.6;
+    c.fillRect(x0 - tw2 / 2 - 3, tb - u * 0.02, tw2 + 6, u * 0.02);
+    c.fillStyle = 'rgba(255,214,150,0.65)'; c.fillRect(x0 - tw2 / 2, tb - u * 0.11, tw2, u * 0.09); c.fillStyle = col;
+    for (let k = 0; k < 8; k++) c.fillRect(x0 - tw2 / 2 + k * (tw2 - tw2 * 0.05) / 7, tb - u * 0.11, tw2 * 0.05, u * 0.09);
+    c.fillRect(x0 - tw2 / 2 - 2, tb - u * 0.13, tw2 + 4, u * 0.025);
+    c.beginPath(); c.moveTo(x0 - tw2 / 2 - 2, tb - u * 0.13); c.lineTo(x0, tb - u * 0.175); c.lineTo(x0 + tw2 / 2 + 2, tb - u * 0.13); c.fill(); }
+}
+// the ground: tulip fields, vineyards and the sea with a beach and a lighthouse
+function euroFields(c, W, Hh, hz, r) {
+  const L = euroLayout(W, Hh), sea = L.sea;
+  // fields in rows that get wider towards the viewer
+  const TUL = ['#e8283c', '#ffcc1a', '#ff6fa8', '#ff8a1a', '#f4f0ff', '#c0263a'];
+  let row = 0;
+  for (let y = hz + 3; y < Hh; row++) {
+    const t = (y - hz) / (Hh - hz), gap = 3 + t * 16;
+    // tulips: green leaves along the row, flowers in coloured strips that slant towards the horizon
+    c.fillStyle = row % 2 ? '#2f5a2a' : '#284d24'; c.fillRect(0, y - t * 2, sea - W * 0.4, 1 + t * 4);
+    const slant = (y - hz) * 0.35;
+    for (let x = (row % 2) * 3 + r() * 3; x < sea - W * 0.405; x += 5 + t * 10 + r() * 2) {
+      const band = Math.floor((x + slant) / (W * 0.075)), q = r();
+      c.fillStyle = TUL[(q < 0.12 ? band + 1 : band) % TUL.length];
+      const s2 = (0.9 + t * 3.6) * (0.85 + r() * 0.3), yy = y - t * 3 + (r() - 0.5) * t * 3;
+      c.beginPath(); c.moveTo(x - s2, yy - s2 * 0.4); c.lineTo(x - s2 * 0.5, yy - s2 * 1.2); c.lineTo(x, yy - s2 * 0.6); c.lineTo(x + s2 * 0.5, yy - s2 * 1.2); c.lineTo(x + s2, yy - s2 * 0.4); c.quadraticCurveTo(x, yy + s2 * 0.9, x - s2, yy - s2 * 0.4); c.fill();
+    }
+    // vineyards: green rows with darker shadows
+    c.fillStyle = row % 2 ? '#3f6b30' : '#2f5626';
+    c.fillRect(sea - W * 0.4, y - 1 - t * 3, W * 0.4, 2 + t * 5);
+    c.fillStyle = 'rgba(80,30,90,0.55)'; for (let x = sea - W * 0.4 + (row % 3) * 4; x < sea; x += 9 + t * 14) { c.beginPath(); c.arc(x, y + t * 2, 0.8 + t * 2.4, 0, TAU); c.fill(); }
+    y += gap;
+  }
+  // a path between the fields
+  c.fillStyle = '#b89a62'; c.beginPath(); c.moveTo(sea - W * 0.405, hz + 2); c.lineTo(sea - W * 0.395, hz + 2); c.lineTo(sea - W * 0.36, Hh); c.lineTo(sea - W * 0.44, Hh); c.closePath(); c.fill();
+  // the sea on the right with a sandy beach and the sunset glittering on it
+  const sg = c.createLinearGradient(0, hz, 0, Hh); sg.addColorStop(0, '#5a6fae'); sg.addColorStop(1, '#14204a');
+  c.fillStyle = sg; c.beginPath(); c.moveTo(sea, hz); c.lineTo(W, hz); c.lineTo(W, Hh); c.lineTo(sea - W * 0.05, Hh); c.closePath(); c.fill();
+  c.fillStyle = '#e6c98a'; c.beginPath(); c.moveTo(sea - 2, hz); c.lineTo(sea + 5, hz); c.lineTo(sea - W * 0.035, Hh); c.lineTo(sea - W * 0.06, Hh); c.closePath(); c.fill();
+  c.fillStyle = 'rgba(255,214,150,0.45)'; for (let y = hz + 4; y < Hh; y += 6) { const w = 8 + r() * 24; c.fillRect(sea + (W - sea) * (0.2 + r() * 0.6) - w / 2, y, w, 1.5); }
+  // the lighthouse on its rock (its light turns every frame)
+  const [lx, lb] = L.light, lh = L.u * 0.32;
+  c.fillStyle = '#2b2552'; c.beginPath(); c.ellipse(lx, lb, lh * 0.28, lh * 0.07, 0, Math.PI, 0); c.fill();
+  c.fillStyle = '#f2ece4'; c.beginPath(); c.moveTo(lx - lh * 0.09, lb - 2); c.lineTo(lx - lh * 0.055, lb - lh); c.lineTo(lx + lh * 0.055, lb - lh); c.lineTo(lx + lh * 0.09, lb - 2); c.closePath(); c.fill();
+  c.fillStyle = '#d23a3a'; for (const f of [0.25, 0.6]) c.fillRect(lx - lh * (0.09 - f * 0.035), lb - lh * (f + 0.12), lh * 2 * (0.09 - f * 0.035), lh * 0.12);
+  c.fillStyle = '#2b2552'; c.fillRect(lx - lh * 0.07, lb - lh * 1.12, lh * 0.14, lh * 0.12); c.beginPath(); c.moveTo(lx - lh * 0.09, lb - lh * 1.12); c.lineTo(lx, lb - lh * 1.24); c.lineTo(lx + lh * 0.09, lb - lh * 1.12); c.fill();
+}
+// the EU flag waving on a pole (starPath is in game.js)
+function euFlag(x, base, ph, fw, fh, t) {
+  ctx.fillStyle = '#d8d2c8'; ctx.fillRect(x - 1.2, base - ph, 2.4, ph);
+  ctx.beginPath(); ctx.arc(x, base - ph, 2.4, 0, TAU); ctx.fill();
+  const y = base - ph + 2;
+  waveFlag(x + 1, y, fw, fh, t, ['#003399']);
+  ctx.fillStyle = '#ffcc00';
+  for (let k = 0; k < 12; k++) {
+    const a = k * TAU / 12, u = 0.5 + Math.cos(a) * fh * 0.3 / fw, v = 0.5 + Math.sin(a) * 0.3;
+    const o = Math.sin(t * 4 - u * 5) * fh * 0.12 * u;
+    const R = Math.max(1, fh * 0.065); starPath(ctx, x + 1 + fw * u, y + o + fh * v, R, R * 0.42); ctx.fill();
+  }
 }
 function buildSpace(c, kind, W, Hh) {
   const r = srand(kind === 'solar' ? 41 : 42), g = c.createLinearGradient(0, 0, W, Hh);
@@ -377,6 +539,47 @@ function drawExtra(kind, t) {
       const a = (hz2.age + t * 0.12) % 1, y = jy - ph * 1.1 - a * ph * 1.4, x = px + Math.sin(a * 6 + hz2.s * 6) * ph * 0.2;
       ctx.fillStyle = `rgba(255,${80 + (hz2.s * 60 | 0)},140,${(1 - a) * 0.9})`; heart(x, y, ph * (0.08 + a * 0.05));
     }
+  } else if (kind === 'europe') {
+    const L = euroLayout(W, H), u = L.u;
+    // the circle of twelve stars in the evening sky, twinkling one after another
+    const [rx, ry, rr] = L.ring;
+    for (let k = 0; k < 12; k++) {
+      const a = k * TAU / 12, al = 0.55 + 0.45 * Math.sin(t * 1.6 - k * 0.52);
+      ctx.fillStyle = `rgba(255,214,90,${al})`; const R = Math.max(3, rr * 0.19); starPath(ctx, rx + Math.cos(a) * rr, ry + Math.sin(a) * rr, R, R * 0.42); ctx.fill();
+    }
+    // birds over the fields
+    ctx.strokeStyle = 'rgba(30,20,50,0.8)'; ctx.lineWidth = 1.5;
+    for (const bd of XS.birds) {
+      const x = ((bd.x + t * bd.v) % 1.2 - 0.1) * W, y = bd.y * H + Math.sin(t + bd.p) * 6, f = Math.sin(t * 8 + bd.p) * 4;
+      ctx.beginPath(); ctx.moveTo(x - 6, y - f); ctx.lineTo(x, y); ctx.lineTo(x + 6, y - f); ctx.stroke();
+    }
+    // the windmill's sails turning slowly
+    const [mx, mb] = L.mill, mh = u * 0.3, hx = mx, hy = mb - mh * 0.84, sl = mh * 0.62, ang = t * 0.6;
+    ctx.fillStyle = '#2b2552'; ctx.strokeStyle = '#2b2552'; ctx.lineWidth = Math.max(1.2, mh * 0.025);
+    for (let k = 0; k < 4; k++) {
+      const a = ang + k * Math.PI / 2, cs = Math.cos(a), sn = Math.sin(a);
+      ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(hx + cs * sl, hy + sn * sl); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(hx + cs * sl * 0.22, hy + sn * sl * 0.22); ctx.lineTo(hx + cs * sl, hy + sn * sl);
+      ctx.lineTo(hx + cs * sl - sn * sl * 0.16, hy + sn * sl + cs * sl * 0.16); ctx.lineTo(hx + cs * sl * 0.22 - sn * sl * 0.16, hy + sn * sl * 0.22 + cs * sl * 0.16); ctx.closePath();
+      ctx.globalAlpha *= 0.8; ctx.fill(); ctx.globalAlpha /= 0.8;
+    }
+    ctx.beginPath(); ctx.arc(hx, hy, mh * 0.04, 0, TAU); ctx.fill();
+    // EU flags along the fields
+    for (const [fx, fb] of L.flags) euFlag(fx, fb, u * 0.34, u * 0.17, u * 0.11, t + fx * 0.01);
+    // a sailing boat rocking on the sea
+    const bx = L.sea + (W - L.sea) * (0.42 + Math.sin(t * 0.07) * 0.18), by = L.hz + H * 0.07, rock = Math.sin(t * 1.3) * 0.06, bs = u * 0.14;
+    ctx.save(); ctx.translate(bx, by + Math.sin(t * 1.7) * 1.5); ctx.rotate(rock);
+    ctx.fillStyle = '#5a2a1e'; ctx.beginPath(); ctx.moveTo(-bs * 0.55, 0); ctx.lineTo(bs * 0.55, 0); ctx.lineTo(bs * 0.4, bs * 0.18); ctx.lineTo(-bs * 0.4, bs * 0.18); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#d8d2c8'; ctx.fillRect(-1, -bs * 0.95, 2, bs * 0.95);
+    ctx.fillStyle = '#f6efe0'; ctx.beginPath(); ctx.moveTo(2, -bs * 0.9); ctx.lineTo(bs * 0.45, -bs * 0.08); ctx.lineTo(2, -bs * 0.08); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#003399'; ctx.beginPath(); ctx.moveTo(-2, -bs * 0.75); ctx.lineTo(-bs * 0.35, -bs * 0.08); ctx.lineTo(-2, -bs * 0.08); ctx.closePath(); ctx.fill();
+    ctx.restore();
+    // the lighthouse beam sweeping over the water
+    const [lx, lb] = L.light, lh = u * 0.32, ly = lb - lh * 1.06, sw = Math.sin(t * 0.9), len = W * 0.22;
+    const lg = ctx.createRadialGradient(lx, ly, 0, lx, ly, len); lg.addColorStop(0, 'rgba(255,240,180,0.45)'); lg.addColorStop(1, 'rgba(255,240,180,0)');
+    ctx.fillStyle = lg; ctx.beginPath(); ctx.moveTo(lx, ly); const da = Math.PI + sw * 0.5;
+    ctx.lineTo(lx + Math.cos(da - 0.07) * len, ly + Math.sin(da - 0.07) * len); ctx.lineTo(lx + Math.cos(da + 0.07) * len, ly + Math.sin(da + 0.07) * len); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = 'rgba(255,240,180,0.95)'; ctx.beginPath(); ctx.arc(lx, ly, Math.max(1.5, lh * 0.04), 0, TAU); ctx.fill();
   } else if (kind === 'war') {
     // searchlights sweeping the smoky sky
     for (const [sx, sp] of [[0.12, 0.4], [0.85, -0.33]]) {

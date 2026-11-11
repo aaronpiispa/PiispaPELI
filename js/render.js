@@ -32,12 +32,19 @@ function drawFlag(level, S) {
     ctx.lineWidth = 0.1 * S; ctx.beginPath(); ctx.moveTo(-0.24 * S, -0.42 * S); ctx.lineTo(-0.02 * S, -0.2 * S); ctx.stroke();
     return;
   }
-  if (type === 'gl') {
-    // white over red, circle with the colours swapped
-    ctx.fillStyle = cols[0]; ctx.fillRect(-S, -S, 2 * S, S);
-    ctx.fillStyle = cols[1]; ctx.fillRect(-S, 0, 2 * S, S);
-    ctx.beginPath(); ctx.arc(0, 0, 0.42 * S, Math.PI, 0); ctx.fill();
-    ctx.fillStyle = cols[0]; ctx.beginPath(); ctx.arc(0, 0, 0.42 * S, 0, Math.PI); ctx.fill();
+  if (type === 'eu') {
+    // European Union: blue with a circle of twelve gold stars, each with one point straight up
+    ctx.fillStyle = cols[0]; ctx.fillRect(-S, -S, 2 * S, 2 * S);
+    ctx.fillStyle = cols[1]; ctx.beginPath();
+    for (let k = 0; k < 12; k++) {
+      const a = k * TAU / 12, sx = Math.cos(a) * 0.56 * S, sy = Math.sin(a) * 0.56 * S;
+      for (let p = 0; p < 10; p++) {
+        const r = p % 2 ? 0.05 * S : 0.125 * S, b = -Math.PI / 2 + p * Math.PI / 5, x = sx + Math.cos(b) * r, y = sy + Math.sin(b) * r;
+        if (p) ctx.lineTo(x, y); else ctx.moveTo(x, y);
+      }
+      ctx.closePath();
+    }
+    ctx.fill();
     return;
   }
   if (type === 'n') {
@@ -967,7 +974,7 @@ function render() {
   screenTf();
   drawFloaters(sx, sy);
   drawHUD();
-  if (adminOn) { ctx.font = `800 11px ${FONT}`; ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillStyle = invincible ? '#ff6b6b' : '#ffcc00'; ctx.fillText(invincible ? 'ADMIN · ' + T('KUOLEMATON') : 'ADMIN', 8, 6); ctx.textBaseline = 'alphabetic'; }
+  if (adminOn) { ctx.font = `800 11px ${FONT}`; ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillStyle = invincible ? '#ff6b6b' : '#ffcc00'; ctx.fillText((invincible ? 'ADMIN · ' + T('KUOLEMATON') : 'ADMIN') + (infSwing ? ' · ∞' : ''), 8, 6); ctx.textBaseline = 'alphabetic'; }
   drawNelli();
   drawCardMascot();
 }

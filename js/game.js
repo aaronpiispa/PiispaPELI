@@ -481,6 +481,7 @@ function unlockEverything() {
 }
 function unlock(id) {
   if (achGot[id]) return;
+  if (cheated && id !== 'admin' && (state === 'play' || state === 'paused' || state === 'over')) return;
   const a = ACH.find(x => x[0] === id);
   if (!a) return;
   const before = trophies();
@@ -496,7 +497,7 @@ function unlock(id) {
 }
 function noteLevel(l) {
   gotLevels.add(l);
-  if (stage > 0) return;   // the balls of stages 2 and 3 have no collection or ball achievements of their own
+  if (stage > 0 || cheated) return;   // the balls of stages 2 and 3 have no collection or ball achievements of their own
   const th = theme().id, seen = seenFor(th);
   if (!seen.has(l)) { seen.add(l); store.set(th === 'eu' ? 'piispanpeli-seen' : 'piispanpeli-seen-' + th, [...seen]); }
   if (th === 'eu') {
@@ -530,6 +531,7 @@ function startGame(m, mi) {
   rng = gmode === 'daily' ? mulberry(todayKey()) : Math.random;
   const ms = missionIdx >= 0 ? MISSIONS[missionIdx] : null;
   modeT = gmode === 'time' ? TIME_LIMIT : ms && ms.time ? ms.time : 0;
+  cheated = invincible || infSwing;
   shots = 0; gotLevels = new Set(); playT = 0; oneBtnT = 0; mergesThisGame = 0; gravT = 12; gravI = 0; failT = 0; endReason = 'over';
   E.gx = 0; E.gy = GRAV;
   const gp = (Number(store.get('piispanpeli-games', 0)) || 0) + 1; store.set('piispanpeli-games', gp);
@@ -549,7 +551,7 @@ function pause() { if (state !== 'play') return; state = 'paused'; aiming = fals
 const AUTO_KEY = 'piispanpeli-autosave', SLOT_KEY = i => 'piispanpeli-slot' + i;
 let autoT = 0;
 function gameData() {
-  return { v: 1, t: Date.now(), score, cur, nxt, maxLevel, charges, abilProg, th: theme().id, stage, playT: Math.round(playT), done: stageDone,
+  return { v: 1, t: Date.now(), score, cur, nxt, maxLevel, charges, abilProg, th: theme().id, stage, playT: Math.round(playT), done: stageDone, ch: cheated ? 1 : 0,
     blobs: E.blobs.map(b => [b.level, Math.round(b.cx * 100) / 100, Math.round(b.cy * 100) / 100]) };
 }
 function validSave(g) { return !!(g && Array.isArray(g.blobs)); }
@@ -566,6 +568,7 @@ function loadGame(g, play) {
   charges = g.charges | 0; abilProg = g.abilProg | 0; wobT = 0;
   dangerT = 0; combo = 0; comboT = 0; shake = 0; blockedT = 0; cooldown = 0.3; popT = 0; aiming = false; autoT = 0;
   gmode = 'classic'; missionIdx = -1; rng = Math.random; E.gx = 0; E.gy = GRAV; shots = 0; gotLevels = new Set(); playT = +g.playT || 0;
+  cheated = !!g.ch || invincible || infSwing;
   // a saved game comes back with the theme and stage it was played in
   const th = THEMES.find(t => t.id === g.th);
   if (th && themeOpen(th) && th.id !== themeId) { themeId = th.id; store.set('piispanpeli-theme', themeId); buildBg(); }
@@ -605,7 +608,8 @@ function gameOver(reason) {
   if ((reason === 'over' || reason === 'stage') && (invincible || MODE_INFO[gmode].noLose)) { dangerT = 0; jamT = 0; return; }
   state = 'over'; aiming = false; endReason = reason;
   let newBest = false;
-  if (gmode === 'classic') { newBest = score > best; if (newBest) { best = score; store.set('piispanpeli-best', best); } }
+  if (cheated) { /* the admin panel was used: nothing is recorded */ }
+  else if (gmode === 'classic') { newBest = score > best; if (newBest) { best = score; store.set('piispanpeli-best', best); } }
   else if (gmode === 'time' || gmode === 'gravity') { newBest = score > modeBest(gmode); if (newBest) store.set('piispanpeli-best-' + gmode, score); }
   else if (gmode === 'daily' && reason === 'win') {
     const k = 'piispanpeli-daily-' + todayKey(), prev = Number(store.get(k, 0)) || 0;
@@ -619,7 +623,7 @@ function gameOver(reason) {
   if (gmode === 'time') { if (score >= 5000) unlock('time5k'); if (score >= 15000) unlock('time15k'); }
   E.gx = 0; E.gy = GRAV;
   store.set(AUTO_KEY, null);
-  if (!stage && maxLevel > bestLevel) { bestLevel = maxLevel; store.set('piispanpeli-level', bestLevel); }
+  if (!cheated && !stage && maxLevel > bestLevel) { bestLevel = maxLevel; store.set('piispanpeli-level', bestLevel); }
   if (reason === 'win') { sfx.mega(); triggerConfetti(); } else sfx.over();
   if (!reduceMotion && reason !== 'win') shake = Math.max(shake, 0.25);
   syncUI();
@@ -699,16 +703,17 @@ function syncAbil() {
   const on = state === 'play' || state === 'paused';
   abilBtn.hidden = !on;
   if (!on) return;
-  abilBtn.disabled = charges <= 0 || wobT > 0;
-  abilBtn.classList.toggle('ready', charges > 0 && wobT <= 0);
+  const have = infSwing || charges > 0;
+  abilBtn.disabled = !have || wobT > 0;
+  abilBtn.classList.toggle('ready', have && wobT <= 0);
   const fmt = n => n >= 1000 ? (Math.floor(n / 100) / 10).toString().replace(/\.0$/, '') + 'k' : String(Math.floor(n));
-  abilBtn.textContent = charges > 0 ? T('Heilauta! ×{0}', charges) : T('Heilautus {0} / {1}', fmt(abilProg), fmt(ABIL_COST));
-  abilBtn.style.setProperty('--p', charges > 0 ? '100%' : (abilProg / ABIL_COST * 100).toFixed(1) + '%');
-  abilBtn.setAttribute('aria-label', charges > 0 ? T('Heilauta vaunua, {0} käytettävissä', charges) : T('Heilautus latautuu, {0} / {1} pistettä', Math.floor(abilProg), ABIL_COST));
+  abilBtn.textContent = infSwing ? T('Heilauta! ×{0}', '∞') : charges > 0 ? T('Heilauta! ×{0}', charges) : T('Heilautus {0} / {1}', fmt(abilProg), fmt(ABIL_COST));
+  abilBtn.style.setProperty('--p', have ? '100%' : (abilProg / ABIL_COST * 100).toFixed(1) + '%');
+  abilBtn.setAttribute('aria-label', have ? T('Heilauta vaunua, {0} käytettävissä', infSwing ? '∞' : charges) : T('Heilautus latautuu, {0} / {1} pistettä', Math.floor(abilProg), ABIL_COST));
 }
 function useAbility() {
-  if (state !== 'play' || charges <= 0 || wobT > 0) return;
-  charges--; wobT = 1.4; unlock('shake');
+  if (state !== 'play' || (!infSwing && charges <= 0) || wobT > 0) return;
+  if (!infSwing) charges--; wobT = 1.4; unlock('shake');
   // throw everything up a bit, then rock the wagon from side to side
   for (const b of E.blobs) {
     const kick = 12 + Math.random() * 12, side = (Math.random() - 0.5) * 12;
@@ -777,16 +782,16 @@ function modeStep() {
 function completeStage() {
   const id = theme().id, n = stage + 1, set = STAGES[id];
   unlock(achFor('stage' + n));
-  if (stagesDone(id) < n) store.set('piispanpeli-stage-' + id, n);
+  if (!cheated && stagesDone(id) < n) store.set('piispanpeli-stage-' + id, n);
   if (n >= set.length) {
     // the last stage: a final win screen, after which the player may keep collecting points
     stageDone = true; aiming = false;
-    if (score > best) { best = score; store.set('piispanpeli-best', best); }
+    if (!cheated && score > best) { best = score; store.set('piispanpeli-best', best); }
     state = 'paused'; autoSave(); syncUI(); showStageWin();
     return;
   }
   // the next stage begins right away in the same game: the score stays, the wagon is emptied for the new balls
-  store.set('piispanpeli-stagesel-' + id, n);
+  if (!cheated) store.set('piispanpeli-stagesel-' + id, n);
   for (const b of E.blobs) burst(b.cx, b.cy, b.level, 6, b.R);
   clearAll(); setStage(n);
   maxLevel = 0; playT = 0; gotLevels = new Set(); dangerT = 0; jamT = 0; combo = 0; comboT = 0; failT = 0; oneBtnT = 0;

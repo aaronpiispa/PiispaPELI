@@ -25,7 +25,7 @@ const music = (() => {
   }
   function tone(type, f, t, end, dest, det, wobble) {
     const o = ac.createOscillator(); o.type = type; o.frequency.value = f; if (det) o.detune.value = det;
-    if (wobble !== false && wow) wow.connect(o.detune);
+    if (wobble !== false && wow) { const w = wow; w.connect(o.detune); o.onended = () => { try { w.disconnect(o.detune); } catch (e) { /* already gone */ } }; }
     o.connect(dest); o.start(t); o.stop(end); return o;
   }
   function noiseSrc(t, end, dest) { const s = ac.createBufferSource(); s.buffer = noise; s.connect(dest); s.start(t, Math.random() * 1.5); s.stop(end); return s; }
@@ -264,9 +264,12 @@ const music = (() => {
   }
   function schedule() {
     if (!ac || ac.state !== 'running' || track < 0) return;
-    if (nextT < ac.currentTime - 0.5) nextT = ac.currentTime + 0.05;
-    const tr = T(), beat = 60 / tr.bpm, s16 = beat / 4;
-    while (nextT < ac.currentTime + 0.3) {
+    const tr = T(), beat = 60 / tr.bpm, s16 = beat / 4, now = ac.currentTime;
+    // the timer was late (a background tab, a busy moment): notes whose time has passed are skipped, not played
+    // all at once. After a long gap the song simply continues from where it was.
+    if (nextT < now - 4) nextT = now + 0.05;
+    while (nextT < now + 0.02) { nextT += step % 2 === 0 ? s16 * (1 + tr.swing) : s16 * (1 - tr.swing); step = (step + 1) % 512; }
+    while (nextT < now + 0.3) {
       tr.play(step, nextT, beat);
       nextT += step % 2 === 0 ? s16 * (1 + tr.swing) : s16 * (1 - tr.swing);
       step = (step + 1) % 512;
@@ -277,12 +280,19 @@ const music = (() => {
     names: TR.map(t => t.name),
     get track() { return track; },
     setTrack(i) { track = i; step = 0; store.set('piispanpeli-track', i); applyTrack(false); },
-    setMuted(m) { muted = m; if (ac) applyTrack(false); }
+    setMuted(m) { muted = m; if (ac) applyTrack(false); },
+    // called when the page is shown again: start from now and fade in, so nothing old bursts out
+    wake() {
+      if (!ac) return;
+      // notes already queued before the pause still play; only fill in from where they end, never twice
+      const t = ac.currentTime; nextT = Math.max(nextT, t + 0.05);
+      out.gain.cancelScheduledValues(t); out.gain.setValueAtTime(0.0001, t); out.gain.setTargetAtTime(vol(), t + 0.05, 0.35);
+    }
   };
 })();
 
 const sfx = (() => {
-  let ac = null, master = null, muted = !!store.get('piispanpeli-muted', false), volume = Number(store.get('piispanpeli-volume', 0.8));
+  let ac = null, master = null, awake = true, muted = !!store.get('piispanpeli-muted', false), volume = Number(store.get('piispanpeli-volume', 0.8));
   if (!(volume >= 0 && volume <= 1)) volume = 0.8;
   function ensure() {
     if (!ac) {
@@ -320,8 +330,16 @@ const sfx = (() => {
     get volume() { return volume; },
     setVolume(v) { volume = v; store.set('piispanpeli-volume', v); if (master) master.gain.setTargetAtTime(0.9 * v, ac.currentTime, 0.05); },
     toggle() { muted = !muted; store.set('piispanpeli-muted', muted); music.setMuted(muted); if (!muted) ensure(); },
-    suspend() { if (ac && ac.state === 'running') ac.suspend().catch(() => {}); },
-    resume() { if (ac && ac.state === 'suspended') ac.resume().catch(() => {}); },
+    // the page was hidden or shown. Coming back quickly could arrive while the pause was still being carried out,
+    // which used to leave the sound paused; now the last wish always wins.
+    suspend() {
+      awake = false;
+      if (ac && ac.state === 'running') ac.suspend().then(() => { if (awake) ac.resume().then(() => music.wake()).catch(() => {}); }).catch(() => {});
+    },
+    resume() {
+      awake = true;
+      if (ac && ac.state !== 'closed') ac.resume().then(() => music.wake()).catch(() => {});
+    },
     shoot(p) { tone(380 + p * 120, 150, 0.14, 'sine', 0.12 + p * 0.1); },
     merge(l) { const f = 240 * Math.pow(1.12, l); tone(f * 0.8, f * 1.6, 0.18, 'sine', 0.22); tone(f * 1.6, f * 2.4, 0.1, 'triangle', 0.06, 0.04); },
     mega() { [523, 659, 784, 1047].forEach((f, i) => tone(f, f * 1.02, 0.28, 'triangle', 0.15, i * 0.08)); },

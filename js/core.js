@@ -6,8 +6,8 @@ const TAU = Math.PI * 2;
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 const rand = (a, b) => a + Math.random() * (b - a);
 const INK = '#231d45';
-const COLORS = ['#0072ce', '#c0394a', '#169b62', '#ed2939', '#477050', '#fcd116', '#009246', '#2f6fd6', '#ffce00', '#fecc00', '#ef4135', '#ffd700', '#e30a17', '#d00c33', '#cc0000'];
-let NAMES = ['Viro', 'Latvia', 'Irlanti', 'Itävalta', 'Unkari', 'Romania', 'Italia', 'Suomi', 'Saksa', 'Ruotsi', 'Ranska', 'Ukraina', 'Turkki', 'Grönlanti', 'USSR'];
+const COLORS = ['#0072ce', '#c0394a', '#169b62', '#ed2939', '#477050', '#fcd116', '#009246', '#2f6fd6', '#ffce00', '#fecc00', '#ef4135', '#ffd700', '#e30a17', '#003399', '#cc0000'];
+let NAMES = ['Viro', 'Latvia', 'Irlanti', 'Itävalta', 'Unkari', 'Romania', 'Italia', 'Suomi', 'Saksa', 'Ruotsi', 'Ranska', 'Ukraina', 'Turkki', 'EU', 'USSR'];
 // flags, smallest country first: [type, colours, (weights)]
 const FLAGS = [
   ['h', ['#0072ce', '#111111', '#ffffff']],
@@ -23,7 +23,7 @@ const FLAGS = [
   ['v', ['#0055a4', '#ffffff', '#ef4135']],
   ['h', ['#0057b7', '#ffd700']],
   ['tr', ['#e30a17', '#ffffff']],
-  ['gl', ['#ffffff', '#d00c33']],
+  ['eu', ['#003399', '#ffcc00']],
   ['su', ['#cc0000', '#ffd700']]
 ];
 const POINTS = [0, 2, 4, 8, 14, 22, 32, 45, 60, 80, 100, 125, 155, 190, 230];
@@ -31,6 +31,8 @@ const MAX_BONUS = 250, DANGER_TIME = 0.15, BTN_Y = DANGER_Y + 2.2, BTN_H = 2.4;
 let btnL = false, btnR = false, depL = 0, depR = 0, tgtL = 0, tgtR = 0;
 const ABIL_COST = 40000;
 let charges = 0, abilProg = 0, wobT = 0;
+// admin panel: endless swings, and whether this game used the admin panel (then no records are kept)
+let infSwing = false, cheated = false;
 const abilBtn = document.getElementById('abilBtn');
 // Viro, Latvia, Irlanti, Itävalta, Unkari, Romania, Italia (Italia is the biggest that can appear)
 const SPAWN_W = [0.112, 0.14, 0.2, 0.12, 0.08, 0.06, 0.04];
