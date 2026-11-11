@@ -102,19 +102,68 @@ function mb(id, icon, bg, fg, label, sub, primary) {
   return `<button class="mb${primary ? ' primary' : ''}" id="${id}" type="button"><span class="ic" style="${primary ? '' : `background:${bg};color:${fg}`}" aria-hidden="true">${MI[icon]}</span>` +
     `<span>${label}${sub ? `<small>${sub}</small>` : ''}</span>${MI.chev}</button>`;
 }
+function stageLine() {
+  // the goal of the selected stage, shown under the stage buttons in the menu
+  const goals = STAGE_GOALS[stage];
+  if (!goals.length) return T('Yhdistä kaksi suurinta palloa ({0}), niin pääset seuraavalle tasolle.', NAMES[MAXL]);
+  return T('Aikaraja: {0}', goals.map(([lv, t]) => T('{0} {1} minuutissa', NAMES[lv], t / 60)).join(' · '));
+}
+// small (i) buttons that explain the goal of a stage or a game mode
+const infoBtn = (kind, id, name) => `<button class="info" type="button" data-info="${kind}" data-id="${id}" aria-label="${T('Lisätietoa: {0}', name)}">i</button>`;
+function stageNames(i) {
+  // the Finnish names of a stage's balls, translated (the theme's own balls on stage 1)
+  const id = theme().id, st = STAGES[id][i], tb = THEME_BALLS[id];
+  return (st.names || (tb ? tb.names : FI.names)).map(n => T(n));
+}
+function showInfo(kind, id, back) {
+  let title, body = '';
+  const p = x => `<p class="info-p">${x}</p>`;
+  if (kind === 'stage') {
+    const i = Number(id), set = STAGES[theme().id], names = stageNames(i), goals = STAGE_GOALS[i];
+    title = T('Taso {0}: {1}', i + 1, T(set[i].name));
+    body = p(T('Pallot: {0} → … → {1}', names[0], names[MAXL])) +
+      p('<b>' + T('Tavoite') + ':</b> ' + T('Yhdistä kaksi suurinta palloa ({0}).', names[MAXL]) + ' ' +
+        (i + 1 < set.length ? T('Silloin peli siirtyy heti tasolle {0}: {1}.', i + 2, T(set[i + 1].name)) : T('Tämä on teeman viimeinen taso.'))) +
+      p(goals.length ? '<b>' + T('Aikarajat') + ':</b> ' + goals.map(([lv, t]) => T('{0} {1} minuutissa', names[lv], t / 60)).join(' · ') + '. ' + T('Jos aikaraja ylittyy, peli päättyy.')
+        : T('Ei aikarajaa.')) +
+      (i > 0 ? p(T('Pisteet ja heilautukset säilyvät, kun siirryt seuraavalle tasolle.')) : '') +
+      (stageOpen(i, theme().id) ? '' : p('🔒 ' + T('Avautuu, kun läpäiset tason {0}.', i)));
+  } else {
+    const goal = { classic: 'Kerää mahdollisimman paljon pisteitä ja läpäise tasot yhdistämällä kaksi suurinta palloa. Peli päättyy, jos pallot painavat molempia nappeja yhtä aikaa.',
+      time: 'Kerää kahdessa minuutissa niin paljon pisteitä kuin ehdit. Nappeihin ei voi hävitä.',
+      daily: 'Saa {0} mahdollisimman vähillä laukauksilla. Kaikilla on sama pallojärjestys, ja haaste vaihtuu joka päivä klo 15.',
+      zen: 'Ei mitään, vain rentoutumista. Pisteitä ei lasketa, eikä peliä voi hävitä.',
+      gravity: 'Kerää mahdollisimman paljon pisteitä, kun painovoiman suunta vaihtuu muutaman sekunnin välein. Peli päättyy, jos pallot painavat molempia nappeja.',
+      map: 'Suorita {1} tehtävää järjestyksessä. Jokaisella tehtävällä on oma tavoitteensa, esimerkiksi tietty pallo rajatuilla laukauksilla tai pisteitä aikarajassa.' }[id];
+    title = MODE_INFO[id].name;
+    body = (id === 'daily' ? '' : p(MODE_INFO[id].desc)) + p('<b>' + T('Tavoite') + ':</b> ' + T(goal, NAMES[10], MISSIONS.length));
+  }
+  showOverlay(`<h2 class="h2">${title}</h2>` + body + `<div class="row" style="margin-top:14px"><button class="btn" id="${back === 'modes' ? 'modesBtn' : 'backMenu'}" type="button">${T('Selvä!')}</button></div>`);
+}
+function stagesHTML() {
+  const id = theme().id;
+  return '<div class="stages" role="group" aria-label="' + T('Tasot') + '">' + STAGES[id].map((s, i) => {
+    const open = stageOpen(i, id), on = i === stage;
+    return `<div class="stgw"><button class="stg${on ? ' on' : ''}${open ? '' : ' locked'}" type="button" data-stage="${i}"${open ? '' : ' disabled'} aria-pressed="${on}"` +
+      ` title="${open ? T(s.name) : T('Läpäise edellinen taso')}"><b>${open ? i + 1 : '🔒'}</b><span>${T(s.name)}</span></button>` +
+      infoBtn('stage', i, T('Taso {0}: {1}', i + 1, T(s.name))) + '</div>';
+  }).join('') + '</div><p class="stgoal">' + stageLine() + '</p>';
+}
 function showMenu() {
+  if (state === 'menu') setStage(stageSel());
   const autoG = store.get(AUTO_KEY, null), auto = validSave(autoG) ? autoG : null;
   // two groups: on phones held sideways they become two columns so the play button stays in view
   showOverlay('<div class="menu-l">' + titleHTML() +
-    '<p class="lead">' + T('Ammu lippupalloja junavaunuun. Kaksi samaa maata yhdistyy isommaksi maaksi, Virosta aina USSR:ään asti.') + '</p>' +
+    '<p class="lead">' + (stage ? T('Kaksi samaa palloa yhdistyy isommaksi: {0} → … → {1}.', NAMES[0], NAMES[MAXL])
+      : T((THEME_BALLS[theme().id] || {}).lead || 'Ammu lippupalloja junavaunuun. Kaksi samaa maata yhdistyy isommaksi maaksi, Virosta aina USSR:ään asti.')) + '</p>' +
     '<div class="stats">' +
       `<div class="stat" style="color:#ffcc00">${MI.star}<b style="color:#fff">${best}</b><small>${T('Ennätys')}</small></div>` +
       `<div class="stat" style="color:#ffcc00">${MI.trophy}<b style="color:#fff">${achCount()}/${ACH.length}</b><small>${T('Saavutukset')}</small></div>` +
-      `<div class="stat" style="color:#6fd3ff">${MI.globe}<b style="color:#fff">${seenEver.size}/${RADII.length}</b><small>${T('Maat')}</small></div>` +
+      `<div class="stat" style="color:#6fd3ff">${MI.globe}<b style="color:#fff">${seenFor(theme().id).size}/${RADII.length}</b><small>${T((THEME_BALLS[theme().id] || {}).count || 'Maat')}</small></div>` +
     '</div></div>' +
-    '<div class="menu-r"><div class="menu-btns">' +
-    (auto ? mb('continueBtn', 'play', '', '', T('Jatka peliä'), T('{0} pistettä', (auto.score | 0).toLocaleString('fi-FI')), true) + mb('startBtn', 'plus', '#2fbf71', '#fff', T('Uusi peli'), T('Klassinen alusta'))
-          : mb('startBtn', 'play', '', '', T('Pelaa'), T('Klassinen peli'), true)) +
+    '<div class="menu-r">' + stagesHTML() + '<div class="menu-btns">' +
+    (auto ? mb('continueBtn', 'play', '', '', T('Jatka peliä'), T('{0} pistettä', (auto.score | 0).toLocaleString('fi-FI')), true) + mb('startBtn', 'plus', '#2fbf71', '#fff', T('Uusi peli'), T('Taso {0}: {1}', stage + 1, T(stageInfo().name)))
+          : mb('startBtn', 'play', '', '', T('Pelaa'), T('Taso {0}: {1}', stage + 1, T(stageInfo().name)), true)) +
     mb('modesBtn', 'modes', '#7b5cff', '#fff', T('Pelimuodot'), T('Aikahaaste, Zen, Tehtäväkartta…')) +
     '<div class="two">' +
       mb('achBtn', 'trophy', '#ffcc00', '#0a1c47', T('Saavutukset'), '') +
@@ -147,8 +196,9 @@ function showRules() {
     [COLORS[2], '<b>Ammu</b> klikkaamalla tai nostamalla sormen ruudulta.'],
     [COLORS[4], 'Kevyt laukaus laskee pallon varovasti, kova laukaus <b>tönii ja litistää</b> muita.'],
     [COLORS[9], 'Vaunun seinissä on kaksi nappia. Jos pallot koskettavat <b>molempia nappeja</b> yhtä aikaa, peli päättyy.'],
-    ['#ffcc00', 'Joka <b>25 000 pisteellä</b> saat heilautuksen, joka ravistaa vaunua ja sekoittaa pallot.'],
+    ['#ffcc00', 'Joka <b>40 000 pisteellä</b> saat heilautuksen, joka ravistaa vaunua ja sekoittaa pallot.'],
     ['#ff4d7d', 'Ammu vaunun yläosassa lentäviä <b>tähtiä</b> ja harvinaisia <b>sydämiä</b>, niin saat bonuspisteitä.'],
+    ['#6fd3ff', 'Kun yhdistät kaksi suurinta palloa, siirryt heti <b>uudelle tasolle</b> uusine palloineen. Ylemmillä tasoilla tietty pallo pitää saada <b>aikarajassa</b>.'],
     ['#e8b400', 'Saavutuksista saat <b>pokaaleja</b> vaunun pohjan hyllyille. Tartu pokaaliin sormella ja <b>heitä</b> sitä ympäri vaunua!']
   ];
   showOverlay('<h2 class="h2">' + T('Ohjeet') + '</h2><ul class="rules">' +
@@ -156,6 +206,7 @@ function showRules() {
     '</ul><div class="row"><button class="btn" id="backMenu" type="button">' + T('Takaisin') + '</button></div>');
 }
 function showModes() {
+  setStage(0);   // the other game modes always use the theme's first balls
   const rows = ['classic', 'time', 'daily', 'zen', 'gravity', 'map'].map(m => {
     let extra = '';
     if (m === 'classic') extra = T('Ennätys {0}', best);
@@ -163,11 +214,12 @@ function showModes() {
     if (m === 'gravity') extra = T('Ennätys {0}', modeBest('gravity'));
     if (m === 'daily') { const d = Number(store.get('piispanpeli-daily-' + todayKey(), 0)) || 0; extra = (d ? T('Paras: {0} laukausta', d) : T('Haaste odottaa')) + ' · ' + T('uusi haaste {0} päästä', dailyLeft()); }
     if (m === 'map') extra = T('Suoritettu {0} / {1}', mapDone(), MISSIONS.length);
-    return `<li><b>${MODE_INFO[m].name}</b><button class="mini" type="button" data-mode="${m}">${T(m === 'map' ? 'Avaa' : 'Pelaa')}</button><small>${MODE_INFO[m].desc}<br>${extra}</small></li>`;
+    return `<li><b>${MODE_INFO[m].name}${infoBtn('mode', m, MODE_INFO[m].name)}</b><button class="mini" type="button" data-mode="${m}">${T(m === 'map' ? 'Avaa' : 'Pelaa')}</button><small>${MODE_INFO[m].desc}<br>${extra}</small></li>`;
   }).join('');
   showOverlay('<h2 class="h2">' + T('Pelimuodot') + '</h2><ul class="list">' + rows + '</ul><div class="row" style="margin-top:14px"><button class="btn alt" id="backMenu" type="button">' + T('Takaisin') + '</button></div>');
 }
 function showMap() {
+  setStage(0);
   const done = mapDone();
   const rows = MISSIONS.map((m, i) => {
     const st = i < done ? 'done' : i === done ? '' : 'locked';
@@ -185,7 +237,7 @@ function showAch() {
   }).join('');
   showOverlay('<h2 class="h2">' + T('Saavutukset') + '</h2><p class="sub">' + T('{0} / {1} · kultapalkintoja {2} / {3}', achCount(), ACH.length, trophies(), TROPHY_AT.length) + '</p>' +
     '<div class="trophies">' + cups + '</div><p class="hint">' + T('Kultapalkinto {0} ja {1} saavutuksesta.', TROPHY_AT.slice(0, -1).join(', '), ACH.length) + (goldEdges() ? ' ' + T('Kultaiset reunat käytössä!') : '') + '</p>' +
-    '<ul class="ach">' + group(T('Peli'), a => !a[3]) + group(T('Pelimuodot'), a => a[3] === 'mode') + group(T('Salaiset'), a => a[3] === 'secret') + '</ul>' +
+    '<ul class="ach">' + group(T('Peli'), a => !a[3]) + group(T('Pelimuodot'), a => a[3] === 'mode') + group(T('Salaiset'), a => a[3] === 'secret') + THEMES.filter(t => t.id !== 'eu').map(t => group(T(t.name), a => a[3] === t.id)).join('') + '</ul>' +
     '<div class="row" style="margin-top:14px"><button class="btn alt" id="backMenu" type="button">' + T('Takaisin') + '</button></div>');
 }
 
@@ -212,7 +264,7 @@ function showPause(note) {
   showOverlay('<h2 class="h2">' + T('Tauko') + '</h2><p class="sub">' + MODE_INFO[gmode].name + (gmode === 'zen' ? '' : ' · ' + T('pisteet {0}', score)) + '</p>' +
     (note ? `<p class="note">${note}</p>` : '') + '<div class="mbs">' +
     mb('resumeBtn', 'play', '', '', T('Jatka'), T('Takaisin peliin'), true) +
-    (gmode === 'classic' ? mb('saveBtn', 'save', '#2aa7e0', '#fff', T('Tallenna'), T('Kolme tallennuspaikkaa')) : '') +
+    (gmode === 'classic' ? mb('saveBtn', 'save', '#2aa7e0', '#fff', T('Tallenna'), T('Viisi tallennuspaikkaa')) : '') +
     mb('restartBtn', 'restart', '#ff8a3d', '#fff', T('Aloita alusta'), MODE_INFO[gmode].name) +
     mb('menuBtn', 'home', '#7b5cff', '#fff', T('Päävalikko'), T('Peli tallentuu automaattisesti')) +
     '</div>' + musicRow());
@@ -251,10 +303,21 @@ function showSaveSlots() {
     '<div class="row" style="margin-top:16px"><button class="btn alt" id="backBtn" type="button">' + T('Takaisin') + '</button></div>');
 }
 
+function showStageWin() {
+  showOverlay(`<h2 class="h2">${T('Kaikki tasot läpäisty!')}</h2><div class="final">${NAMES[MAXL]}</div>` +
+    `<p class="sub win">${T('Sait {0} ja läpäisit kaikki tasot!', NAMES[MAXL])}</p>` +
+    '<div class="mbs">' + mb('resumeBtn', 'play', '', '', T('Jatka tätä peliä'), T('Kerää lisää pisteitä'), true) +
+    mb('menuBtn', 'home', '#7b5cff', '#fff', T('Päävalikko'), '') + '</div>');
+  triggerConfetti(); sfx.mega();
+}
 function showOver(newBest) {
   const NB = '<p class="sub win">' + T('Uusi ennätys!') + '</p>', REC = v => '<p class="sub">' + T('Ennätys {0}', v) + '</p>';
   let title = T('Vaunu täyttyi!'), main = String(score), sub = newBest && score > 0 ? NB : REC(best), extraBtn = '';
   if (gmode === 'time') { title = T('Aika loppui!'); sub = newBest ? NB : REC(modeBest('time')); }
+  if (gmode === 'classic' && endReason === 'stage' && failGoal) {
+    title = T('Aikaraja ylittyi!');
+    sub = '<p class="sub">' + T('{0} piti saada {1} minuutissa.', NAMES[failGoal[0]], failGoal[1] / 60) + '</p>' + sub;
+  }
   if (gmode === 'gravity') sub = newBest ? NB : REC(modeBest('gravity'));
   if (gmode === 'daily') {
     const d = Number(store.get('piispanpeli-daily-' + todayKey(), 0)) || 0;
@@ -267,9 +330,9 @@ function showOver(newBest) {
     else { title = T('Tehtävä epäonnistui'); main = NAMES[ms.c]; sub = `<p class="sub">${ms.text}</p>`; }
   }
   showOverlay(`<h2 class="h2">${title}</h2><div class="final">${main}</div>` + sub +
-    (gmode === 'daily' || gmode === 'map' ? '' : `<div class="biggest"><span>${T('Suurin maa')}</span><i class="dot" style="background:${COLORS[maxLevel]}"></i><b>${NAMES[maxLevel]} (${maxLevel + 1}/${MAXL + 1})</b></div>`) +
+    (gmode === 'daily' || gmode === 'map' ? '' : `<div class="biggest"><span>${T(theme().id === 'eu' && !stage ? 'Suurin maa' : 'Suurin pallo')}</span><i class="dot" style="background:${COLORS[maxLevel]}"></i><b>${NAMES[maxLevel]} (${maxLevel + 1}/${MAXL + 1})</b></div>`) +
     '<div class="mbs">' + (extraBtn ? mb('nextMission', 'next', '', '', T('Seuraava tehtävä'), '', true) : '') +
-    mb('againBtn', extraBtn ? 'restart' : 'play', '#2fbf71', '#fff', T(gmode === 'map' && endReason === 'win' ? 'Uudelleen' : 'Pelaa uudestaan'), MODE_INFO[gmode].name, !extraBtn) +
+    mb('againBtn', extraBtn ? 'restart' : 'play', '#2fbf71', '#fff', T(gmode === 'map' && endReason === 'win' ? 'Uudelleen' : 'Pelaa uudestaan'), gmode === 'classic' ? T('Taso {0}: {1}', stage + 1, T(stageInfo().name)) : MODE_INFO[gmode].name, !extraBtn) +
     mb('menuBtn', 'home', '#7b5cff', '#fff', T('Päävalikko'), '') + '</div>');
 }
 
@@ -298,14 +361,20 @@ card.addEventListener('click', e => {
     return;
   }
   if (btn.dataset.theme) {
-    themeId = btn.dataset.theme; store.set('piispanpeli-theme', themeId); mascotBounce = 0.8; buildBg();
+    themeId = btn.dataset.theme; store.set('piispanpeli-theme', themeId); mascotBounce = 0.8; buildBg(); stage = stageSel(); applyLang();
     card.querySelectorAll('.tcard:not(.locked)').forEach(el => { const on = el === btn; el.classList.toggle('on', on); el.querySelector('small').textContent = T(on ? 'Käytössä' : 'Valitse'); });
+    return;
+  }
+  if (btn.dataset.info) { showInfo(btn.dataset.info, btn.dataset.id, btn.dataset.info === 'mode' ? 'modes' : 'menu'); return; }
+  if (btn.dataset.stage != null) {
+    const n = Number(btn.dataset.stage);
+    if (stageOpen(n, theme().id)) { store.set('piispanpeli-stagesel-' + theme().id, n); setStage(n); showMenu(); }
     return;
   }
   if (btn.dataset.mode) { const m = btn.dataset.mode; if (m === 'map') showMap(); else startGame(m); return; }
   if (btn.dataset.mission != null) { startGame('map', Number(btn.dataset.mission)); return; }
   if (btn.id === 'startBtn') startGame('classic');
-  else if (btn.id === 'againBtn' || btn.id === 'restartBtn') startGame();
+  else if (btn.id === 'againBtn' || btn.id === 'restartBtn') { if (gmode === 'classic') store.set('piispanpeli-stagesel-' + theme().id, stage); startGame(); }
   else if (btn.id === 'nextMission') startGame('map', missionIdx + 1);
   else if (btn.id === 'modesBtn') showModes();
   else if (btn.id === 'achBtn') showAch();
@@ -421,9 +490,12 @@ const FI = {
   ward: Object.fromEntries(Object.entries(WARDROBE).map(([k, v]) => [k, v.map(it => it[1])])), slots: Object.assign({}, SLOT_NAMES), songs: music.names.slice()
 };
 function applyLang() {
-  FI.names.forEach((n, i) => { NAMES[i] = T(n); });
-  for (const k in FI.modes) { MODE_INFO[k].name = T(FI.modes[k][0]); MODE_INFO[k].desc = T(FI.modes[k][1]); }
-  FI.missions.forEach((t, i) => { MISSIONS[i].text = T(t); });
+  // ball names follow the chosen theme (countries, gods, hearts or sums)
+  const tb = THEME_BALLS[theme().id], st = STAGES[theme().id][stage], base = i => T(tb ? tb.names[i] : FI.names[i]);
+  FI.names.forEach((n, i) => { NAMES[i] = st && st.names ? T(st.names[i]) : base(i); });
+  // the other modes always use the theme's first balls
+  for (const k in FI.modes) { MODE_INFO[k].name = T(FI.modes[k][0]); MODE_INFO[k].desc = T(FI.modes[k][1], base(10)); }
+  MISSIONS.forEach((m, i) => { m.text = missionText(m, i); });
   FI.ach.forEach(([n, d], i) => { ACH[i][1] = T(n); ACH[i][2] = T(d); });
   FI.gravs.forEach((g, i) => { GRAVS[i][2] = T(g); });
   for (const k in FI.ward) FI.ward[k].forEach((n, i) => { WARDROBE[k][i][1] = T(n); });

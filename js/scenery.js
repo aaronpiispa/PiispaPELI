@@ -168,16 +168,21 @@ const SCENES = [
   { sky: ['#2a2630', '#b0603a'], sun: [0.2, 0.22, '#f0c890', 0.03], far: ['ruins', '#1c1a20', 0.2], near: ['sunflowers', '#2c3a1a'], water: null, anim: 'embers', extra: 'war' },
   { sky: ['#f2a65a', '#ffe1a8'], sun: [0.25, 0.3, '#fff2c0', 0.06], far: ['chimneys', '#c48f62', 0.18], near: ['none', '#000'], water: null, anim: 'balloons' },
   { sky: ['#071a33', '#3a6d8c'], sun: [0.75, 0.2, '#e8f4ff', 0.03], far: ['icebergs', '#d8ecf6', 0.16], near: ['none', '#000'], water: '#0e3554', anim: 'aurora' },
-  { sky: ['#1a2238', '#5b6a85'], sun: [0.3, 0.2, '#e6ecf5', 0.04], far: ['hills', '#c9d3e0', 0.07], near: ['snowpines', '#1b2a24'], water: null, anim: 'blizzard' }
+  { sky: ['#1a2238', '#5b6a85'], sun: [0.3, 0.2, '#e6ecf5', 0.04], far: ['hills', '#c9d3e0', 0.07], near: ['snowpines', '#1b2a24'], water: null, anim: 'blizzard' },
+  // space, for the Solar System and the galaxy stages
+  { space: 'solar', anim: 'twinkle' },
+  { space: 'galaxy', anim: 'twinkle' }
 ];
+const SPACE_SCENE = { solar: 15, galaxy: 16, cosmic: 16 };
 let sceneCache = {}, sceneIdx = 7, scenePrev = 7, sceneFade = 1;
 const sceneParts = [];
-function sceneFor() { const h = /scene=(\d+)/.exec(location.hash); if (h) return clamp(+h[1], 0, SCENES.length - 1); return state === 'menu' ? 7 : clamp(maxLevel, 0, SCENES.length - 1); }
+function sceneFor() { const h = /scene=(\d+)/.exec(location.hash); if (h) return clamp(+h[1], 0, SCENES.length - 1); const sp = stage && SPACE_SCENE[STAGES[theme().id][stage].art]; if (sp) return sp; return state === 'menu' ? 7 : clamp(maxLevel, 0, 14); }
 function srand(seed) { let a = seed * 9301 + 49297; return () => { a = (a * 9301 + 49297) % 233280; return a / 233280; }; }
 function buildScene(i) {
   const sc = SCENES[i], cv = document.createElement('canvas');
   cv.width = Math.max(1, Math.round(vw * dpr)); cv.height = Math.max(1, Math.round(vh * dpr));
   const c = cv.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0);
+  if (sc.space) { buildSpace(c, sc.space, vw, vh); return cv; }
   const W = vw, Hh = vh, hz = Hh * 0.62, r = srand(i + 3);
   const g = c.createLinearGradient(0, 0, 0, hz); g.addColorStop(0, sc.sky[0]); g.addColorStop(1, sc.sky[1]);
   c.fillStyle = g; c.fillRect(0, 0, W, Hh);
@@ -248,9 +253,35 @@ function buildScene(i) {
   }
   return cv;
 }
+function buildSpace(c, kind, W, Hh) {
+  const r = srand(kind === 'solar' ? 41 : 42), g = c.createLinearGradient(0, 0, W, Hh);
+  g.addColorStop(0, kind === 'solar' ? '#05081a' : '#0a0418'); g.addColorStop(1, kind === 'solar' ? '#120a24' : '#031020');
+  c.fillStyle = g; c.fillRect(0, 0, W, Hh);
+  const blob = (x, y, R, col, a) => { const q = c.createRadialGradient(x, y, 0, x, y, R); q.addColorStop(0, col + a); q.addColorStop(1, col + '00'); c.fillStyle = q; c.beginPath(); c.arc(x, y, R, 0, TAU); c.fill(); };
+  const U = Math.min(W, Hh);
+  if (kind === 'galaxy') {
+    // the band of the Milky Way across the sky, with coloured nebulae
+    c.save(); c.translate(W / 2, Hh / 2); c.rotate(-0.5);
+    for (let k = 0; k < 40; k++) blob((r() - 0.5) * W * 1.6, (r() - 0.5) * U * 0.25, U * (0.1 + r() * 0.2), r() < 0.5 ? '#8a7aff' : '#ffb0d8', '22');
+    c.fillStyle = '#ffffff';
+    for (let k = 0; k < 900; k++) { c.globalAlpha = 0.2 + r() * 0.6; const s = r() * 1.6; c.fillRect((r() - 0.5) * W * 1.6, (r() + r() + r() - 1.5) * U * 0.12, s, s); }
+    c.globalAlpha = 1; c.restore();
+    blob(W * 0.18, Hh * 0.2, U * 0.3, '#ff4a9a', '30'); blob(W * 0.85, Hh * 0.75, U * 0.35, '#3ad8ff', '28');
+  } else {
+    // the Sun far off in one corner and a planet with a ring in the other
+    blob(W * 0.88, Hh * 0.12, U * 0.6, '#ffb040', '55'); blob(W * 0.88, Hh * 0.12, U * 0.08, '#fff6d0', 'ff');
+    const px = W * 0.12, py = Hh * 0.82, pr = U * 0.16, pg = c.createRadialGradient(px + pr * 0.4, py - pr * 0.4, pr * 0.1, px, py, pr);
+    pg.addColorStop(0, '#f6dfa4'); pg.addColorStop(1, '#5a3a14'); c.fillStyle = pg; c.beginPath(); c.arc(px, py, pr, 0, TAU); c.fill();
+    c.strokeStyle = 'rgba(240,220,170,0.7)'; c.lineWidth = pr * 0.12; c.beginPath(); c.ellipse(px, py, pr * 1.7, pr * 0.4, -0.3, 0, TAU); c.stroke();
+    c.fillStyle = '#9a8a7a'; for (let k = 0; k < 30; k++) { const a = -0.3 + (r() - 0.5) * 0.5, d = U * (0.35 + r() * 0.5); c.beginPath(); c.arc(W * 0.88 - Math.cos(a) * d * 1.4, Hh * 0.12 + Math.sin(-a) * d * 0.3 + d * 0.5, 1 + r() * 2.5, 0, TAU); c.fill(); }
+  }
+  c.fillStyle = '#ffffff';
+  for (let k = 0; k < 260; k++) { c.globalAlpha = 0.25 + r() * 0.75; const s = r() < 0.08 ? 2.2 : 1.2; c.fillRect(r() * W, r() * Hh, s, s); }
+  c.globalAlpha = 1;
+}
 function sceneParticles(i) {
   sceneParts.length = 0;
-  const a = SCENES[i].anim, n = { embers: 50, snow: 70, blizzard: 140, rain: 120, fireflies: 30, pollen: 40, butterflies: 12, balloons: 6, sparkle: 40, clouds: 6, mist: 5, fog: 6, waves: 30, aurora: 0 }[a] || 0;
+  const a = SCENES[i].anim, n = { embers: 50, snow: 70, blizzard: 140, rain: 120, fireflies: 30, pollen: 40, butterflies: 12, balloons: 6, sparkle: 40, clouds: 6, mist: 5, fog: 6, waves: 30, aurora: 0, twinkle: 40 }[a] || 0;
   for (let k = 0; k < n; k++) sceneParts.push({ x: Math.random() * vw, y: Math.random() * vh, v: Math.random(), p: Math.random() * TAU, s: Math.random() });
 }
 
@@ -431,6 +462,14 @@ function drawScenery() {
       ctx.fillStyle = a === 'clouds' ? 'rgba(255,255,255,0.75)' : 'rgba(225,232,240,0.18)';
       ctx.beginPath(); ctx.ellipse(q.x, y, w, a === 'clouds' ? 20 + q.s * 10 : 24, 0, 0, TAU); ctx.fill();
       if (a === 'clouds') { ctx.beginPath(); ctx.ellipse(q.x - w * 0.3, y - 10, w * 0.4, 18, 0, 0, TAU); ctx.ellipse(q.x + w * 0.25, y - 14, w * 0.35, 20, 0, 0, TAU); ctx.fill(); }
+    } else if (a === 'twinkle') {
+      // twinkling stars and now and then a shooting star
+      const al = Math.max(0, Math.sin(t * (1 + q.v * 2) + q.p * 7));
+      ctx.fillStyle = `rgba(255,255,255,${al * 0.9})`; ctx.beginPath(); ctx.arc(q.x, q.y * 0.9, 1 + q.s * 1.4, 0, TAU); ctx.fill();
+      if (q.s > 0.96) {
+        const u = (t * 0.25 + q.p) % 3;
+        if (u < 0.6) { const x = q.x + u * 300, y = q.y * 0.5 + u * 120; ctx.strokeStyle = `rgba(255,255,255,${0.7 * (1 - u / 0.6)})`; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - 40, y - 16); ctx.stroke(); }
+      }
     } else if (a === 'waves') {
       const y = hz + 8 + q.s * (vh - hz - 8), x = (q.x + t * 12 * (0.5 + q.v)) % (vw + 60) - 30;
       ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(x, y, 8 + q.v * 8, Math.PI * 1.15, Math.PI * 1.85); ctx.stroke();

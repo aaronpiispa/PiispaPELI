@@ -58,9 +58,109 @@ function drawFlag(level, S) {
   }
 }
 
+// ------------------------------ themed balls ------------------------------
+// the picture on a ball: a flag for the EU train, a god, a heart or a sum for the other themes.
+// Drawn around (0, 0) like drawFlag; S is the flag size (1.3 × the ball radius)
+function drawBallArt(level, S) {
+  const id = theme().id;
+  if (stage > 0) { drawStageArt(STAGES[id][stage].art, level, S); return; }
+  if (id === 'viking') drawGodBall(level, S);
+  else if (id === 'heart') drawHeartBall(level, S);
+  else if (id === 'uni') drawMathBall(level, S);
+  else drawFlag(level, S);
+}
+// runes as strokes in a box 1 wide and 2 tall (no font needed, so they look the same on every phone)
+const RUNES = {
+  raido: [[[-0.35, -1], [-0.35, 1]], [[-0.35, -1], [0.35, -0.55], [-0.35, -0.1], [0.35, 1]]],
+  hagalaz: [[[-0.35, -1], [-0.35, 1]], [[0.35, -1], [0.35, 1]], [[-0.35, -0.3], [0.35, 0.3]]],
+  mannaz: [[[-0.35, -1], [-0.35, 1]], [[0.35, -1], [0.35, 1]], [[-0.35, -1], [0.35, -0.3]], [[0.35, -1], [-0.35, -0.3]]],
+  wunjo: [[[-0.3, -1], [-0.3, 1]], [[-0.3, -1], [0.35, -0.55], [-0.3, -0.1]]],
+  berkano: [[[-0.35, -1], [-0.35, 1]], [[-0.35, -1], [0.35, -0.5], [-0.35, 0], [0.35, 0.5], [-0.35, 1]]],
+  dagaz: [[[-0.45, -1], [-0.45, 1]], [[0.45, -1], [0.45, 1]], [[-0.45, -1], [0.45, 1]], [[0.45, -1], [-0.45, 1]]],
+  tiwaz: [[[0, -1], [0, 1]], [[-0.45, -0.45], [0, -1], [0.45, -0.45]]],
+  laguz: [[[-0.2, -1], [-0.2, 1]], [[-0.2, -1], [0.4, -0.45]]],
+  fehu: [[[-0.3, -1], [-0.3, 1]], [[-0.3, -0.3], [0.4, -1]], [[-0.3, 0.2], [0.4, -0.5]]],
+  algiz: [[[0, -1], [0, 1]], [[0, -0.3], [-0.45, -1]], [[0, -0.3], [0.45, -1]]],
+  othala: [[[0, -1], [0.4, -0.4], [-0.35, 1]], [[0, -1], [-0.4, -0.4], [0.35, 1]]],
+  sowilo: [[[0.35, -1], [-0.35, -0.35], [0.35, 0.35], [-0.35, 1]]],
+  kenaz: [[[0.35, -0.6], [-0.3, 0], [0.35, 0.6]]],
+  thurisaz: [[[-0.3, -1], [-0.3, 1]], [[-0.3, -0.45], [0.35, 0], [-0.3, 0.45]]],
+  ansuz: [[[-0.3, -1], [-0.3, 1]], [[-0.3, -1], [0.4, -0.55]], [[-0.3, -0.45], [0.4, 0]]]
+};
+function drawGodBall(level, S) {
+  const tb = THEME_BALLS.viking, [c1, c2] = tb.cols[level], R = S / 1.3;
+  const g = ctx.createRadialGradient(-R * 0.3, -R * 0.35, R * 0.1, 0, 0, R * 1.1);
+  g.addColorStop(0, c1); g.addColorStop(1, c2);
+  ctx.fillStyle = g; ctx.fillRect(-S, -S, 2 * S, 2 * S);
+  // a band of knotwork across the bottom
+  ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = R * 0.05;
+  ctx.beginPath(); for (let x = -R; x <= R; x += R * 0.25) { ctx.moveTo(x, R * 0.62); ctx.lineTo(x + R * 0.125, R * 0.78); ctx.lineTo(x + R * 0.25, R * 0.62); } ctx.stroke();
+  // the god's rune on the forehead
+  const light = level === 5 || level === 11;
+  ctx.save(); ctx.translate(0, -R * 0.58); ctx.scale(R * 0.27, R * 0.27);
+  ctx.strokeStyle = light ? '#4a3510' : '#ffd84d'; ctx.lineWidth = 0.38; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.beginPath();
+  for (const line of RUNES[tb.runes[level]]) line.forEach(([x, y], k) => (k ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+  ctx.stroke(); ctx.restore();
+}
+function drawHeartBall(level, S) {
+  const R = S / 1.3, col = THEME_BALLS.heart.cols[level], [r, g, b] = hexRgb(col);
+  // soft background in a lighter tint of the heart's colour
+  ctx.fillStyle = `rgb(${Math.round(r + (255 - r) * 0.72)},${Math.round(g + (255 - g) * 0.72)},${Math.round(b + (255 - b) * 0.72)})`;
+  ctx.fillRect(-S, -S, 2 * S, 2 * S);
+  if (level >= 13) {
+    // silver and gold hearts are metallic
+    const m = ctx.createLinearGradient(-R, -R, R, R);
+    if (level === 14) { m.addColorStop(0, '#fff3b0'); m.addColorStop(0.4, '#ffcc33'); m.addColorStop(0.7, '#e0a000'); m.addColorStop(1, '#8a5a00'); }
+    else { m.addColorStop(0, '#ffffff'); m.addColorStop(0.45, '#c8ced8'); m.addColorStop(1, '#6d7686'); }
+    ctx.fillStyle = m;
+  } else ctx.fillStyle = col;
+  heartPath(ctx, 0, R * 0.32, R * 1.0); ctx.fill();
+  ctx.lineWidth = R * 0.05; ctx.strokeStyle = `rgba(${Math.round(r * 0.5)},${Math.round(g * 0.5)},${Math.round(b * 0.5)},0.6)`; ctx.stroke();
+  if (level === 14) {
+    // sparkles on the golden heart
+    ctx.fillStyle = '#ffffff';
+    for (const [x, y, s] of [[-0.45, -0.45, 0.13], [0.5, -0.3, 0.09], [0.3, 0.45, 0.07]]) { ctx.beginPath(); ctx.moveTo(x * R, (y - s) * R); ctx.lineTo((x + s * 0.3) * R, y * R); ctx.lineTo(x * R, (y + s) * R); ctx.lineTo((x - s * 0.3) * R, y * R); ctx.closePath(); ctx.fill(); }
+  }
+}
+function drawMathBall(level, S) {
+  const R = S / 1.3, hue = 140 + level * 13;
+  // a chalkboard ball: green for the easy sums, turning blue and purple for the hard ones
+  const g = ctx.createRadialGradient(-R * 0.3, -R * 0.35, R * 0.1, 0, 0, R * 1.1);
+  g.addColorStop(0, `hsl(${hue},38%,34%)`); g.addColorStop(1, `hsl(${hue},45%,16%)`);
+  ctx.fillStyle = g; ctx.fillRect(-S, -S, 2 * S, 2 * S);
+  ctx.fillStyle = 'rgba(245,245,230,0.95)'; ctx.strokeStyle = 'rgba(245,245,230,0.95)';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  if (level === 14) {
+    // a 2×2 matrix in brackets
+    const w = R * 0.62, h = R * 0.5, y = R * 0.56;
+    ctx.lineWidth = R * 0.05; ctx.lineCap = 'round';
+    for (const d of [-1, 1]) { ctx.beginPath(); ctx.moveTo(d * w * 0.5 - d * R * 0.1, y - h / 2); ctx.lineTo(d * w * 0.5, y - h / 2); ctx.lineTo(d * w * 0.5, y + h / 2); ctx.lineTo(d * w * 0.5 - d * R * 0.1, y + h / 2); ctx.stroke(); }
+    ctx.font = `700 ${R * 0.2}px ${FONT}`;
+    [['1', '2'], ['3', '4']].forEach((row, i) => row.forEach((v, j) => ctx.fillText(v, (j - 0.5) * w * 0.48, y + (i - 0.5) * h * 0.5)));
+  } else {
+    const t = THEME_BALLS.uni.names[level];
+    let size = R * 0.36;
+    ctx.font = `700 ${size}px ${FONT}`;
+    const wMax = R * 1.35, w = ctx.measureText(t).width;
+    if (w > wMax) { size *= wMax / w; ctx.font = `700 ${size}px ${FONT}`; }
+    ctx.fillText(t, 0, R * 0.58);
+  }
+  ctx.textBaseline = 'alphabetic';
+}
+// details drawn over the face: Odin wears an eyepatch
+function drawBallExtra(level, cx, cy, R, ang) {
+  if (level !== MAXL || theme().id !== 'viking' || stage) return;
+  ctx.save(); ctx.translate(cx, cy); ctx.rotate(ang);
+  ctx.strokeStyle = '#1b1410'; ctx.lineWidth = R * 0.04;
+  ctx.beginPath(); ctx.moveTo(-R * 0.95, -R * 0.42); ctx.lineTo(R * 0.92, R * 0.05); ctx.stroke();
+  ctx.fillStyle = '#1b1410'; ctx.beginPath(); ctx.ellipse(R * 0.3, -R * 0.07, R * 0.17, R * 0.14, 0.25, 0, TAU); ctx.fill();
+  ctx.restore();
+}
+
 function paintBall(path, level, cx, cy, R, ang, lw) {
   ctx.save(); ctx.clip(path);
-  ctx.translate(cx, cy); ctx.rotate(ang); drawFlag(level, R * 1.3);
+  ctx.translate(cx, cy); ctx.rotate(ang); drawBallArt(level, R * 1.3);
   ctx.restore();
   const g = ctx.createRadialGradient(cx - R * 0.35, cy - R * 0.42, R * 0.05, cx, cy, R * 1.12);
   g.addColorStop(0, 'rgba(255,255,255,0.38)'); g.addColorStop(0.45, 'rgba(255,255,255,0)'); g.addColorStop(1, 'rgba(5,15,45,0.42)');
@@ -137,13 +237,14 @@ function drawBlob(b) {
   const R = b.R * b.scale;
   paintBall(blobPath(b), b.level, b.cx, b.cy, R, b.ang, 0.06);
   drawFace(b.cx, b.cy, R, b.ang, b.blinkT > 0, b.spd > 7 ? 1 : 0);
+  drawBallExtra(b.level, b.cx, b.cy, R, b.ang);
 }
 
 function drawRoundBlob(level, cx, cy, R, sq, lw, face) {
   const k = Math.sqrt(sq);
   const p = new Path2D(); p.ellipse(cx, cy, R / k, R * k, 0, 0, TAU);
   paintBall(p, level, cx, cy, R, 0, lw);
-  if (face) drawFace(cx, cy, R, 0, false, 0);
+  if (face) { drawFace(cx, cy, R, 0, false, 0); drawBallExtra(level, cx, cy, R, 0); }
 }
 
 function rrect(x, y, w, h, r) { ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x, y, w, h, r) : ctx.rect(x, y, w, h); }
@@ -189,7 +290,7 @@ function cachedLayer(name, key, draw, sx, sy, areas) {
 // where the front of the wagon has something to draw: the two side walls (with the viking shields) and the floor beam
 const FRONT_AREAS = [[VX0 - 0.5, VY0 - 0.5, 0.1, VY1 + 0.5], [WORLD_W - 0.1, VY0 - 0.5, VX1 + 0.5, VY1 + 0.5], [0.1, FLOOR_Y - 0.1, WORLD_W - 0.1, FLOOR_Y + 0.6]];
 // the trophy shelves above the floor
-const SHELF_AREAS = [[-0.4, FLOOR_Y - 2.6, WORLD_W + 0.4, FLOOR_Y + 0.3]];
+const SHELF_AREAS = [[-0.4, FLOOR_Y - 4.6, WORLD_W + 0.4, FLOOR_Y + 0.3]];
 // Text sized in world units (a fraction of a ball). Firefox draws boxes for characters missing from every font
 // (like the viking runes on computers without a runic font) at a minimum pixel size, which at a 0.26 px font
 // covered the whole wagon. Such text measures far wider than its characters could be; only then it is drawn
@@ -673,13 +774,15 @@ function hudTextWidth(text, font, spacing) {
 const hudNum = (t, x, y, size, a) => hudText(String(t), x, y, a, `800 ${size}px ${FONT}`, '#fff7ee');
 const hudSmall = (t, x, y, a) => hudText(t, x, y, a, `600 14px ${FONT}`, 'rgba(255,247,238,0.68)');
 
+// how far the row of balls is revealed: on stages 2 and 3 everything once the stage is beaten
+const chainSeen = () => (stage ? (stagesDone(theme().id) > stage ? MAXL : Math.max(4, maxLevel)) : Math.max(4, maxLevel, bestLevel));
 const chainCache = { cv: null, key: '', x: 0, y: 0 };
 function drawChain(x0, y0, vertical, room, u) {
   // the row of countries changes rarely, so it is drawn once into a bitmap. The bitmap sits on whole
   // device pixels and keeps the exact sub-pixel position, so it looks the same as drawing directly.
-  const seenNow = Math.max(4, maxLevel, bestLevel), maxR = (8 + RADII[MAXL] * 2.6 + 2) * u;
+  const seenNow = chainSeen(), maxR = (8 + RADII[MAXL] * 2.6 + 2) * u;
   const bw = vertical ? maxR * 2 + 4 : room + 8 * u, bh = vertical ? room + 8 * u : maxR * 2 + 4, bx = x0 - bw / 2, by = vertical ? y0 - 4 * u : y0 - bh / 2;
-  const key = [x0, y0, vertical, room, u, seenNow, dpr, fontGen].join('|');
+  const key = [x0, y0, vertical, room, u, seenNow, dpr, fontGen, theme().id, stage, goldBalls()].join('|');
   if (chainCache.key !== key) {
     const cv = chainCache.cv || (chainCache.cv = document.createElement('canvas'));
     const dx = Math.floor(bx * dpr), dy = Math.floor(by * dpr);
@@ -692,12 +795,53 @@ function drawChain(x0, y0, vertical, room, u) {
     chainCache.key = key; heavyFrame = true;
   }
   ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(chainCache.cv, chainCache.x, chainCache.y); ctx.restore();
+  drawGoalMarks(x0, y0, vertical, room, u);
+}
+// the time-limit goals of the stage, still to reach: [level, seconds]
+const openGoals = () => (gmode === 'classic' && stage > 0 && (state === 'play' || state === 'paused') && !invincible ? STAGE_GOALS[stage].filter(g => maxLevel < g[0]) : []);
+function chainLayout(x0, y0, vertical, room, u) {
+  const base = RADII.map(r => (8 + r * 2.6) * u), full = base.reduce((a, r) => a + 2 * r, 0) + 5 * u * (base.length - 1);
+  const scale = Math.min(1, room / full), sizes = base.map(r => r * scale), gap = 5 * u * scale;
+  const total = sizes.reduce((a, r) => a + 2 * r, 0) + gap * (sizes.length - 1);
+  let p = vertical ? y0 : x0 - total / 2;
+  return sizes.map(r => { const at = vertical ? [x0, p + r, r] : [p + r, y0, r]; p += 2 * r + gap; return at; });
+}
+function drawGoalMarks(x0, y0, vertical, room, u) {
+  // a red blinking exclamation mark on the ball the time limit asks for (the next goal blinks, a later one stays dim)
+  const goals = openGoals();
+  if (!goals.length) return;
+  const pos = chainLayout(x0, y0, vertical, room, u);
+  goals.forEach((g, k) => {
+    const [cx, cy, r] = pos[g[0]], left = g[1] - playT, blink = k === 0 ? 0.55 + 0.45 * Math.abs(Math.sin(time * (left < 30 ? 9 : 4))) : 0.45;
+    const R = Math.max(8 * u, r * 0.62), bx = cx + r * 0.62, by = cy - r * 0.62;
+    ctx.save(); ctx.globalAlpha = blink;
+    ctx.strokeStyle = '#ff3b3b'; ctx.lineWidth = 2 * u; ctx.beginPath(); ctx.arc(cx, cy, r + 2 * u, 0, TAU); ctx.stroke();
+    ctx.fillStyle = '#e01e37'; ctx.beginPath(); ctx.arc(bx, by, R, 0, TAU); ctx.fill();
+    ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.5 * u; ctx.stroke();
+    ctx.fillStyle = '#ffffff'; ctx.font = `900 ${R * 1.5}px ${FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('!', bx, by + R * 0.08); ctx.textBaseline = 'alphabetic';
+    ctx.restore();
+  });
+}
+// the time limit written in big see-through red letters across the top of the wagon, behind the balls
+function drawStageGoal() {
+  const g = openGoals()[0];
+  if (!g) return;
+  const left = Math.max(0, g[1] - playT), mm = Math.floor(left / 60) + ':' + String(Math.floor(left % 60)).padStart(2, '0');
+  const urgent = left < 30, a = urgent ? 0.45 + 0.35 * Math.abs(Math.sin(time * 6)) : 0.42;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = `rgba(255,50,60,${a})`;
+  let size = 0.62; ctx.font = `900 ${size}px ${FONT}`;
+  const name = NAMES[g[0]], w = ctx.measureText(name).width;
+  if (w > WORLD_W - 1.4) size *= (WORLD_W - 1.4) / w;
+  worldText(name, WORLD_W / 2, 2.95, size, 900);
+  worldText(mm, WORLD_W / 2, 3.95, 0.95, 900);
+  ctx.textBaseline = 'alphabetic';
 }
 function drawChainRaw(x0, y0, vertical, room, u) {
   const base = RADII.map(r => (8 + r * 2.6) * u), full = base.reduce((a, r) => a + 2 * r, 0) + 5 * u * (base.length - 1);
   const scale = Math.min(1, room / full), sizes = base.map(r => r * scale), gap = 5 * u * scale;
   const total = sizes.reduce((a, r) => a + 2 * r, 0) + gap * (sizes.length - 1);
-  const seen = Math.max(4, maxLevel, bestLevel);
+  const seen = chainSeen();
   let p = vertical ? y0 : x0 - total / 2;
   for (let k = 0; k <= MAXL; k++) {
     const r = sizes[k], cx = vertical ? x0 : p + r, cy = vertical ? p + r : y0;
@@ -720,6 +864,11 @@ function modeLine() {
   if (gmode === 'daily') return T('Laukaukset {0} · tavoite {1}', shots, NAMES[10]);
   if (gmode === 'zen') return T('Rentoudu');
   if (gmode === 'gravity') return T('Painovoima: {0}', GRAVS[gravI][2]);
+  if (gmode === 'classic' && stage > 0) {
+    const gl = STAGE_GOALS[stage].find(g => maxLevel < g[0]);
+    if (gl && !invincible) return NAMES[gl[0]] + ': ' + T('aikaa {0}', mmss(Math.max(0, gl[1] - playT)));
+    return T('Taso {0}: {1}', stage + 1, T(stageInfo().name));
+  }
   if (gmode === 'map' && missionIdx >= 0) {
     const ms = MISSIONS[missionIdx];
     return NAMES[ms.c] + ': ' + (ms.time ? T('aikaa {0}', mmss(modeT)) : ms.shots ? T('laukauksia {0}', Math.max(0, ms.shots - shots)) : ms.text);
@@ -808,6 +957,7 @@ function render() {
   screenTf(); drawJarLabels(sx, sy);
   worldTf(sx, sy);
   drawDanger();
+  drawStageGoal();
   if (state === 'play' && cooldown <= 0) drawAim();
   for (let q = 0; q < E.blobs.length; q++) drawBlob(E.blobs[q]);
   drawFlyingTrophies();

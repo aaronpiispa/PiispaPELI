@@ -193,6 +193,9 @@ html,body{height:100%;margin:0;overflow:hidden;background:var(--night);color:var
   .card.menu .lead{font-size:13px;margin:0 auto 8px}
   .card.menu .stats{margin-bottom:8px}
   .card.menu .stat{padding:4px 4px 3px}
+  .card.menu .stg{display:flex;justify-content:center;align-items:baseline;gap:4px;padding:5px 4px}
+  .card.menu .stg b{font-size:13px}
+  .card.menu .stgoal{margin-bottom:6px;font-size:11.5px}
 }
 /* very narrow phones: the two half-width buttons would not fit side by side and pushed the menu off screen */
 @media (max-width:350px){
@@ -207,3 +210,22 @@ html,body{height:100%;margin:0;overflow:hidden;background:var(--night);color:var
 @media (max-width:300px){
   .tgrid{grid-template-columns:1fr}
 }
+/* stage picker in the main menu */
+.stages{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:0 0 4px}
+.stg{display:grid;justify-items:center;gap:2px;padding:6px 4px 5px;border-radius:12px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.07);color:#fff;cursor:pointer;font:700 12px/1.1 var(--body);min-width:0}
+.stg b{font:800 16px/1 var(--body);color:#ffcc00}
+.stg span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stg.on{background:rgba(255,204,0,.2);border-color:#ffcc00;box-shadow:0 0 12px rgba(255,204,0,.3)}
+.stg.locked{opacity:.45;cursor:default}
+.stg:focus-visible{outline:3px solid #ffcc00;outline-offset:2px}
+.stgoal{margin:0 0 8px;font-size:12.5px;font-weight:600;color:#a9bbe8;text-align:center}
+/* (i) buttons that explain the goal of a stage or a game mode */
+.stgw{position:relative;display:grid}
+.info{width:26px;height:26px;border-radius:50%;border:2px solid #fff;background:#2aa7e0;color:#fff;font:italic 800 15px/1 Georgia,serif;cursor:pointer;display:inline-grid;place-items:center;padding:0;box-shadow:0 2px 6px rgba(0,0,0,.35)}
+.info:focus-visible{outline:3px solid #ffcc00;outline-offset:2px}
+.stgw .info{position:absolute;top:-9px;right:-6px;width:24px;height:24px;font-size:14px}
+.list b .info{margin-left:8px;vertical-align:middle;width:24px;height:24px;font-size:14px}
+.info-p{text-align:left;margin:8px 0;font-size:15px;line-height:1.4}
+.stages{margin-top:8px}
+.wsw{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:6px;vertical-align:-1px;box-shadow:0 0 0 1.5px rgba(255,255,255,.7)}
+.witem{min-width:0}.witem b,.witem small{overflow-wrap:anywhere;hyphens:auto}

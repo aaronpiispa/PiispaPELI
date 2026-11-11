@@ -112,7 +112,9 @@ test('admin mode unlocks everything and can end the game', { skip }, async t => 
   await page.click('#admAll');
   assert.match(await text(page, '.note'), /Kaikki avattu/);
   await page.click('#admClose');
-  assert.match(await text(page, '#card'), /29\/29/);
+  // the achievement counter shows n/n (there are 29 original achievements plus the themed ones)
+  const pairs = [...(await text(page, '#card')).matchAll(/(\d+)\/(\d+)/g)].map(m => [+m[1], +m[2]]);
+  assert.ok(pairs.some(([a, b]) => a === b && b >= 29), `every achievement unlocked (${JSON.stringify(pairs)})`);
   assert.match(await text(page, '#themeBtn'), /4 \/ 4/);
   await page.click('#startBtn');
   await page.keyboard.type('admin123');

@@ -29,7 +29,7 @@ const FLAGS = [
 const POINTS = [0, 2, 4, 8, 14, 22, 32, 45, 60, 80, 100, 125, 155, 190, 230];
 const MAX_BONUS = 250, DANGER_TIME = 0.15, BTN_Y = DANGER_Y + 2.2, BTN_H = 2.4;
 let btnL = false, btnR = false, depL = 0, depR = 0, tgtL = 0, tgtR = 0;
-const ABIL_COST = 25000;
+const ABIL_COST = 40000;
 let charges = 0, abilProg = 0, wobT = 0;
 const abilBtn = document.getElementById('abilBtn');
 // Viro, Latvia, Irlanti, Itävalta, Unkari, Romania, Italia (Italia is the biggest that can appear)

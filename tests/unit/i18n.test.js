@@ -80,3 +80,20 @@ test('the T() helper fills in values and falls back correctly', () => {
   assert.equal(T('kl', 'Grönlanti'), 'Kalaallit Nunaat');
   assert.equal(T('fi', '{0} pistettä', undefined), ' pistettä', 'a missing value never prints a comma');
 });
+
+test('the stage names and the balls of the new stages are translated (Norse worlds and formulas stay as they are)', () => {
+  const src = fs.readFileSync(path.join(ROOT, 'js', 'game.js'), 'utf8');
+  const block = src.slice(src.indexOf('const STAGES = {'), src.indexOf('const STAGE_GOALS'));
+  const stages = [...block.matchAll(/\{ name: '([^']+)'(?:, art: '(\w+)', names: \[([^\]]+)\])? \}/g)];
+  assert.equal(stages.length, 12, 'four themes with three stages each');
+  const missing = [];
+  for (const [, name, art, list] of stages) {
+    if (!(name in I18N.en)) missing.push(name);
+    if (!list) continue;
+    const names = [...list.matchAll(/'([^']+)'/g)].map(m => m[1]);
+    assert.equal(names.length, 15, `${name} has 15 balls`);
+    if (art === 'world' || art === 'physics') continue;
+    for (const n of names) for (const l of LANGS) if (!(n in I18N[l])) missing.push(l + ': ' + n);
+  }
+  assert.deepEqual(missing, []);
+});

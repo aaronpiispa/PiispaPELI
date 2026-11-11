@@ -3,13 +3,13 @@
 // background; the new versions are stored only when all of them arrived, so old and new files never get mixed
 // (the scripts share one global scope, so a mix could break the game). Updates show up on the next launch.
 // VERSION only needs a bump when this file's own logic changes or files are added or removed.
-const VERSION = 'v56';
+const VERSION = 'v58';
 const CACHE = 'piispanpeli-' + VERSION;
 const FONTS = 'piispanpeli-fonts-v1';
 const ASSETS = [
   './', './index.html', './manifest.webmanifest', './css/style.css',
   './js/engine.js', './js/i18n-data.js', './js/core.js', './js/audio.js', './js/scenery.js', './js/game.js',
-  './js/render.js', './js/mascot.js', './js/ui.js', './js/intro.js', './js/main.js',
+  './js/render.js', './js/stageart.js', './js/mascot.js', './js/ui.js', './js/intro.js', './js/main.js',
   './icons/icon-192.png', './icons/icon-512.png', './icons/icon-maskable-512.png', './icons/apple-touch-icon.png', './icons/favicon-32.png'
 ];
 // wait a moment after the game opens, and check at most every 15 seconds (quick reloads need no new check)

@@ -21,24 +21,30 @@ const TIME_LIMIT = 120;
 const MODE_INFO = {
   classic: { name: 'Klassinen', desc: 'Peruspeli. Peli päättyy, kun pallot koskettavat molempia nappeja.' },
   time: { name: 'Aikahaaste', desc: 'Kaksi minuuttia aikaa kerätä mahdollisimman paljon pisteitä. Nappeihin ei voi hävitä.', noLose: true },
-  daily: { name: 'Päivän haaste', desc: 'Joka päivä sama pallojärjestys kaikille. Saa Ranska mahdollisimman vähillä laukauksilla.' },
+  daily: { name: 'Päivän haaste', desc: 'Joka päivä sama pallojärjestys kaikille. Saa {0} mahdollisimman vähillä laukauksilla.' },
   zen: { name: 'Zen', desc: 'Ei häviämistä eikä kiirettä. Pelkkää löllyä ja musiikkia.', noLose: true },
   gravity: { name: 'Painovoima', desc: 'Painovoiman suunta vaihtuu välillä, ja kasa liukuu sivuille.' },
   map: { name: 'Tehtäväkartta', desc: 'Matkaa Euroopan halki. Jokainen maa on oma tehtävänsä.' }
 };
+// mission texts are written from the current ball names (countries, gods, hearts or sums), see missionText()
 const MISSIONS = [
-  { c: 0, text: 'Saa Irlanti 15 laukauksella', level: 2, shots: 15 },
-  { c: 1, text: 'Saa Unkari 30 laukauksella', level: 4, shots: 30 },
+  { c: 0, level: 2, shots: 15 },
+  { c: 1, level: 4, shots: 30 },
   { c: 2, text: 'Kerää 2 000 pistettä minuutissa', score: 2000, time: 60 },
-  { c: 3, text: 'Saa Romania 40 laukauksella', level: 5, shots: 40 },
+  { c: 3, level: 5, shots: 40 },
   { c: 4, text: 'Tee kombo ×4', combo: 4 },
-  { c: 5, text: 'Saa Italia 55 laukauksella', level: 6, shots: 55 },
+  { c: 5, level: 6, shots: 55 },
   { c: 6, text: 'Kerää 6 000 pistettä 90 sekunnissa', score: 6000, time: 90 },
-  { c: 7, text: 'Saa Suomi', level: 7 },
-  { c: 8, text: 'Saa Saksa 140 laukauksella', level: 8, shots: 140 },
-  { c: 9, text: 'Saa Ruotsi', level: 9 },
-  { c: 10, text: 'Saa Ranska', level: 10 }
+  { c: 7, level: 7 },
+  { c: 8, level: 8, shots: 140 },
+  { c: 9, level: 9 },
+  { c: 10, level: 10 }
 ];
+const MISSION_FI = MISSIONS.map(m => m.text);
+function missionText(m, i) {
+  if (m.level != null) return m.shots ? T('Saa {0} {1} laukauksella', NAMES[m.level], m.shots) : T('Saa {0}', NAMES[m.level]);
+  return T(MISSION_FI[i]);
+}
 const GRAVS = [[0, GRAV, 'alas'], [-15, GRAV * 0.8, 'vasemmalle'], [0, GRAV * 0.45, 'kevyt'], [15, GRAV * 0.8, 'oikealle'], [0, GRAV * 1.5, 'raskas']];
 // the daily challenge changes every day at 15:00 Finnish time
 function fiParts(ms) {
@@ -60,15 +66,36 @@ function modeBest(m) { return Number(store.get('piispanpeli-best-' + m, 0)) || 0
 
 // ======================= wardrobe for the mascot =======================
 const WARDROBE = {
+  costume: [['none', 'Ei erikoisasua'], ['hermes', 'Hermes', 'union'], ['sun', 'Aurinkokuningas', 'stage2'], ['cosmos', 'Universumi', 'stage3'], ['odin', 'Odin', 'v_union'],
+    ['frost', 'Huurrejättiläinen', 'v_stage2'], ['heartqueen', 'Sydänkuningatar', 'h_union'], ['professor', 'Hullu professori', 'u_union']],
+  hair: [['short', 'Lyhyet'], ['long', 'Pitkät'], ['ponytail', 'Poninhäntä'], ['bun', 'Nuttura', 'combo5'], ['pigtails', 'Saparot', 'heart'], ['curly', 'Kiharat', 's10k'],
+    ['braids', 'Letit', 'nordic'], ['spiky', 'Piikkitukka', 'stage1'], ['mohawk', 'Irokeesi', 'combo10'], ['afro', 'Afro', 's100k'], ['bald', 'Kalju', 'games50']],
+  hairc: [['brown', 'Ruskea'], ['black', 'Musta'], ['blonde', 'Blondi'], ['ginger', 'Punainen'], ['grey', 'Harmaa', 'marathon'], ['pink', 'Pinkki', 'h_l79'],
+    ['blue', 'Sininen', 'stage2'], ['green', 'Vihreä', 'v_l7'], ['purple', 'Violetti', 'u_l7'], ['rainbow', 'Sateenkaari', 'h_all'], ['goldh', 'Kulta', 'union']],
+  skin: [['light', 'Vaalea'], ['pale', 'Kalpea'], ['tan', 'Ruskettunut'], ['brown', 'Keskiruskea'], ['dark', 'Tumma'], ['alien', 'Avaruusolio', 'stage3'], ['gold', 'Kulta', 'all']],
+  eyes: [['brown', 'Ruskeat'], ['blue', 'Siniset'], ['green', 'Vihreät'], ['grey', 'Harmaat'], ['pink', 'Pinkit', 'h_l7'], ['purple', 'Violetit', 'zen5'], ['gold', 'Kultaiset', 'v_l14']],
+  face: [['none', 'Ei mitään'], ['freckles', 'Pisamat'], ['eupaint', 'EU-tähdet', 'first'], ['mustache', 'Viikset', 'fra'], ['beard', 'Viikinkiparta', 'v_first'],
+    ['heartcheek', 'Sydänposket', 'h_first'], ['starcheek', 'Tähtiposket', 'stage1'], ['rbpaint', 'Sateenkaarimaali', 'h_all']],
   hat: [['bonnet', 'Satiinimyssy'], ['none', 'Ei hattua'], ['cap', 'Lippis', 'first'], ['beanie', 'Suomi-pipo', 'fin'], ['beret', 'Baskeri', 'fra'],
     ['ushanka', 'Karvalakki', 'rus'], ['viking', 'Viikinkikypärä', 'nordic'], ['crown', 'Kruunu', 'mapAll'], ['wings', 'Hermeksen siivet', 'union'], ['party', 'Juhlahattu', 's10k'],
-    ['tophat', 'Silinteri', 's100k'], ['heart', 'Sydänpanta', 'heart'], ['halo', 'Sädekehä', 'zen5']],
+    ['tophat', 'Silinteri', 's100k'], ['heart', 'Sydänpanta', 'heart'], ['halo', 'Sädekehä', 'zen5'], ['chef', 'Kokin hattu', 'merges100'],
+    ['cowboy', 'Cowboy-hattu', 'shake'], ['propeller', 'Propellihattu', 'grav'], ['nightcap', 'Yömyssy', 'quiet'], ['astro', 'Avaruuskypärä', 'stage2'],
+    ['valk', 'Valkyriakypärä', 'v_union'], ['leafcrown', 'Lehväseppele', 'v_stage3'], ['flowers', 'Kukkaseppele', 'h_first'], ['heartcrown', 'Sydänkruunu', 'h_union'],
+    ['studcap', 'Ylioppilaslakki', 'u_first'], ['wizard', 'Velhonhattu', 'u_l14'], ['grad', 'Tohtorinhattu', 'u_stage3']],
   glasses: [['none', 'Ei laseja'], ['sun', 'Aurinkolasit', 'combo5'], ['round', 'Pyöreät lasit', 'marathon'], ['star', 'Tähtilasit', 'star'],
-    ['heart', 'Sydänlasit', 'nelli'], ['mono', 'Monokkeli', 'daily']],
-  neck: [['chain', 'Kultaketju'], ['none', 'Ei mitään'], ['scarf', 'Kaulahuivi', 'games50'], ['bowtie', 'Rusetti', 'map3'], ['pearls', 'Helmet', 'time5k'], ['medal', 'Mitali', 'all']],
+    ['heart', 'Sydänlasit', 'nelli'], ['mono', 'Monokkeli', 'daily'], ['threed', '3D-lasit', 'combo10'], ['ski', 'Laskettelulasit', 'time15k'],
+    ['visor', 'Avaruusvisiiri', 'stage1'], ['patch', 'Silmälappu', 'v_l14'], ['rainbow', 'Sateenkaarilasit', 'h_l14'], ['cat', 'Kissansilmälasit', 'h_stage2'],
+    ['nerd', 'Nörttilasit', 'u_l79']],
+  neck: [['chain', 'Kultaketju'], ['none', 'Ei mitään'], ['scarf', 'Kaulahuivi', 'games50'], ['bowtie', 'Rusetti', 'map3'], ['pearls', 'Helmet', 'time5k'], ['medal', 'Mitali', 'all'], ['bell', 'Kulkunen', 'close'],
+    ['whistle', 'Pilli', 'daily60'], ['torc', 'Kultainen kaularengas', 'v_first'], ['rune', 'Riimuamuletti', 'v_l10'], ['mjolnir', 'Mjölnir-riipus', 'v_all'],
+    ['hearts', 'Sydänkaulakoru', 'h_l7'], ['rbscarf', 'Sateenkaarihuivi', 'h_all'], ['tie', 'Solmio', 'u_l10'], ['stole', 'Juhlalieve', 'u_stage2']],
+  top: [['none', 'Ei paitaa'], ['tee', 'T-paita'], ['hoodie', 'Huppari', 'admin'], ['space', 'Avaruuspuku', 'stage3'], ['cape', 'Kuninkaan viitta', 'v_stage1'],
+    ['sailor', 'Merimiespaita', 'v_l7'], ['fur', 'Turkisviitta', 'v_l79'], ['mail', 'Rengaspaita', 'v_stage2'], ['tux', 'Frakki', 'h_stage1'],
+    ['sweater', 'Sydänneule', 'h_l10'], ['starcloak', 'Tähtiviitta', 'h_stage3'], ['labcoat', 'Laboratoriotakki', 'u_stage1'], ['robe', 'Väitöskaapu', 'u_union'],
+    ['college', 'Collegepaita', 'u_all']],
   ball: [['plain', 'Tavalliset reunat'], ['gold', 'Kultareunat', 'union']]
 };
-const SLOT_NAMES = { hat: 'Hattu', glasses: 'Lasit', neck: 'Kaula', ball: 'Pallot' };
+const SLOT_NAMES = { costume: 'Erikoisasu', hair: 'Hiukset', hairc: 'Hiusten väri', skin: 'Iho', eyes: 'Silmät', face: 'Kasvot', hat: 'Hattu', glasses: 'Lasit', neck: 'Kaula', top: 'Paita', ball: 'Pallot' };
 
 // ======================= wagon themes, unlocked by achievements =======================
 const THEMES = [
@@ -81,18 +108,77 @@ const THEMES = [
   { id: 'uni', name: 'Korkeakoulu', ach: 'map3', label: 'PIISPAN AKATEMIA  ·  EST. 2026', wall: ['#4a3322', '#7a5638', '#2e1f14'], body: 'rgba(22,58,42,0.62)', beam: ['#1f4a3a', '#0f2a20'],
     rivet: '#d4af37', stripe: '#d4af37', text: '#f3e7c4', btn: '#8b1a2a', stake: 'rgba(60,40,24,0.55)', bg: ['AKATEMIA', '#e2bd48', '#0f3324'] }
 ];
+// every theme except the EU train has its own 15 balls, smallest first
+const THEME_BALLS = {
+  viking: {
+    names: ['Ratatoskr', 'Huginn', 'Muninn', 'Bragi', 'Idun', 'Heimdall', 'Tyr', 'Njord', 'Freyr', 'Freyja', 'Frigg', 'Baldr', 'Loki', 'Thor', 'Odin'],
+    cols: [['#c9772e', '#7a3f12'], ['#4a4a5a', '#141420'], ['#5d5d72', '#22222e'], ['#4fb37a', '#1f5e3a'], ['#8fd66e', '#2e6e22'], ['#f4f4f4', '#9aa6b2'],
+      ['#d0473a', '#5e1410'], ['#2e8bc0', '#0d3b5c'], ['#e8b84a', '#8a5a10'], ['#ef7fae', '#8a1f50'], ['#a98be0', '#4a2f80'], ['#fff0a8', '#d9a020'],
+      ['#4fb35d', '#123d18'], ['#e05050', '#5a1010'], ['#3a5aa8', '#0d1736']],
+    runes: ['raido', 'hagalaz', 'mannaz', 'wunjo', 'berkano', 'dagaz', 'tiwaz', 'laguz', 'fehu', 'algiz', 'othala', 'sowilo', 'kenaz', 'thurisaz', 'ansuz'],
+    lead: 'Ammu jumalapalloja vaunuun. Kaksi samaa jumalaa yhdistyy mahtavammaksi, Ratatoskrista aina Odiniin asti.', count: 'Jumalat'
+  },
+  heart: {
+    names: ['Vaaleanpunainen sydän', 'Punainen sydän', 'Oranssi sydän', 'Keltainen sydän', 'Limenvihreä sydän', 'Vihreä sydän', 'Turkoosi sydän',
+      'Taivaansininen sydän', 'Sininen sydän', 'Indigo sydän', 'Violetti sydän', 'Magenta sydän', 'Purppura sydän', 'Hopeinen sydän', 'Kultainen sydän'],
+    cols: ['#ffb3c7', '#ff4d6d', '#ff8c42', '#ffd23f', '#a8e05f', '#3cb371', '#2ec4b6', '#5bc0eb', '#3a6fd8', '#5a4fcf', '#9b5de5', '#f15bb5', '#b5179e', '#c8ced8', '#ffcc33'],
+    lead: 'Ammu sydänpalloja vaunuun. Kaksi samaa sydäntä yhdistyy isommaksi, vaaleanpunaisesta aina kultaiseen sydämeen asti.', count: 'Sydämet'
+  },
+  uni: {
+    names: ['1 + 1', '5 − 2', '3 × 4', '12 ÷ 3', 'x + 3 = 5', '3²', '√16', '2x − 4 = 6', 'x² = 9', 'πr²', 'sin 30°', 'log₂ 8', 'd/dx x²', '∫ x dx', 'Matriisi'],
+    lead: 'Ammu laskupalloja vaunuun. Kaksi samaa laskua yhdistyy vaikeammaksi, yhteenlaskusta aina matriisiin asti.', count: 'Laskut'
+  }
+};
+// ======================= stages: beating a theme's biggest ball opens the next stage =======================
+// Stages are played in the classic mode. Stage 1 uses the theme's own balls; stages 2 and 3 have balls of their own
+// and a time limit: the listed ball has to be reached before that much play time (in seconds) has passed.
+const STAGES = {
+  eu: [{ name: 'Eurooppa' },
+    { name: 'Aurinkokunta', art: 'solar', names: ['Meteoroidi', 'Asteroidi', 'Komeetta', 'Ceres', 'Pluto', 'Kuu', 'Merkurius', 'Mars', 'Venus', 'Maa', 'Neptunus', 'Uranus', 'Saturnus', 'Jupiter', 'Aurinko'] },
+    { name: 'Galaksi', art: 'galaxy', names: ['Valkoinen kääpiö', 'Neutronitähti', 'Punainen kääpiö', 'Keltainen tähti', 'Sininen jättiläinen', 'Punainen jättiläinen', 'Tähtijoukko',
+      'Planetaarinen sumu', 'Supernova', 'Musta aukko', 'Linnunrata', 'Andromeda', 'Galaksijoukko', 'Superjoukko', 'Universumi'] }],
+  viking: [{ name: 'Jumalat' },
+    { name: 'Olennot', art: 'creature', names: ['Tonttu', 'Haltija', 'Kääpiö', 'Peikko', 'Huldra', 'Draugr', 'Valkyria', 'Jättiläinen', 'Sleipnir', 'Garm', 'Nidhogg', 'Fenrir', 'Surtr', 'Jörmungandr', 'Ymir'] },
+    { name: 'Yhdeksän maailmaa', art: 'world', names: ['Niflheim', 'Muspelheim', 'Helheim', 'Svartalfheim', 'Nidavellir', 'Alfheim', 'Vanaheim', 'Jotunheim', 'Midgard', 'Bifröst', 'Asgard', 'Valhalla', 'Ginnungagap', 'Ragnarök', 'Yggdrasil'] }],
+  heart: [{ name: 'Sydämet' },
+    { name: 'Jalokivisydämet', art: 'gem', names: ['Kvartsisydän', 'Opaalisydän', 'Meripihkasydän', 'Topaasisydän', 'Peridoottisydän', 'Jadesydän', 'Akvamariinisydän', 'Smaragdisydän',
+      'Safiirisydän', 'Ametistisydän', 'Granaattisydän', 'Rubiinisydän', 'Helmisydän', 'Platinasydän', 'Timanttisydän'] },
+    { name: 'Kosmiset sydämet', art: 'cosmic', names: ['Tähtipölysydän', 'Kuusydän', 'Komeettasydän', 'Revontulisydän', 'Planeettasydän', 'Rengassydän', 'Tähtisydän', 'Kaksoistähtisydän',
+      'Sumusydän', 'Supernovasydän', 'Pulsarisydän', 'Kvasaarisydän', 'Galaksisydän', 'Mustan aukon sydän', 'Universumin sydän'] }],
+  uni: [{ name: 'Laskut' },
+    { name: 'Fysiikka', art: 'physics', names: ['v = s/t', 'F = ma', 'p = mv', 'W = Fs', 'P = W/t', 'F = kx', 'U = RI', 'λ = v/f', 'a = v²/r', 'pV = nRT', 'E = hf', 'E = mc²', 'F = Gm₁m₂/r²', 'ΔxΔp ≥ ħ/2', 'iħ∂ψ/∂t = Ĥψ'] },
+    { name: 'Yliopisto', art: 'degree', names: ['Ylioppilas', 'Fuksi', 'Kandidaatti', 'Maisteri', 'Lisensiaatti', 'Tohtori', 'Dosentti', 'Professori', 'Dekaani', 'Rehtori',
+      'Akatemiaprofessori', 'Kunniatohtori', 'Fields-mitali', 'Nobel-palkinto', 'Kaiken teoria'] }]
+};
+const STAGE_GOALS = [[], [[9, 300]], [[9, 240], [12, 840]]];
 let themeId = store.get('piispanpeli-theme', 'eu');
 const themeOpen = t => !t.ach || !!achGot[t.ach];
 function theme() { const t = THEMES.find(x => x.id === themeId); return t && themeOpen(t) ? t : THEMES[0]; }
-let look = Object.assign({ hat: 'bonnet', glasses: 'none', neck: 'chain', ball: 'plain' }, store.get('piispanpeli-look', {}) || {});
+let look = Object.assign({ costume: 'none', hair: 'short', hairc: 'brown', skin: 'light', eyes: 'brown', face: 'none', hat: 'bonnet', glasses: 'none', neck: 'chain', top: 'none', ball: 'plain' }, store.get('piispanpeli-look', {}) || {});
 const goldBalls = () => look.ball === 'gold' && !!achGot.union;
+// how many stages of a theme are beaten (0 to 3), and which stage the next classic game starts on
+const stagesDone = id => clamp(Number(store.get('piispanpeli-stage-' + id, 0)) || 0, 0, 3);
+const stageOpen = (n, id) => n <= Math.min(2, stagesDone(id));
+function stageSel() {
+  const id = theme().id, s = Number(store.get('piispanpeli-stagesel-' + id, -1));
+  return s >= 0 && stageOpen(s, id) ? s : Math.min(2, stagesDone(id));
+}
+let stage = 0, stageDone = false, stageT = 0, failGoal = null;
+const stageInfo = () => STAGES[theme().id][stage];
+function setStage(n) { if (n === stage) return; stage = n; applyLang(); }
+// a colour dot in front of hair colours, skin tones and eye colours
+function swatch(slot, id) {
+  const bg = slot === 'hairc' ? (id === 'rainbow' ? 'linear-gradient(90deg,#e40303,#ff8c00,#ffed00,#008026,#004dff,#750787)' : id === 'goldh' ? 'linear-gradient(135deg,#fff3b0,#ffcc00,#a67c00)' : M_HAIR[id])
+    : slot === 'skin' ? M_SKIN[id][0] : slot === 'eyes' ? M_EYES[id] : '';
+  return bg ? `<i class="wsw" style="background:${bg}" aria-hidden="true"></i>` : '';
+}
 function showWardrobe() {
   let html = '<h2 class="h2">' + T('Hahmo') + '</h2><canvas class="mascot big" width="240" height="240" aria-hidden="true"></canvas>';
-  for (const slot of ['hat', 'glasses', 'neck', 'ball']) {
-    html += `<h3 class="wtitle">${SLOT_NAMES[slot]}</h3><div class="wgrid">` + WARDROBE[slot].map(([id, name, ach]) => {
+  for (const slot of ['costume', 'hair', 'hairc', 'skin', 'eyes', 'face', 'hat', 'glasses', 'neck', 'top', 'ball']) {
+    html += `<h3 class="wtitle">${SLOT_NAMES[slot]}</h3>` + (slot === 'costume' ? `<p class="hint">${T('Erikoisasu pukee koko hahmon kerralla. Valitse Ei erikoisasua, niin omat valintasi palaavat.')}</p>` : '') + `<div class="wgrid">` + WARDROBE[slot].map(([id, name, ach]) => {
       const open = !ach || achGot[ach], on = look[slot] === id, a = ach && ACH.find(x => x[0] === ach);
       return `<button class="witem${on ? ' on' : ''}${open ? '' : ' locked'}" type="button" data-slot="${slot}" data-item="${id}"${open ? '' : ' disabled'} title="${open ? name : T('Avautuu saavutuksesta: {0}', a ? a[1] : '')}">` +
-        `<b>${name}</b><small>${open ? T(on ? 'Käytössä' : 'Valitse') : T('Saavutus: {0}', a && a[3] === 'secret' ? '???' : a ? a[1] : '')}</small></button>`;
+        `<b>${swatch(slot, id)}${name}</b><small>${open ? T(on ? 'Käytössä' : 'Valitse') : T('Saavutus: {0}', a && a[3] === 'secret' ? '???' : a ? a[1] : '')}</small></button>`;
     }).join('') + '</div>';
   }
   showOverlay(html + '<div class="row" style="margin-top:14px"><button class="btn" id="backMenu" type="button">' + T('Valmis') + '</button></div>');
@@ -111,7 +197,17 @@ const TDES = {
   marathon: ['plaque', 'blue', 't:30m'], games50: ['plaque', 'gold', 't:50'], time5k: ['medal', 'blue', 't:2:00'], time15k: ['star', 'red', 't:15k'],
   daily: ['shield', 'gold', 't:24h'], daily60: ['shield', 'silver', 't:60'], zen5: ['gem', 'teal', 't:zen'], grav: ['gem', 'purple', 't:g'],
   map3: ['plaque', 'silver', 't:3'], mapAll: ['crown', 'purple', 't:EU'], nelli: ['heart', 'rose', 't:N'], admin: ['shield', 'black', 't:#'],
-  quiet: ['medal', 'black', 't:zZ']
+  quiet: ['medal', 'black', 't:zZ'],
+  v_first: ['shield', 'silver', 't:1'], v_l7: ['shield', 'teal', 't:N'], v_l79: ['gem', 'teal', 't:V'], v_l10: ['crown', 'purple', 't:F'],
+  v_l14: ['shield', 'gold', 't:O'], v_union: ['crown', 'gold', 't:R'], v_all: ['cup', 'gold', 't:15'],
+  h_first: ['heart', 'rose', 't:1'], h_l7: ['heart', 'teal', 't:7'], h_l79: ['star', 'rose', 'heart'], h_l10: ['heart', 'purple', 't:10'],
+  h_l14: ['heart', 'gold', 'heart'], h_union: ['crown', 'rose', 'heart'], h_all: ['cup', 'rose', 't:15'],
+  u_first: ['plaque', 'silver', 't:1+1'], u_l7: ['plaque', 'teal', 't:x'], u_l79: ['plaque', 'purple', 't:π'], u_l10: ['gem', 'teal', 't:sin'],
+  u_l14: ['plaque', 'gold', 't:[ ]'], u_union: ['crown', 'teal', 't:A·B'], u_all: ['cup', 'teal', 't:15'],
+  stage1: ['star', 'blue', 't:I'], stage2: ['star', 'gold', 't:II'], stage3: ['crown', 'gold', 't:III'],
+  v_stage1: ['shield', 'blue', 't:I'], v_stage2: ['shield', 'red', 't:II'], v_stage3: ['crown', 'teal', 't:III'],
+  h_stage1: ['heart', 'red', 't:I'], h_stage2: ['gem', 'rose', 't:II'], h_stage3: ['crown', 'purple', 't:III'],
+  u_stage1: ['plaque', 'blue', 't:I'], u_stage2: ['plaque', 'red', 't:II'], u_stage3: ['crown', 'silver', 't:III']
 };
 function starPath(c, x, y, r1, r2) { c.beginPath(); for (let p = 0; p < 10; p++) { const r = p % 2 ? r2 : r1, a = -Math.PI / 2 + p * Math.PI / 5; c.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r); } c.closePath(); }
 function drawTrophyOn(c, id, x, y, s) {
@@ -176,7 +272,7 @@ function trophyImg(id, locked) {
 }
 // trophy shelf on the wagon's back wall, either side of the launcher
 // trophy shelves at the bottom of the wagon's back wall; trophies can be grabbed and thrown
-const SHELF_N = 15, SHELF_ROWS = [FLOOR_Y - 0.5, FLOOR_Y - 1.5], TROPHY_S = 0.62, TROPHY_R = 0.3;
+const SHELF_N = 17, SHELF_ROWS = [FLOOR_Y - 0.5, FLOOR_Y - 1.5, FLOOR_Y - 2.5, FLOOR_Y - 3.5], TROPHY_S = 0.62, TROPHY_R = 0.3;
 function shelfPos(i) {
   const row = Math.floor(i / SHELF_N), col = i % SHELF_N;
   return [0.5 + col * (WORLD_W - 1) / (SHELF_N - 1), SHELF_ROWS[Math.min(row, SHELF_ROWS.length - 1)] - 0.04];
@@ -302,14 +398,59 @@ const ACH = [
   ['mapAll', 'Euroopan valloittaja', 'Suorita kaikki tehtävät.', 'mode'],
   ['nelli', 'Nellin rakas', 'Laukaise Nellin yllätys.', 'secret'],
   ['admin', 'Huijari', 'Avaa admin-tila.', 'secret'],
-  ['quiet', 'Hiljainen hetki', 'Aloita peli musiikki pois päältä.', 'secret']
+  ['quiet', 'Hiljainen hetki', 'Aloita peli musiikki pois päältä.', 'secret'],
+  // each theme has its own ball achievements; they only count while that theme is in use
+  ['v_first', 'Valhallan portilla', 'Yhdistä ensimmäiset jumalat.', 'viking'],
+  ['v_l7', 'Merten herra', 'Saa Njord.', 'viking'],
+  ['v_l79', 'Vaanien perhe', 'Saa samassa pelissä Njord ja Freyja.', 'viking'],
+  ['v_l10', 'Asgardin emäntä', 'Saa Frigg.', 'viking'],
+  ['v_l14', 'Kaikkien isä', 'Saa Odin.', 'viking'],
+  ['v_union', 'Ragnarök', 'Yhdistä kaksi Odinia.', 'viking'],
+  ['v_all', 'Yggdrasil', 'Avaa kaikki 15 jumalaa.', 'viking'],
+  ['h_first', 'Ensisilmäys', 'Yhdistä ensimmäiset sydämet.', 'heart'],
+  ['h_l7', 'Taivaan sini', 'Saa taivaansininen sydän.', 'heart'],
+  ['h_l79', 'Sateenkaaren puolivälissä', 'Saa samassa pelissä taivaansininen ja indigo sydän.', 'heart'],
+  ['h_l10', 'Violetti haave', 'Saa violetti sydän.', 'heart'],
+  ['h_l14', 'Kultainen sydän', 'Saa kultainen sydän.', 'heart'],
+  ['h_union', 'Ikuinen rakkaus', 'Yhdistä kaksi kultaista sydäntä.', 'heart'],
+  ['h_all', 'Sydänten kerääjä', 'Avaa kaikki 15 sydäntä.', 'heart'],
+  ['u_first', 'Ensimmäinen oppitunti', 'Yhdistä ensimmäiset laskut.', 'uni'],
+  ['u_l7', 'Yhtälön ratkaisija', 'Saa lasku 2x − 4 = 6.', 'uni'],
+  ['u_l79', 'Geometrian tuntija', 'Saa samassa pelissä 2x − 4 = 6 ja πr².', 'uni'],
+  ['u_l10', 'Trigonometri', 'Saa lasku sin 30°.', 'uni'],
+  ['u_l14', 'Matriisien mestari', 'Saa matriisi.', 'uni'],
+  ['u_union', 'Professori', 'Yhdistä kaksi matriisia.', 'uni'],
+  ['u_all', 'Kaikki kurssit suoritettu', 'Avaa kaikki 15 laskua.', 'uni'],
+  // beating the stages
+  ['stage1', 'Kohti tähtiä', 'Läpäise taso 1: Eurooppa.'],
+  ['stage2', 'Aurinkokunnan valtias', 'Läpäise taso 2: Aurinkokunta.'],
+  ['stage3', 'Universumin herra', 'Läpäise taso 3: Galaksi.'],
+  ['v_stage1', 'Bifröstin yli', 'Läpäise taso 1: Jumalat.', 'viking'],
+  ['v_stage2', 'Hirviöiden kesyttäjä', 'Läpäise taso 2: Olennot.', 'viking'],
+  ['v_stage3', 'Yggdrasilin vartija', 'Läpäise taso 3: Yhdeksän maailmaa.', 'viking'],
+  ['h_stage1', 'Sydämen asialla', 'Läpäise taso 1: Sydämet.', 'heart'],
+  ['h_stage2', 'Jalokivikauppias', 'Läpäise taso 2: Jalokivisydämet.', 'heart'],
+  ['h_stage3', 'Kosminen rakkaus', 'Läpäise taso 3: Kosmiset sydämet.', 'heart'],
+  ['u_stage1', 'Laskutaitoinen', 'Läpäise taso 1: Laskut.', 'uni'],
+  ['u_stage2', 'Fyysikko', 'Läpäise taso 2: Fysiikka.', 'uni'],
+  ['u_stage3', 'Elinikäinen oppija', 'Läpäise taso 3: Yliopisto.', 'uni']
 ];
 const TROPHY_AT = [5, 10, 15, 20, 25, ACH.length];
 let achGot = store.get('piispanpeli-ach', {}) || {};
+stage = stageSel();   // the menu shows the balls of the stage the next game starts on
 const achCount = () => ACH.filter(a => achGot[a[0]]).length;
 const trophies = () => TROPHY_AT.filter(n => achCount() >= n).length;
 const goldEdges = () => !!achGot.all;
 let seenEver = new Set(store.get('piispanpeli-seen', []) || []);
+// balls seen in each theme (the EU train uses the original list above)
+const seenThemes = {};
+function seenFor(id) {
+  if (id === 'eu') return seenEver;
+  return seenThemes[id] || (seenThemes[id] = new Set(store.get('piispanpeli-seen-' + id, []) || []));
+}
+const ACH_PFX = { viking: 'v_', heart: 'h_', uni: 'u_' };
+// the id of an achievement in the theme in use: 'first' becomes 'v_first' in the viking theme, and so on
+const achFor = base => (theme().id === 'eu' ? base : ACH_PFX[theme().id] + base);
 const CUP = (c1, c2) => `<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M9 4h14v6a7 7 0 0 1-14 0z" fill="${c1}"/><path d="M9 6H5a4 4 0 0 0 4 6M23 6h4a4 4 0 0 1-4 6" fill="none" stroke="${c2}" stroke-width="2"/><rect x="14" y="16" width="4" height="6" fill="${c2}"/><rect x="10" y="22" width="12" height="4" rx="1.5" fill="${c1}"/><path d="M12 6h3v5h-3z" fill="#fff" opacity=".45"/></svg>`;
 const toastQ = [];
 let toastBusy = false;
@@ -333,8 +474,10 @@ function unlockEverything() {
   store.set('piispanpeli-ach', achGot);
   for (let l = 0; l <= MAXL; l++) seenEver.add(l);
   store.set('piispanpeli-seen', [...seenEver]);
+  for (const id in ACH_PFX) { const s = seenFor(id); for (let l = 0; l <= MAXL; l++) s.add(l); store.set('piispanpeli-seen-' + id, [...s]); }
   store.set('piispanpeli-map', MISSIONS.length);
   bestLevel = MAXL; store.set('piispanpeli-level', bestLevel);
+  for (const t of THEMES) store.set('piispanpeli-stage-' + t.id, 3);
 }
 function unlock(id) {
   if (achGot[id]) return;
@@ -353,13 +496,24 @@ function unlock(id) {
 }
 function noteLevel(l) {
   gotLevels.add(l);
-  if (!seenEver.has(l)) { seenEver.add(l); store.set('piispanpeli-seen', [...seenEver]); }
-  if (l >= 7) unlock('fin');
-  if (l >= 10) unlock('fra');
-  if (l >= 14) unlock('rus');
-  if (gotLevels.has(7) && gotLevels.has(9)) unlock('nordic');
+  if (stage > 0) return;   // the balls of stages 2 and 3 have no collection or ball achievements of their own
+  const th = theme().id, seen = seenFor(th);
+  if (!seen.has(l)) { seen.add(l); store.set(th === 'eu' ? 'piispanpeli-seen' : 'piispanpeli-seen-' + th, [...seen]); }
+  if (th === 'eu') {
+    if (l >= 7) unlock('fin');
+    if (l >= 10) unlock('fra');
+    if (l >= 14) unlock('rus');
+    if (gotLevels.has(7) && gotLevels.has(9)) unlock('nordic');
+  } else {
+    const p = ACH_PFX[th];
+    if (l >= 7) unlock(p + 'l7');
+    if (l >= 10) unlock(p + 'l10');
+    if (l >= 14) unlock(p + 'l14');
+    if (gotLevels.has(7) && gotLevels.has(9)) unlock(p + 'l79');
+    if (seen.size >= MAXL + 1) unlock(p + 'all');
+  }
   if (gmode === 'gravity' && l >= 7) unlock('grav');
-  if (seenEver.size >= MAXL + 1) unlock('all');
+  if (th === 'eu' && seenEver.size >= MAXL + 1) unlock('all');
 }
 
 function syncUI() {
@@ -371,6 +525,7 @@ function syncUI() {
 function startGame(m, mi) {
   if (state === 'play') return;
   if (m) gmode = m;
+  setStage(gmode === 'classic' ? stageSel() : 0); stageDone = false; stageT = 0; failGoal = null;
   missionIdx = gmode === 'map' ? (mi != null ? mi : missionIdx) : -1;
   rng = gmode === 'daily' ? mulberry(todayKey()) : Math.random;
   const ms = missionIdx >= 0 ? MISSIONS[missionIdx] : null;
@@ -394,7 +549,7 @@ function pause() { if (state !== 'play') return; state = 'paused'; aiming = fals
 const AUTO_KEY = 'piispanpeli-autosave', SLOT_KEY = i => 'piispanpeli-slot' + i;
 let autoT = 0;
 function gameData() {
-  return { v: 1, t: Date.now(), score, cur, nxt, maxLevel, charges, abilProg,
+  return { v: 1, t: Date.now(), score, cur, nxt, maxLevel, charges, abilProg, th: theme().id, stage, playT: Math.round(playT), done: stageDone,
     blobs: E.blobs.map(b => [b.level, Math.round(b.cx * 100) / 100, Math.round(b.cy * 100) / 100]) };
 }
 function validSave(g) { return !!(g && Array.isArray(g.blobs)); }
@@ -410,7 +565,12 @@ function loadGame(g, play) {
   score = shownScore = g.score | 0; cur = clamp(g.cur | 0, 0, MAXL); nxt = clamp(g.nxt | 0, 0, 6); maxLevel = g.maxLevel | 0;
   charges = g.charges | 0; abilProg = g.abilProg | 0; wobT = 0;
   dangerT = 0; combo = 0; comboT = 0; shake = 0; blockedT = 0; cooldown = 0.3; popT = 0; aiming = false; autoT = 0;
-  gmode = 'classic'; missionIdx = -1; rng = Math.random; E.gx = 0; E.gy = GRAV; shots = 0; gotLevels = new Set(); playT = 0;
+  gmode = 'classic'; missionIdx = -1; rng = Math.random; E.gx = 0; E.gy = GRAV; shots = 0; gotLevels = new Set(); playT = +g.playT || 0;
+  // a saved game comes back with the theme and stage it was played in
+  const th = THEMES.find(t => t.id === g.th);
+  if (th && themeOpen(th) && th.id !== themeId) { themeId = th.id; store.set('piispanpeli-theme', themeId); buildBg(); }
+  stage = clamp(g.stage | 0, 0, STAGES[theme().id].length - 1); applyLang();
+  stageDone = stage === STAGES[theme().id].length - 1 && !!g.done; stageT = 0; failGoal = null;
   sfx.ensure();
   if (play) { state = 'play'; hideOverlay(); } else { state = 'paused'; showPause(); }
   syncUI();
@@ -421,7 +581,7 @@ function fmtDate(t) {
 }
 function slotsHTML(mode) {
   let rows = '', any = false;
-  for (let i = 1; i <= 3; i++) {
+  for (let i = 1; i <= 5; i++) {
     const s = store.get(SLOT_KEY(i), null), ok = validSave(s);
     if (ok) any = true;
     const info = ok ? `${T('{0} pistettä', s.score)} · ${fmtDate(s.t)}` : `<span class="muted">${T('tyhjä')}</span>`;
@@ -434,7 +594,7 @@ function slotsHTML(mode) {
   return `<div class="saves"><h3>${T(mode === 'save' ? 'Valitse tallennuspaikka' : 'Tallennetut pelit')}</h3><ul>${rows}</ul></div>`;
 }
 function toMenu() {
-  autoSave(); E.gx = 0; E.gy = GRAV;
+  autoSave(); E.gx = 0; E.gy = GRAV; setStage(stageSel());
   state = 'menu'; preloadMenu(); showMenu(); syncUI();
 }
 function resume() { if (state !== 'paused') return; state = 'play'; hideOverlay(); syncUI(); }
@@ -442,7 +602,7 @@ function resume() { if (state !== 'paused') return; state = 'play'; hideOverlay(
 let jamT = 0;
 function gameOver(reason) {
   reason = reason || 'over';
-  if (reason === 'over' && (invincible || MODE_INFO[gmode].noLose)) { dangerT = 0; jamT = 0; return; }
+  if ((reason === 'over' || reason === 'stage') && (invincible || MODE_INFO[gmode].noLose)) { dangerT = 0; jamT = 0; return; }
   state = 'over'; aiming = false; endReason = reason;
   let newBest = false;
   if (gmode === 'classic') { newBest = score > best; if (newBest) { best = score; store.set('piispanpeli-best', best); } }
@@ -459,7 +619,7 @@ function gameOver(reason) {
   if (gmode === 'time') { if (score >= 5000) unlock('time5k'); if (score >= 15000) unlock('time15k'); }
   E.gx = 0; E.gy = GRAV;
   store.set(AUTO_KEY, null);
-  if (maxLevel > bestLevel) { bestLevel = maxLevel; store.set('piispanpeli-level', bestLevel); }
+  if (!stage && maxLevel > bestLevel) { bestLevel = maxLevel; store.set('piispanpeli-level', bestLevel); }
   if (reason === 'win') { sfx.mega(); triggerConfetti(); } else sfx.over();
   if (!reduceMotion && reason !== 'win') shake = Math.max(shake, 0.25);
   syncUI();
@@ -503,7 +663,7 @@ function handleEvent(ev) {
     if (ev.level >= 7 && !reduceMotion) shake = Math.max(shake, 0.1 + (ev.level - 7) * 0.06);
     if (state !== 'play') return;
     combo = comboT > 0 ? combo + 1 : 1; comboT = 1.1;
-    mergesThisGame++; unlock('first'); noteLevel(ev.level);
+    mergesThisGame++; unlock(achFor('first')); noteLevel(ev.level);
     if (combo >= 5) unlock('combo5'); if (combo >= 10) unlock('combo10'); if (mergesThisGame >= 100) unlock('merges100');
     const pts = POINTS[ev.level] * combo;
     addScore(pts);
@@ -511,7 +671,7 @@ function handleEvent(ev) {
     if (combo >= 2) floater(T('Kombo ×{0}', combo), ev.x, ev.y - R - 0.5, '#fff7ee', 19);
     else if (ev.level >= 2) floater(NAMES[ev.level], ev.x, ev.y - R - 0.5, '#ffe066', 16 + ev.level);
     if (ev.level > maxLevel) {
-      if (ev.level >= 5 && ev.level > bestLevel) floater(T('Uusi maa: {0}!', NAMES[ev.level]), ev.x, ev.y - R - 1.1, '#ffe066', 22);
+      if (!stage && ev.level >= 5 && ev.level > bestLevel) floater(T('Uusi maa: {0}!', NAMES[ev.level]), ev.x, ev.y - R - 1.1, '#ffe066', 22);
       maxLevel = ev.level;
     }
   } else if (ev.type === 'max') {
@@ -520,10 +680,11 @@ function handleEvent(ev) {
     if (!reduceMotion) shake = 0.45;
     if (state !== 'play') return;
     combo = comboT > 0 ? combo + 1 : 1; comboT = 1.1;
-    unlock('union');
+    if (!stage) unlock(achFor('union'));
+    if (gmode === 'classic' && !stageDone && !stageT) stageT = 1.3;
     const pts = MAX_BONUS * combo;
     addScore(pts);
-    floater(T('Alamaailman Hermes! +{0}', pts), ev.x, ev.y, '#ffe066', 28);
+    floater(theme().id === 'eu' && !stage ? T('Alamaailman Hermes! +{0}', pts) : T('Mahtiyhdistys! +{0}', pts), ev.x, ev.y, '#ffe066', 28);
   }
 }
 
@@ -589,7 +750,12 @@ function modeStep() {
   if (gmode === 'zen' && playT >= 300) unlock('zen5');
   // "close call": one button red for 5 s and you survive it
   if (btnL !== btnR) oneBtnT += STEP; else { if (!btnL && oneBtnT >= 5) unlock('close'); oneBtnT = 0; }
-  if (gmode === 'time') { modeT -= STEP; if (modeT <= 0) { modeT = 0; gameOver('time'); } }
+  if (gmode === 'classic') {
+    // the biggest ball beats the stage (a moment later, so the merge can be seen); stages 2 and 3 have time limits
+    // merging the two biggest balls beats the stage; a moment later (so the merge can be seen) the next stage begins
+    if (stageT > 0) { stageT -= STEP; if (stageT <= 0) { stageT = 0; completeStage(); return; } }
+    for (const gl of STAGE_GOALS[stage]) if (maxLevel < gl[0] && playT >= gl[1] && !invincible) { failGoal = gl; gameOver('stage'); return; }
+  } else if (gmode === 'time') { modeT -= STEP; if (modeT <= 0) { modeT = 0; gameOver('time'); } }
   else if (gmode === 'daily') { if (maxLevel >= 10) gameOver('win'); }
   else if (gmode === 'gravity') {
     gravT -= STEP;
@@ -606,6 +772,30 @@ function modeStep() {
     if (ms.time) { modeT -= STEP; if (modeT <= 0) { modeT = 0; gameOver('fail'); return; } }
     if (ms.shots && shots >= ms.shots) { failT += STEP; if (failT > 4) gameOver('fail'); }
   }
+}
+
+function completeStage() {
+  const id = theme().id, n = stage + 1, set = STAGES[id];
+  unlock(achFor('stage' + n));
+  if (stagesDone(id) < n) store.set('piispanpeli-stage-' + id, n);
+  if (n >= set.length) {
+    // the last stage: a final win screen, after which the player may keep collecting points
+    stageDone = true; aiming = false;
+    if (score > best) { best = score; store.set('piispanpeli-best', best); }
+    state = 'paused'; autoSave(); syncUI(); showStageWin();
+    return;
+  }
+  // the next stage begins right away in the same game: the score stays, the wagon is emptied for the new balls
+  store.set('piispanpeli-stagesel-' + id, n);
+  for (const b of E.blobs) burst(b.cx, b.cy, b.level, 6, b.R);
+  clearAll(); setStage(n);
+  maxLevel = 0; playT = 0; gotLevels = new Set(); dangerT = 0; jamT = 0; combo = 0; comboT = 0; failT = 0; oneBtnT = 0;
+  cur = rng() < 0.5 ? 1 : 2; nxt = randLevel(); cooldown = 0.6; popT = 0;
+  triggerConfetti(); sfx.mega(); mascotBounce = 1;
+  if (!reduceMotion) shake = Math.max(shake, 0.4);
+  floater(T('Uusi taso: {0}!', T(set[n].name)), WORLD_W / 2, 7, '#ffe066', 30);
+  toast(T('Taso {0}: {1}', n + 1, T(set[n].name)), T('Pisteesi säilyvät. Uudet pallot!'));
+  autoSave();
 }
 
 function attract() {
