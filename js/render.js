@@ -456,15 +456,6 @@ function drawThemeDeco(th) {
   }
 }
 
-function drawJarLabels(sx, sy) {
-  const fs = Math.round(clamp(0.34 * SC, 10, 15));
-  ctx.font = `600 ${fs}px ${FONT}`; ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
-  const pulse = dangerT > 0 ? Math.abs(Math.sin(time * 9)) : 0;
-  ctx.font = `800 ${fs + 1}px ${FONT}`; ctx.textAlign = 'right'; ctx.textBaseline = 'alphabetic';
-  ctx.fillStyle = `rgba(255,90,90,${0.75 + pulse * 0.25})`;
-
-}
-
 function drawDanger() {
   const both = btnL && btnR && wobT <= 0, pulse = both ? Math.abs(Math.sin(time * 12)) : 0;
   if (both) {
@@ -620,49 +611,6 @@ function drawLauncher() {
   drawRoundBlob(cur, LX, LY, R * s, sq, 0.05, true);
 }
 
-// ---- trampolines on the walls all the way up from the buttons ----
-const TR_TOP = -0.2, TR_BOT = BTN_Y - BTN_H / 2 - 0.3;
-const tramp = [{ flash: 0, y: 0 }, { flash: 0, y: 0 }];
-function bumperStep() {
-  for (const t of tramp) if (t.flash > 0) t.flash -= STEP * 2.5;
-  const hits = new Map(), lim = RB + 0.05;
-  for (let i = 0; i < E.NB; i++) {
-    const x = X[i];
-    if (x > lim && x < WORLD_W - lim) continue;
-    const y = Y[i];
-    if (y < TR_TOP || y > TR_BOT) continue;
-    if (!hits.has(OWN[i])) hits.set(OWN[i], [x < 1 ? 0 : 1, y]);
-  }
-  for (const [bi, [side, y]] of hits) {
-    const b = E.blobs[bi];
-    if (b.trampT && time - b.trampT < 0.35) continue;
-    b.trampT = time;
-    const dir = side ? -1 : 1, kick = 6 + Math.min(6, Math.abs(b.vx) * 0.6);
-    for (let i = b.start; i < b.start + b.n; i++) { VX[i] = dir * Math.max(dir * VX[i], 0) + dir * kick; VY[i] -= 2; }
-    tramp[side].flash = 1; tramp[side].y = y;
-    sfx.bump();
-    if (state === 'play') { addScore(10); floater('+10', side ? WORLD_W - 0.8 : 0.8, y, '#7fe7ff', 14); }
-  }
-}
-function drawBumpers() {
-  for (let side = 0; side < 2; side++) {
-    const t = tramp[side], x = side ? WORLD_W - 0.2 : 0, f = Math.max(0, t.flash), h = TR_BOT - TR_TOP;
-    // stretchy trampoline mat
-    const g = ctx.createLinearGradient(x, 0, x + 0.2, 0);
-    g.addColorStop(0, side ? '#1aa6d9' : '#7fe7ff'); g.addColorStop(1, side ? '#7fe7ff' : '#1aa6d9');
-    ctx.fillStyle = g; rrect(x, TR_TOP, 0.2, h, 0.08); ctx.fill();
-    // springs
-    ctx.strokeStyle = '#ffcc00'; ctx.lineWidth = 0.035; ctx.beginPath();
-    const zx = side ? WORLD_W - 0.1 : 0.1;
-    for (let y = TR_TOP + 0.1, k = 0; y < TR_BOT - 0.05; y += 0.18, k++) ctx.lineTo(zx + (k % 2 ? 0.06 : -0.06), y);
-    ctx.stroke();
-    if (f > 0) {
-      const gl = ctx.createRadialGradient(x + 0.065, t.y, 0, x + 0.065, t.y, 1.2);
-      gl.addColorStop(0, `rgba(127,231,255,${0.6 * f})`); gl.addColorStop(1, 'rgba(127,231,255,0)');
-      ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(x + 0.065, t.y, 1.2, 0, TAU); ctx.fill();
-    }
-  }
-}
 
 // ---- bonus targets flying across the empty top of the wagon ----
 const bonuses = [];
@@ -961,7 +909,6 @@ function render() {
   if (shake > 0) { sx = (Math.random() - 0.5) * shake * SC * 0.6; sy = (Math.random() - 0.5) * shake * SC * 0.6; }
   if (wobT > 0 && !reduceMotion) sx += Math.sin((1.4 - wobT) * TAU * 2.2) * 0.25 * SC * Math.min(1, wobT / 0.4);
   worldTf(sx, sy); drawJar(sx, sy);
-  screenTf(); drawJarLabels(sx, sy);
   worldTf(sx, sy);
   drawDanger();
   drawStageGoal();
@@ -974,7 +921,8 @@ function render() {
   screenTf();
   drawFloaters(sx, sy);
   drawHUD();
-  if (adminOn) { ctx.font = `800 11px ${FONT}`; ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillStyle = invincible ? '#ff6b6b' : '#ffcc00'; ctx.fillText((invincible ? 'ADMIN · ' + T('KUOLEMATON') : 'ADMIN') + (infSwing ? ' · ∞' : ''), 8, 6); ctx.textBaseline = 'alphabetic'; }
+  // shown while a cheat is in use, so it is clear why no record is kept
+  if ((invincible || infSwing || cheated) && (state === 'play' || state === 'paused')) { ctx.font = `800 11px ${FONT}`; ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillStyle = invincible ? '#ff6b6b' : '#ffcc00'; ctx.fillText((invincible ? 'ADMIN · ' + T('KUOLEMATON') : 'ADMIN') + (infSwing ? ' · ∞' : ''), 8, 6); ctx.textBaseline = 'alphabetic'; }
   drawNelli();
   drawCardMascot();
 }

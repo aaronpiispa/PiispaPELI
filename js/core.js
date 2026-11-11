@@ -33,6 +33,8 @@ const ABIL_COST = 40000;
 let charges = 0, abilProg = 0, wobT = 0;
 // admin panel: endless swings, and whether this game used the admin panel (then no records are kept)
 let infSwing = false, cheated = false;
+// the day of the daily challenge being played (a game that runs past 15:00 still counts for the day it began)
+let dayKey = 0;
 const abilBtn = document.getElementById('abilBtn');
 // Viro, Latvia, Irlanti, Itävalta, Unkari, Romania, Italia (Italia is the biggest that can appear)
 const SPAWN_W = [0.112, 0.14, 0.2, 0.12, 0.08, 0.06, 0.04];

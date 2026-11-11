@@ -528,7 +528,8 @@ function startGame(m, mi) {
   if (m) gmode = m;
   setStage(gmode === 'classic' ? stageSel() : 0); stageDone = false; stageT = 0; failGoal = null;
   missionIdx = gmode === 'map' ? (mi != null ? mi : missionIdx) : -1;
-  rng = gmode === 'daily' ? mulberry(todayKey()) : Math.random;
+  dayKey = todayKey();
+  rng = gmode === 'daily' ? mulberry(dayKey) : Math.random;
   const ms = missionIdx >= 0 ? MISSIONS[missionIdx] : null;
   modeT = gmode === 'time' ? TIME_LIMIT : ms && ms.time ? ms.time : 0;
   cheated = invincible || infSwing;
@@ -612,7 +613,7 @@ function gameOver(reason) {
   else if (gmode === 'classic') { newBest = score > best; if (newBest) { best = score; store.set('piispanpeli-best', best); } }
   else if (gmode === 'time' || gmode === 'gravity') { newBest = score > modeBest(gmode); if (newBest) store.set('piispanpeli-best-' + gmode, score); }
   else if (gmode === 'daily' && reason === 'win') {
-    const k = 'piispanpeli-daily-' + todayKey(), prev = Number(store.get(k, 0)) || 0;
+    const k = 'piispanpeli-daily-' + dayKey, prev = Number(store.get(k, 0)) || 0;
     newBest = !prev || shots < prev; if (newBest) store.set(k, shots);
     unlock('daily'); if (shots < 60) unlock('daily60');
   } else if (gmode === 'map' && reason === 'win') {
@@ -665,7 +666,8 @@ function handleEvent(ev) {
     if (ev.level >= 4) mascotBounce = 1;
     sfx.merge(ev.level);
     if (ev.level >= 7 && !reduceMotion) shake = Math.max(shake, 0.1 + (ev.level - 7) * 0.06);
-    if (state !== 'play') return;
+    // the world keeps moving behind the pause menu, so a merge there counts just the same
+    if (state !== 'play' && state !== 'paused') return;
     combo = comboT > 0 ? combo + 1 : 1; comboT = 1.1;
     mergesThisGame++; unlock(achFor('first')); noteLevel(ev.level);
     if (combo >= 5) unlock('combo5'); if (combo >= 10) unlock('combo10'); if (mergesThisGame >= 100) unlock('merges100');
@@ -682,7 +684,7 @@ function handleEvent(ev) {
     for (let l = 0; l <= MAXL; l++) burst(ev.x, ev.y, l, 5, 2.5);
     ring(ev.x, ev.y, 3.2, MAXL); sfx.mega();
     if (!reduceMotion) shake = 0.45;
-    if (state !== 'play') return;
+    if (state !== 'play' && state !== 'paused') return;
     combo = comboT > 0 ? combo + 1 : 1; comboT = 1.1;
     if (!stage) unlock(achFor('union'));
     if (gmode === 'classic' && !stageDone && !stageT) stageT = 1.3;
@@ -695,7 +697,7 @@ function handleEvent(ev) {
 function addScore(p) {
   if (gmode === 'zen') return;
   score += p; abilProg += p;
-  if (state === 'play') { if (score >= 10000) unlock('s10k'); if (score >= 100000) unlock('s100k'); }
+  if (state === 'play' || state === 'paused') { if (score >= 10000) unlock('s10k'); if (score >= 100000) unlock('s100k'); }
   while (abilProg >= ABIL_COST) { abilProg -= ABIL_COST; charges++; floater(T('Heilautus valmis!'), WORLD_W / 2, 6, '#ffcc00', 24); }
   syncAbil();
 }

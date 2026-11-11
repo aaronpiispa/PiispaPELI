@@ -2,7 +2,7 @@
 'use strict';
 
 // ------------------------------ easter egg for Nelli ------------------------------
-let nelliT = 0, typed = '', mascotTaps = 0, mascotTapT = 0, invincible = false, adminOn = false, cornerTaps = 0, cornerT = 0;
+let nelliT = 0, typed = '', mascotTaps = 0, mascotTapT = 0, invincible = false, adminOn = false, usedKeys = false, aimId = null, cornerTaps = 0, cornerT = 0;
 const hearts = [];
 function heartPath(c, x, y, s) {
   c.beginPath();
@@ -62,6 +62,7 @@ function showOverlay(html, cls) {
   card.innerHTML = '<canvas class="mascot" width="200" height="200" aria-hidden="true"></canvas>' + html;
   overlay.hidden = false;
   cardMascot = card.querySelector('.mascot');
+  if (usedKeys) { const f = card.querySelector('.mb.primary') || card.querySelector('button, select'); if (f) f.focus({ preventScroll: true }); }
 }
 let mascotBounce = 0;
 function drawCardMascot() {
@@ -316,7 +317,7 @@ function showAdmin(note) {
 // a game in which the admin panel changed something keeps no records, achievements or progress. Toggles switched
 // on in the menu make the next game count as cheated when it starts
 function cheat() { if (state === 'play' || state === 'paused') cheated = true; }
-function closeAdmin() { if (state === 'paused') { state = 'play'; hideOverlay(); syncUI(); } else if (state === 'menu') showMenu(); else hideOverlay(); }
+function closeAdmin() { adminOn = false; if (state === 'paused') { state = 'play'; hideOverlay(); syncUI(); } else if (state === 'menu') showMenu(); else hideOverlay(); }
 function showSaveSlots() {
   showOverlay('<h2 class="h2">' + T('Tallenna') + '</h2>' + slotsHTML('save') +
     '<div class="row" style="margin-top:16px"><button class="btn alt" id="backBtn" type="button">' + T('Takaisin') + '</button></div>');
@@ -339,7 +340,7 @@ function showOver(newBest) {
   }
   if (gmode === 'gravity') sub = newBest ? NB : REC(modeBest('gravity'));
   if (gmode === 'daily') {
-    const d = Number(store.get('piispanpeli-daily-' + todayKey(), 0)) || 0;
+    const d = Number(store.get('piispanpeli-daily-' + dayKey, 0)) || 0;
     if (endReason === 'win') { title = T('Päivän haaste läpäisty!'); main = T('{0} laukausta', shots); sub = newBest ? '<p class="sub win">' + T('Päivän paras tulos!') + '</p>' : '<p class="sub">' + T('Tänään paras: {0} laukausta', d) + '</p>'; }
     else { title = T('Haaste jäi kesken'); main = NAMES[maxLevel]; sub = '<p class="sub">' + T('Yritä uudelleen saada {0}. Pallojärjestys pysyy samana, kunnes uusi haaste alkaa klo 15.', NAMES[10]) + '</p>'; }
   }
@@ -412,7 +413,7 @@ card.addEventListener('click', e => {
   else if (btn.id === 'admGod') { invincible = !invincible; if (invincible) cheat(); showAdmin(T(invincible ? 'Kuolemattomuus päällä.' : 'Kuolemattomuus pois.')); }
   else if (btn.id === 'admInf') { infSwing = !infSwing; if (infSwing) cheat(); syncAbil(); showAdmin(T(infSwing ? 'Loputtomat heilautukset päällä.' : 'Loputtomat heilautukset pois.')); }
   else if (btn.id === 'admClose') closeAdmin();
-  else if (btn.id === 'admLose') { invincible = false; hideOverlay(); state = 'play'; gameOver(gmode === 'map' || gmode === 'daily' ? 'fail' : 'forced'); }
+  else if (btn.id === 'admLose') { invincible = false; adminOn = false; hideOverlay(); state = 'play'; gameOver(gmode === 'map' || gmode === 'daily' ? 'fail' : 'forced'); }
 
   else if (btn.id === 'backBtn') showPause();
   else if (btn.id === 'menuBtn') toMenu();
@@ -444,10 +445,12 @@ canvas.addEventListener('pointerdown', e => {
   sfx.ensure();
   if (state !== 'play' || (e.pointerType === 'mouse' && e.button !== 0)) return;
   e.preventDefault();
+  // one finger at a time: a second finger never moves the aim, shoots or grabs a trophy
+  if (aiming || heldTrophy) return;
   try { canvas.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
   const wx = (e.clientX - OX) / SC, wy = (e.clientY - OY) / SC, id = pickTrophy(wx, wy);
   if (id) { heldTrophy = { id, pid: e.pointerId }; sfx.ensure(); return; }
-  aiming = true;
+  aiming = true; aimId = e.pointerId;
   aimAt(e);
 });
 function releaseTrophy() {
@@ -458,20 +461,40 @@ function releaseTrophy() {
   o.vx *= k; o.vy *= k; o.st = 'fly'; o.t = 0; o.rest = 0; o.va += o.vx * 0.6;
 }
 canvas.addEventListener('pointermove', e => {
+  if (heldTrophy && e.pointerId !== heldTrophy.pid) return;
+  if (aiming && e.pointerId !== aimId) return;
   if (heldTrophy) { const o = TOBJ[heldTrophy.id]; if (o) { o.tx = (e.clientX - OX) / SC; o.ty = (e.clientY - OY) / SC; } return; }
   if (state === 'play' && (aiming || e.pointerType === 'mouse')) aimAt(e);
 });
 canvas.addEventListener('pointerup', e => {
-  if (heldTrophy) { releaseTrophy(); return; }
-  if (state !== 'play' || !aiming) return;
+  if (heldTrophy) { if (e.pointerId === heldTrophy.pid) releaseTrophy(); return; }
+  if (state !== 'play' || !aiming || e.pointerId !== aimId) return;
   aiming = false; aimAt(e); shoot();
 });
-canvas.addEventListener('pointercancel', () => { aiming = false; releaseTrophy(); });
+canvas.addEventListener('pointercancel', e => {
+  if (heldTrophy && e.pointerId === heldTrophy.pid) releaseTrophy();
+  if (aiming && e.pointerId === aimId) aiming = false;
+});
 canvas.addEventListener('contextmenu', e => e.preventDefault());
 
+// a button, list or slider that has the keyboard focus handles its own keys (Space and Enter press that button)
+const onControl = el => !!(el && el !== document.body && el.closest && el.closest('button, select, input, textarea, a[href]'));
+// Escape on a screen opened from a menu goes back one step
+function goBack() {
+  if (overlay.hidden) return false;
+  if (card.querySelector('#admClose')) { closeAdmin(); return true; }
+  if (state === 'paused' && !card.querySelector('#resumeBtn')) { showPause(); return true; }
+  if (state === 'menu' && !card.classList.contains('menu')) {
+    const back = card.querySelector('#backMenu') || (card.querySelector('[data-mode]') ? null : card.querySelector('#modesBtn'));
+    if (back) back.click(); else showMenu();
+    return true;
+  }
+  return false;
+}
 window.addEventListener('keydown', e => {
-  const k = e.code;
-  if (k === 'ArrowLeft' || k === 'ArrowRight' || k === 'ArrowUp' || k === 'ArrowDown' || k === 'Space') e.preventDefault();
+  const k = e.code, ctl = onControl(e.target);
+  usedKeys = true;
+  if (!ctl && (k === 'ArrowLeft' || k === 'ArrowRight' || k === 'ArrowUp' || k === 'ArrowDown' || k === 'Space')) e.preventDefault();
   keys[k] = true;
   if (e.repeat) return;
   if (e.key && e.key.length === 1) {
@@ -479,17 +502,22 @@ window.addEventListener('keydown', e => {
     if (typed.endsWith('nelli')) { typed = ''; triggerNelli(); }
     else if (typed === 'admin123') { typed = ''; openAdmin(); }
   }
+  if (ctl && (k === 'Space' || k === 'Enter')) return;
+  const pauseMenu = state === 'paused' && !overlay.hidden && !!card.querySelector('#resumeBtn');
   if (state === 'play') {
     if (k === 'Space' || k === 'Enter') shoot();
     else if (k === 'KeyP' || k === 'Escape') pause();
     else if (k === 'KeyH') useAbility();
-  } else if (state === 'paused') {
+  } else if (pauseMenu) {
     if (k === 'KeyP' || k === 'Escape' || k === 'Space' || k === 'Enter') resume();
-  } else if ((k === 'Space' || k === 'Enter') && !overlay.hidden) {
+  } else if (k === 'Escape') {
+    if (goBack()) e.preventDefault();
+  } else if ((k === 'Space' || k === 'Enter') && !overlay.hidden && (state === 'over' || (state === 'menu' && card.classList.contains('menu')))) {
     const g = state === 'menu' ? store.get(AUTO_KEY, null) : null;
     if (validSave(g)) loadGame(g, true); else startGame('classic');
   }
 });
+window.addEventListener('pointerdown', () => { usedKeys = false; }, true);
 window.addEventListener('keyup', e => { keys[e.code] = false; });
 window.addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
 document.addEventListener('visibilitychange', () => { if (document.hidden) { if (state === 'play') pause(); else autoSave(); sfx.suspend(); } else sfx.resume(); });

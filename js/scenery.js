@@ -175,7 +175,7 @@ const SCENES = [
   { space: 'galaxy', anim: 'twinkle' }
 ];
 const SPACE_SCENE = { solar: 15, galaxy: 16, cosmic: 16 };
-let sceneCache = {}, sceneIdx = 7, scenePrev = 7, sceneFade = 1;
+let sceneCache = {}, sceneIdx = 7, scenePrev = 7, sceneFade = 1, sceneT = 0, fadeT = 0;
 const sceneParts = [];
 function sceneFor() { const h = /scene=(\d+)/.exec(location.hash); if (h) return clamp(+h[1], 0, SCENES.length - 1); const sp = stage && SPACE_SCENE[STAGES[theme().id][stage].art]; if (sp) return sp; return state === 'menu' ? 7 : clamp(maxLevel, 0, 14); }
 function srand(seed) { let a = seed * 9301 + 49297; return () => { a = (a * 9301 + 49297) % 233280; return a / 233280; }; }
@@ -610,7 +610,7 @@ function drawScenery() {
   const want = sceneFor();
   if (want !== sceneIdx) { scenePrev = sceneIdx; sceneIdx = want; sceneFade = 0; sceneParticles(want); }
   if (!sceneParts.length && SCENES[sceneIdx].anim !== 'aurora') sceneParticles(sceneIdx);
-  sceneFade = Math.min(1, sceneFade + 0.012);
+  sceneFade = Math.min(1, sceneFade + 0.012 * Math.min(4, Math.max(0, (time - fadeT) * 60))); fadeT = time;
   // keep only the scenes on screen: each one is a full-screen bitmap (about 6 MB on a phone), and keeping every
   // visited one made memory grow through a long game. Scenes are drawn from a fixed seed, so a rebuilt one is identical.
   for (const k in sceneCache) if (+k !== sceneIdx && (sceneFade >= 1 || +k !== scenePrev)) delete sceneCache[k];
@@ -621,6 +621,9 @@ function drawScenery() {
   const xt = SCENES[sceneIdx].extra;
   if (xt) { ctx.save(); ctx.globalAlpha = sceneFade; drawExtra(xt, reduceMotion ? 0 : time); ctx.restore(); }
   if (reduceMotion) return;
+  // the drifting particles move by the time that has passed, not by frames, so a 120 Hz screen shows them
+  // at the same speed as a 60 Hz one (k is 1 for one 60 Hz frame)
+  const k = Math.min(4, Math.max(0, (time - sceneT) * 60)); sceneT = time;
   const a = SCENES[sceneIdx].anim, hz = vh * 0.62, t = time;
   if (a === 'aurora') {
     for (let band = 0; band < 3; band++) {
@@ -635,14 +638,14 @@ function drawScenery() {
   }
   for (const q of sceneParts) {
     if (a === 'snow' || a === 'blizzard') {
-      q.y += (0.4 + q.v) * (a === 'blizzard' ? 2.4 : 1); q.x += Math.sin(t + q.p) * 0.5 + (a === 'blizzard' ? 1.6 : 0);
+      q.y += (0.4 + q.v) * (a === 'blizzard' ? 2.4 : 1) * k; q.x += (Math.sin(t + q.p) * 0.5 + (a === 'blizzard' ? 1.6 : 0)) * k;
       if (q.y > vh) { q.y = -5; q.x = Math.random() * vw; } if (q.x > vw) q.x = 0;
       ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.beginPath(); ctx.arc(q.x, q.y, 1 + q.s * 2, 0, TAU); ctx.fill();
     } else if (a === 'embers') {
-      q.y -= 0.3 + q.v * 0.7; q.x += Math.sin(t * 1.3 + q.p) * 0.5; if (q.y < vh * 0.2) { q.y = vh * 0.62 + Math.random() * 30; q.x = Math.random() * vw; }
+      q.y -= (0.3 + q.v * 0.7) * k; q.x += Math.sin(t * 1.3 + q.p) * 0.5 * k; if (q.y < vh * 0.2) { q.y = vh * 0.62 + Math.random() * 30; q.x = Math.random() * vw; }
       ctx.fillStyle = `rgba(255,${140 + (q.s * 80 | 0)},60,${0.35 + 0.5 * Math.abs(Math.sin(t * 2 + q.p))})`; ctx.fillRect(q.x, q.y, 2, 2);
     } else if (a === 'rain') {
-      q.y += 9 + q.v * 6; q.x -= 1.5; if (q.y > vh) { q.y = -10; q.x = Math.random() * vw + 40; }
+      q.y += (9 + q.v * 6) * k; q.x -= 1.5 * k; if (q.y > vh) { q.y = -10; q.x = Math.random() * vw + 40; }
       ctx.strokeStyle = 'rgba(210,225,240,0.45)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(q.x, q.y); ctx.lineTo(q.x + 2, q.y - 10); ctx.stroke();
     } else if (a === 'fireflies' || a === 'pollen' || a === 'sparkle') {
       const x = q.x + Math.sin(t * 0.5 + q.p) * 20, y = (a === 'sparkle' ? hz + 10 + q.s * (vh - hz) : q.y) + Math.cos(t * 0.4 + q.p) * 14;
@@ -650,17 +653,17 @@ function drawScenery() {
       ctx.fillStyle = a === 'fireflies' ? `rgba(220,255,120,${al})` : a === 'pollen' ? `rgba(255,240,180,${al * 0.7})` : `rgba(255,255,255,${al})`;
       ctx.beginPath(); ctx.arc(x, y, a === 'sparkle' ? 1.5 : 2 + q.s * 1.5, 0, TAU); ctx.fill();
     } else if (a === 'butterflies') {
-      q.x += 0.6 + q.v * 0.6; q.y += Math.sin(t * 2 + q.p) * 0.6; if (q.x > vw + 10) { q.x = -10; q.y = hz - 40 + Math.random() * 120; }
+      q.x += (0.6 + q.v * 0.6) * k; q.y += Math.sin(t * 2 + q.p) * 0.6 * k; if (q.x > vw + 10) { q.x = -10; q.y = hz - 40 + Math.random() * 120; }
       const f = Math.abs(Math.sin(t * 10 + q.p)) * 5 + 1; ctx.fillStyle = q.s < 0.5 ? '#ffffff' : '#ffd84d';
       ctx.beginPath(); ctx.ellipse(q.x - 3, q.y, f, 4, 0, 0, TAU); ctx.ellipse(q.x + 3, q.y, f, 4, 0, 0, TAU); ctx.fill();
     } else if (a === 'balloons') {
-      q.y -= 0.15 + q.v * 0.2; q.x += 0.1; if (q.y < -60) { q.y = vh * 0.7; q.x = Math.random() * vw; }
+      q.y -= (0.15 + q.v * 0.2) * k; q.x += 0.1 * k; if (q.y < -60) { q.y = vh * 0.7; q.x = Math.random() * vw; }
       const R = 10 + q.s * 14, cols = ['#e01e37', '#ffcc00', '#3a6fd8', '#2bb36b'];
       ctx.fillStyle = cols[Math.floor(q.p) % 4]; ctx.beginPath(); ctx.arc(q.x, q.y, R, 0, TAU); ctx.fill();
       ctx.fillStyle = '#6b4a2a'; ctx.fillRect(q.x - R * 0.25, q.y + R * 1.25, R * 0.5, R * 0.4);
       ctx.strokeStyle = 'rgba(60,40,20,0.6)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(q.x - R * 0.7, q.y + R * 0.6); ctx.lineTo(q.x - R * 0.25, q.y + R * 1.25); ctx.moveTo(q.x + R * 0.7, q.y + R * 0.6); ctx.lineTo(q.x + R * 0.25, q.y + R * 1.25); ctx.stroke();
     } else if (a === 'clouds' || a === 'mist' || a === 'fog') {
-      q.x += (a === 'clouds' ? 0.25 : 0.15) * (0.5 + q.v); if (q.x > vw + 200) q.x = -200;
+      q.x += (a === 'clouds' ? 0.25 : 0.15) * (0.5 + q.v) * k; if (q.x > vw + 200) q.x = -200;
       const y = a === 'clouds' ? vh * (0.08 + q.s * 0.3) : hz - 30 + q.s * 70, w = 120 + q.v * 160;
       ctx.fillStyle = a === 'clouds' ? 'rgba(255,255,255,0.75)' : 'rgba(225,232,240,0.18)';
       ctx.beginPath(); ctx.ellipse(q.x, y, w, a === 'clouds' ? 20 + q.s * 10 : 24, 0, 0, TAU); ctx.fill();

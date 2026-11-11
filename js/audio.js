@@ -344,7 +344,6 @@ const sfx = (() => {
     merge(l) { const f = 240 * Math.pow(1.12, l); tone(f * 0.8, f * 1.6, 0.18, 'sine', 0.22); tone(f * 1.6, f * 2.4, 0.1, 'triangle', 0.06, 0.04); },
     mega() { [523, 659, 784, 1047].forEach((f, i) => tone(f, f * 1.02, 0.28, 'triangle', 0.15, i * 0.08)); },
     blocked() { tone(180, 120, 0.15, 'square', 0.04); },
-    bump() { tone(880, 1320, 0.09, 'square', 0.05); tone(660, 990, 0.12, 'sine', 0.1); },
     over() { tone(420, 110, 0.7, 'triangle', 0.18); tone(300, 90, 0.8, 'sine', 0.12, 0.12); }
   };
 })();

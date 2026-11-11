@@ -1,5 +1,5 @@
 // Offline support: the service worker serves the game from its cache, installs fresh files, and takes a newer
-// version only when every file of it arrived, so old and new files never get mixed.
+// version only when every file of it arrived and was written, so old and new files never get mixed.
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -10,6 +10,7 @@ const { ROOT } = require('../helpers/load');
 
 const ORIGIN = 'https://example.test/game/';
 const abs = u => new URL(u, ORIGIN).href;
+const bytes = body => Promise.resolve(new TextEncoder().encode(String(body)).buffer);
 
 // a tiny stand-in for the browser pieces the service worker uses
 function worker(network) {
@@ -17,6 +18,7 @@ function worker(network) {
   class Res {
     constructor(body, ok = true) { this.body = body; this.ok = ok; this.status = ok ? 200 : 404; }
     clone() { return new Res(this.body, this.ok); }
+    arrayBuffer() { return bytes(this.body); }
     static error() { return new Res('<<network error>>', false); }
   }
   class Req { constructor(u, o = {}) { this.url = abs(typeof u === 'string' ? u : u.url); this.cache = o.cache || 'default'; this.mode = o.mode || 'no-cors'; this.method = 'GET'; } }
@@ -55,7 +57,7 @@ function worker(network) {
     setTimeout: (f, ms) => { timers.push(f); return timers.length; }
   });
   vm.runInContext(fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8'), ctx, { filename: 'sw.js' });
-  const consts = vm.runInContext('({ ASSETS, CACHE })', ctx);
+  const consts = vm.runInContext('({ ASSETS, CACHE, DONE })', ctx);
   const event = (type, extra = {}) => {
     const waits = [];
     let response = null;
@@ -64,7 +66,10 @@ function worker(network) {
     return { done: () => Promise.all(waits), response: () => response };
   };
   const runTimers = () => { const t = timers.splice(0); t.forEach(f => f()); };
-  return { stores, event, runTimers, Req, Res, ...consts, cache: () => stores.get(consts.CACHE) };
+  // the set in use: the newest one of this version that carries the "complete" mark
+  const ours = k => k === consts.CACHE || k.startsWith(consts.CACHE + '-u');
+  const cache = () => [...stores.keys()].filter(ours).sort().reverse().map(k => stores.get(k)).find(s => s.m.has(abs(consts.DONE)));
+  return { stores, event, runTimers, Req, Res, ...consts, cache, ours };
 }
 
 // a fake web server whose files can be changed or made to fail
@@ -79,9 +84,9 @@ function server() {
       log.push({ url: u, cache: typeof r === 'string' ? 'default' : r.cache });
       if (!online) return Promise.reject(new TypeError('offline'));
       const p = u.slice(ORIGIN.length) || 'index.html';
-      if (fail.has(p) || !files.has(p)) return Promise.resolve({ ok: false, status: 404, body: '', clone() { return this; } });
+      if (fail.has(p) || !files.has(p)) return Promise.resolve({ ok: false, status: 404, body: '', clone() { return this; }, arrayBuffer() { return bytes(''); } });
       const body = files.get(p);
-      return Promise.resolve({ ok: true, status: 200, body, clone() { return { ...this }; } });
+      return Promise.resolve({ ok: true, status: 200, body, clone() { return { ...this }; }, arrayBuffer() { return bytes(body); } });
     }
   };
 }
@@ -161,4 +166,42 @@ test('activating removes old game caches but keeps the fonts', async () => {
   await w.event('activate').done();
   await flush();
   assert.deepEqual([...w.stores.keys()].sort(), [w.CACHE, 'piispanpeli-fonts-v1'].sort());
+});
+
+test('nothing is written when no file changed', async () => {
+  const net = server(), w = worker(net);
+  siteVersion(net, w, 1);
+  await w.event('install').done();
+  const before = [...w.stores.keys()], set = w.cache(), css = set.m.get(abs('./css/style.css'));
+  const ev = w.event('fetch', { request: new w.Req('./', { mode: 'navigate' }) });
+  await ev.response(); w.runTimers(); await ev.done();
+  assert.deepEqual([...w.stores.keys()], before, 'no new copy of the files');
+  assert.equal(w.cache().m.get(abs('./css/style.css')), css, 'the stored file was left as it was');
+});
+
+test('a new version written only half-way is never used', async () => {
+  const net = server(), w = worker(net);
+  siteVersion(net, w, 1);
+  await w.event('install').done();
+  // the browser closed while a newer set was being written: it has some files but not the "complete" mark
+  const m = new Map([[abs('js/game.js'), new w.Res('js/game.js@2')]]);
+  w.stores.set(w.CACHE + '-u9999999999999', { m, match: r => Promise.resolve(m.get(r.url || abs(r))), put: (r, v) => { m.set(r.url || abs(r), v); return Promise.resolve(); } });
+  const fresh = worker(net);   // the service worker starts again later, with the network down
+  for (const [k, v] of w.stores) fresh.stores.set(k, v);
+  net.online = false;
+  const r = await fresh.event('fetch', { request: new fresh.Req('js/game.js') }).response();
+  assert.equal(r.body, 'js/game.js@1', 'served from the complete old set');
+});
+
+test('after an update only the new complete set is kept', async () => {
+  const net = server(), w = worker(net);
+  siteVersion(net, w, 1);
+  await w.event('install').done();
+  siteVersion(net, w, 2);
+  const ev = w.event('fetch', { request: new w.Req('./', { mode: 'navigate' }) });
+  await ev.response(); w.runTimers(); await ev.done();
+  const sets = [...w.stores.keys()].filter(w.ours);
+  assert.equal(sets.length, 1, 'the old set was removed: ' + sets);
+  assert.notEqual(sets[0], w.CACHE, 'the update lives in a set of its own');
+  assert.equal((await w.event('fetch', { request: new w.Req('js/game.js') }).response()).body, 'js/game.js@2', 'the new version is served');
 });

@@ -5,9 +5,11 @@
 // pictures cost no more per frame than a flag. Sizes are rounded up to a power of two, so a handful of
 // bitmaps covers every ball on screen.
 const artCache = new Map();
+let artFont = -1;   // the pictures with text are drawn again once the web font has arrived
 function drawStageArt(art, level, S) {
   const m = ctx.getTransform(), px = Math.hypot(m.a, m.b) * S * 2;
   const size = clamp(2 ** Math.ceil(Math.log2(Math.max(16, px))), 16, 512), key = art + level + '|' + size;
+  if (artFont !== fontGen) { artCache.clear(); artFont = fontGen; }
   let cv = artCache.get(key);
   if (!cv) {
     if (artCache.size > 90) artCache.clear();
