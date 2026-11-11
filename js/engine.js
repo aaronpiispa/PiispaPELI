@@ -30,8 +30,11 @@ const E = { blobs: [], NB: 0, mergeQ: [], events: [], idc: 0, gx: 0, gy: GRAV };
 
 function easeOutBack(u) { const c1 = 2.2, c3 = c1 + 1, t = u - 1; return 1 + c3 * t * t * t + c1 * t * t; }
 
+// special blobs that never merge: stones (obstacles) and the boss of the last stage
+const STONE = 20, BOSS = 21, SPECIAL_R = { [STONE]: 0.62, [BOSS]: 2.3 };
+const isSpecial = level => level >= STONE;
 function makeBlob(level, cx, cy, vx, vy, s0) {
-  const R = RADII[level], Rr = R - RB;
+  const R = isSpecial(level) ? SPECIAL_R[level] : RADII[level], Rr = R - RB, lv = Math.min(level, MAXL);
   const n = Math.max(10, Math.round(2 * Math.PI * Rr / SPACING));
   if (E.NB + n > MAXN) return null;
   const sc = s0 == null ? 1 : s0;
@@ -40,7 +43,7 @@ function makeBlob(level, cx, cy, vx, vy, s0) {
     rest: 2 * Rr * Math.sin(Math.PI / n), area0: 0.5 * n * Rr * Rr * Math.sin(2 * Math.PI / n),
     rx: new Float64Array(n), ry: new Float64Array(n),
     // big balls keep their shape better so they don't droop
-    slack: SLACK + (1 - SLACK) * 0.8 * level / MAXL, ks: KS * (1 + 2.5 * level / MAXL),
+    slack: SLACK + (1 - SLACK) * 0.8 * lv / MAXL, ks: KS * (1 + 2.5 * lv / MAXL),
     s0: sc, scale: sc, gt: sc < 1 ? 0 : GROW_T, age: 0, alive: true, merging: false, touched: false,
     cx, cy, vx, vy, ang: 0, top: cy - R, spd: 0, blink: 1 + Math.random() * 4, blinkT: 0
   };
@@ -134,7 +137,7 @@ function collide() {
           const j = cellItems[k];
           if (j <= i) continue;
           const oj = OWN[j];
-          if (oj === oi) continue;
+          if (oj === oi || bl[oi].nest === oj) continue;
           let dx = X[j] - X[i], dy = Y[j] - Y[i];
           const d2 = dx * dx + dy * dy;
           if (d2 >= CD2) continue;
@@ -154,7 +157,7 @@ function collide() {
           }
           const A = bl[oi], B = bl[oj];
           A.touched = true; B.touched = true;
-          if (A.level === B.level && !A.merging && !B.merging) {
+          if (A.level === B.level && A.level < STONE && !A.merging && !B.merging) {
             A.merging = true; B.merging = true; E.mergeQ.push(A, B);
           }
         }
@@ -187,6 +190,40 @@ function walls() {
 }
 
 
+// A ball that ends up deep inside another (say a big one appears on top of a ball just shot) is not pushed
+// out bead by bead, which would fling it away: the two are slid apart a little every step without adding any
+// speed, and the bead-by-bead push leaves that pair alone until they are only touching again.
+const NEST_CX = [], NEST_CY = [];
+function separateNested() {
+  const bl = E.blobs, n = bl.length;
+  for (let q = 0; q < n; q++) {
+    const b = bl[q]; let cx = 0, cy = 0;
+    for (let i = b.start, e = b.start + b.n; i < e; i++) { cx += X[i]; cy += Y[i]; }
+    NEST_CX[q] = cx / b.n; NEST_CY[q] = cy / b.n; b.nest = -1;
+  }
+  for (let qa = 0; qa < n; qa++) for (let qb = qa + 1; qb < n; qb++) {
+    let A = bl[qa], B = bl[qb], ia = qa, ib = qb;
+    if (A.level === B.level && !isSpecial(A.level)) continue;   // these two merge anyway
+    let ra = A.R * A.scale, rb = B.R * B.scale;
+    if (ra > rb) { [A, B, ia, ib, ra, rb] = [B, A, ib, ia, rb, ra]; }   // A is the smaller one
+    let dx = NEST_CX[ia] - NEST_CX[ib], dy = NEST_CY[ia] - NEST_CY[ib];
+    const d = Math.hypot(dx, dy);
+    // deep: the small ball's centre got inside the big one; it is then slid out until the two only touch
+    const was = A.nestWith === B.id;
+    if (d >= (was ? rb + ra * 0.55 : rb)) { if (was) A.nestWith = 0; continue; }
+    A.nestWith = B.id;
+    if (d < 1e-6) { dx = 0; dy = 1; } else { dx /= d; dy /= d; }
+    A.nest = B.index; B.nest = A.index;
+    const need = rb + ra * 0.95 - d, m = Math.min(0.25, need), wa = rb * rb / (ra * ra + rb * rb), mb = isSpecial(B.level) ? 0 : m * (1 - wa), ma = m - mb;
+    // while inside, the small ball simply rides along with the big one
+    let bvx = 0, bvy = 0;
+    for (let i = B.start, e = B.start + B.n; i < e; i++) { bvx += VX[i]; bvy += VY[i]; }
+    bvx /= B.n; bvy /= B.n;
+    for (let i = A.start, e = A.start + A.n; i < e; i++) { X[i] += dx * ma; Y[i] += dy * ma; PX[i] += dx * ma; PY[i] += dy * ma; VX[i] = bvx; VY[i] = bvy; }
+    for (let i = B.start, e = B.start + B.n; i < e; i++) { X[i] -= dx * mb; Y[i] -= dy * mb; PX[i] -= dx * mb; PY[i] -= dy * mb; }
+  }
+}
+
 // push any bead that ended up inside another blob back out through the nearest skin edge
 const BBX0 = [], BBX1 = [], BBY0 = [], BBY1 = [];
 function unpenetrate() {
@@ -200,7 +237,7 @@ function unpenetrate() {
   for (let qa = 0; qa < nbl; qa++) {
     const A = bl[qa], as = A.start, an = A.n;
     for (let qb = 0; qb < nbl; qb++) {
-      if (qb === qa || BBX0[qb] > BBX1[qa] || BBX1[qb] < BBX0[qa] || BBY0[qb] > BBY1[qa] || BBY1[qb] < BBY0[qa]) continue;
+      if (qb === qa || A.nest === qb || BBX0[qb] > BBX1[qa] || BBX1[qb] < BBX0[qa] || BBY0[qb] > BBY1[qa] || BBY1[qb] < BBY0[qa]) continue;
       const B = bl[qb], be = B.start + B.n;
       for (let j = B.start; j < be; j++) {
         const px = X[j], py = Y[j];
@@ -290,6 +327,9 @@ function compact() {
   E.blobs = keep; E.NB = w;
 }
 
+// take one blob out of the world (a broken stone, a beaten boss)
+function removeBlob(b) { if (!b.alive) return; b.alive = false; compact(); }
+
 function processMerges() {
   const q = E.mergeQ;
   if (!q.length) return;
@@ -342,6 +382,7 @@ function stepPhysics() {
       b.scale = b.s0 + (1 - b.s0) * easeOutBack(b.gt / GROW_T);
     } else b.scale = 1;
   }
+  separateNested();
   for (let s = 0; s < SUB; s++) { substep(); unpenetrate(); }
   processMerges();
   updateInfo();

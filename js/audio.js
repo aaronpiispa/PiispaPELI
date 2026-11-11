@@ -342,6 +342,10 @@ const sfx = (() => {
     },
     shoot(p) { tone(380 + p * 120, 150, 0.14, 'sine', 0.12 + p * 0.1); },
     merge(l) { const f = 240 * Math.pow(1.12, l); tone(f * 0.8, f * 1.6, 0.18, 'sine', 0.22); tone(f * 1.6, f * 2.4, 0.1, 'triangle', 0.06, 0.04); },
+    // a soft swish when a menu screen opens
+    whoosh() { if (ac) tone(260, 520, 0.12, 'sine', 0.05); },
+    // a soap bubble popping
+    pop() { tone(900, 1700, 0.06, 'sine', 0.2); tone(1400, 700, 0.07, 'triangle', 0.07, 0.02); },
     mega() { [523, 659, 784, 1047].forEach((f, i) => tone(f, f * 1.02, 0.28, 'triangle', 0.15, i * 0.08)); },
     blocked() { tone(180, 120, 0.15, 'square', 0.04); },
     over() { tone(420, 110, 0.7, 'triangle', 0.18); tone(300, 90, 0.8, 'sine', 0.12, 0.12); }

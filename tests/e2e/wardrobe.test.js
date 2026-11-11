@@ -19,7 +19,7 @@ test('every wardrobe item opens from a real achievement, is translated and can b
   const bad = await page.evaluate(() => {
     const out = [], ids = new Set(ACH.map(a => a[0])), cv = document.createElement('canvas').getContext('2d');
     for (const slot in WARDROBE) for (const [id, name, ach] of WARDROBE[slot]) {
-      if (ach && !ids.has(ach)) out.push(`${slot}/${id}: unknown achievement ${ach}`);
+      if (ach && !/^(lv|shop|stars):\d+$/.test(ach) && !ids.has(ach)) out.push(`${slot}/${id}: unknown achievement ${ach}`);
       if (!I18N.en[name]) out.push(`${slot}/${id}: "${name}" has no English name`);
       if (slot === 'ball') continue;
       const keep = look[slot]; look[slot] = id;

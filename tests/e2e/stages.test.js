@@ -41,7 +41,7 @@ test('merging the two biggest balls moves straight on to the next stage in the s
   assert.equal(await store(page, 'piispanpeli-stage-eu'), 1, 'stage 1 is recorded as beaten');
   assert.ok((await store(page, 'piispanpeli-ach')).stage1, 'the stage achievement is won');
   // the new stage shows its time limit in the score box, counted from the start of the stage
-  assert.match(await page.evaluate(() => modeLine()), /^Maa: aikaa (5:00|4:5\d)$/);
+  assert.match(await page.evaluate(() => modeLine()), /^Taso 2: Aurinkokunta$/);
   await frames(page, 5);
   assert.deepEqual(errors, []);
 });
@@ -81,15 +81,15 @@ test('five save slots', { skip }, async t => {
 });
 
 test('missing the time limit ends the game and says which ball was needed', { skip }, async t => {
-  const { page, errors } = await openPage(browser, base, t, { store: { 'piispanpeli-stage-eu': 1 } });
-  assert.match(await text(page, '.stgoal'), /Aikaraja: Maa 5 minuutissa/);
+  const { page, errors } = await openPage(browser, base, t, { store: { 'piispanpeli-stage-eu': 2 } });
+  assert.match(await text(page, '.stgoal'), /Aikaraja: 10\. pallo 6 minuutissa · 13\. pallo 20 minuutissa/);
   await page.click('#startBtn');
-  assert.equal(await page.evaluate(() => stage), 1);
-  await page.evaluate(() => { playT = 299.9; });
+  assert.equal(await page.evaluate(() => stage), 2);
+  await page.evaluate(() => { playT = 359.9; });
   await page.waitForFunction(() => state === 'over', null, { timeout: 5000 });
   await page.waitForFunction(() => /Aikaraja ylittyi/.test(document.getElementById('card').innerText), null, { timeout: 5000 });
-  assert.match(await text(page, '#card'), /Maa piti saada 5 minuutissa/);
-  assert.match(await text(page, '#againBtn'), /Taso 2: Aurinkokunta/);
+  assert.match(await text(page, '#card'), /10\. pallo piti saada 6 minuutissa/);
+  assert.match(await text(page, '#againBtn'), /Taso 3: Galaksi/);
   assert.deepEqual(errors, []);
 });
 
@@ -98,7 +98,7 @@ test('a saved game comes back on its own stage, theme and clock', { skip }, asyn
     'piispanpeli-autosave': { v: 1, t: 1, score: 10, cur: 0, nxt: 1, maxLevel: 3, th: 'heart', stage: 2, playT: 100, blobs: [[3, 6, 16]] } } });
   await page.click('#continueBtn');
   assert.deepEqual(await page.evaluate(() => [theme().id, stage, Math.round(playT), NAMES[14]]), ['heart', 2, 100, 'Universumin sydän']);
-  assert.match(await page.evaluate(() => modeLine()), /Supernovasydän: aikaa 2:(1\d|20)/);
+  assert.match(await page.evaluate(() => modeLine()), /^10\. pallo: aikaa 4:(1\d|20)$/);
   assert.deepEqual(errors, []);
 });
 
@@ -106,8 +106,8 @@ test('the other game modes always play the first stage\'s balls', { skip }, asyn
   const { page, errors } = await openPage(browser, base, t, { store: { 'piispanpeli-stage-eu': 2, 'piispanpeli-stagesel-eu': 2 } });
   assert.equal(await page.evaluate(() => NAMES[14]), 'Universumi', 'the menu shows the chosen stage');
   await page.click('#modesBtn');
-  assert.match(await text(page, '#card'), /Saa Ranska/);
-  await page.click('[data-mode="time"]');
+  assert.match(await text(page, '#card'), /Saa 11\. pallo/, 'France is not seen yet, so it is not named');
+  await page.click('[data-mode="daily"]');
   assert.deepEqual(await page.evaluate(() => [stage, NAMES[10]]), [0, 'Ranska']);
   await page.evaluate(() => toMenu());
   assert.equal(await page.evaluate(() => stage), 2, 'back in the menu the chosen stage returns');
@@ -147,13 +147,13 @@ test('the (i) buttons explain the goal of every stage and every game mode', { sk
   await page.click('[data-info="stage"][data-id="2"]');
   const card = await text(page, '#card');
   assert.match(card, /Taso 3: Galaksi/);
-  assert.match(card, /Universumi/);
-  assert.match(card, /Musta aukko 4 minuutissa · Galaksijoukko 14 minuutissa/);
+  assert.ok(!/Universumi|Musta aukko/.test(card), 'a locked stage does not reveal its balls');
+  assert.match(card, /10\. pallo 6 minuutissa · 13\. pallo 20 minuutissa/);
   assert.match(card, /Avautuu, kun läpäiset tason 2/);
   await page.click('#backMenu');
   await page.click('#modesBtn');
-  assert.equal(await page.$$eval('.list .info', b => b.length), 6, 'one info button per game mode');
-  for (const m of ['classic', 'time', 'daily', 'zen', 'gravity', 'map']) {
+  assert.equal(await page.$$eval('.list .info', b => b.length), 3, 'one info button per game mode');
+  for (const m of ['classic', 'daily', 'map']) {
     await page.click(`[data-info="mode"][data-id="${m}"]`);
     assert.match(await text(page, '#card'), /Tavoite:/, m);
     await page.click('#modesBtn');
@@ -164,10 +164,10 @@ test('the (i) buttons explain the goal of every stage and every game mode', { sk
 test('the goal ball is marked in the ball row and the time limit is written across the wagon', { skip }, async t => {
   const { page, errors } = await openPage(browser, base, t, { store: { 'piispanpeli-stage-eu': 3, 'piispanpeli-stagesel-eu': 2 } });
   await page.click('#startBtn');
-  assert.deepEqual(await page.evaluate(() => openGoals()), [[9, 240], [12, 840]]);
+  assert.deepEqual(await page.evaluate(() => openGoals()), [{ lv: 9, t: 360 }, { lv: 12, t: 1200 }]);
   await frames(page, 10);
   await page.evaluate(() => { maxLevel = 9; });
-  assert.deepEqual(await page.evaluate(() => openGoals()), [[12, 840]], 'a reached goal is no longer marked');
+  assert.deepEqual(await page.evaluate(() => openGoals()), [{ lv: 12, t: 1200 }], 'a reached goal is no longer marked');
   await page.evaluate(() => { maxLevel = 12; });
   assert.deepEqual(await page.evaluate(() => openGoals()), []);
   await frames(page, 10);

@@ -17,6 +17,8 @@ Pelaa: https://aaronpiispa.github.io/PiispaPELI/
 | `js/scenery.js` | Asettelu, automaattinen laatutaso, maisemat |
 | `js/game.js` | Pelin kulku, pelimuodot, teemat, saavutukset, pokaalit, tallennukset |
 | `js/render.js` | Vaunun, pallojen, nappien ja HUDin piirto sekä pääsilmukka |
+| `js/challenge.js` | Tasojen haasteet: kivet, pomo ja tähdet |
+| `js/meta.js` | Pelaajataso, kokemus, kolikot ja kauppa |
 | `js/stageart.js` | Tasojen 2 ja 3 pallojen kuvat (planeetat, tähdet, olennot, maailmat, jalokivet, kaavat, tutkinnot) |
 | `js/mascot.js` | Hahmon piirto |
 | `js/ui.js` | Valikot, asennus, ohjaus, kielen vaihto |

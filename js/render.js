@@ -173,10 +173,12 @@ function paintBall(path, level, cx, cy, R, ang, lw) {
   g.addColorStop(0, 'rgba(255,255,255,0.38)'); g.addColorStop(0.45, 'rgba(255,255,255,0)'); g.addColorStop(1, 'rgba(5,15,45,0.42)');
   ctx.fillStyle = g; ctx.fill(path);
   ctx.lineWidth = lw; ctx.lineJoin = 'round'; ctx.strokeStyle = 'rgba(8,20,55,0.75)'; ctx.stroke(path);
-  if (goldBalls()) {
-    // golden rim outfit (Hermes reward): a bright gold band just inside the dark outline
-    const gg = ctx.createLinearGradient(cx - R, cy - R, cx + R, cy + R);
-    gg.addColorStop(0, '#fff3b0'); gg.addColorStop(0.45, '#ffcc00'); gg.addColorStop(1, '#a67c00');
+  const rim = rimStyle();
+  if (rim) {
+    // a coloured rim just inside the dark outline (gold from Hermes, the others from the shop or player levels)
+    let gg;
+    if (rim === 'rainbow') { gg = ctx.createLinearGradient(cx - R, cy, cx + R, cy); ['#e40303', '#ff8c00', '#ffed00', '#008026', '#004dff', '#750787'].forEach((c, i) => gg.addColorStop(i / 5, c)); }
+    else { gg = ctx.createLinearGradient(cx - R, cy - R, cx + R, cy + R); const c = RIMS[rim]; gg.addColorStop(0, c[0]); gg.addColorStop(0.45, c[1]); gg.addColorStop(1, c[2]); }
     ctx.save(); ctx.clip(path); ctx.lineWidth = Math.max(lw * 2.2, R * 0.16); ctx.strokeStyle = gg; ctx.stroke(path); ctx.restore();
   }
   ctx.save(); ctx.clip(path);
@@ -241,6 +243,7 @@ function blobPath(b) {
 }
 
 function drawBlob(b) {
+  if (b.level >= STONE) { drawSpecial(b); return; }
   const R = b.R * b.scale;
   paintBall(blobPath(b), b.level, b.cx, b.cy, R, b.ang, 0.06);
   drawFace(b.cx, b.cy, R, b.ang, b.blinkT > 0, b.spd > 7 ? 1 : 0);
@@ -255,18 +258,6 @@ function drawRoundBlob(level, cx, cy, R, sq, lw, face) {
 }
 
 function rrect(x, y, w, h, r) { ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x, y, w, h, r) : ctx.rect(x, y, w, h); }
-function drawCup(x, y, s) {
-  // a small gold cup centred at (x, y)
-  const sh = Math.sin(time * 2 + x) * 0.5 + 0.5;
-  ctx.save(); ctx.translate(x, y); ctx.scale(s, s);
-  ctx.fillStyle = `rgba(255,220,90,${0.25 + sh * 0.25})`; ctx.beginPath(); ctx.arc(0, -0.2, 1.3, 0, TAU); ctx.fill();
-  ctx.fillStyle = '#ffcc00'; ctx.strokeStyle = '#a07800'; ctx.lineWidth = 0.12;
-  ctx.beginPath(); ctx.moveTo(-0.8, -1); ctx.lineTo(0.8, -1); ctx.quadraticCurveTo(0.8, 0.3, 0, 0.3); ctx.quadraticCurveTo(-0.8, 0.3, -0.8, -1); ctx.fill(); ctx.stroke();
-  ctx.beginPath(); ctx.arc(-0.85, -0.55, 0.32, Math.PI * 0.5, Math.PI * 1.5); ctx.moveTo(0.85, -0.87); ctx.arc(0.85, -0.55, 0.32, -Math.PI * 0.5, Math.PI * 0.5); ctx.stroke();
-  ctx.fillRect(-0.15, 0.3, 0.3, 0.4); ctx.fillRect(-0.5, 0.7, 1, 0.25);
-  ctx.fillStyle = 'rgba(255,255,255,0.6)'; ctx.fillRect(-0.5, -0.85, 0.18, 0.7);
-  ctx.restore();
-}
 // the wagon is drawn in layers: static parts are cached in bitmaps and only redrawn when something changes.
 // A layer is made of pieces that cover only the areas where the layer has something to draw (in world units),
 // cut on whole device pixels and never overlapping, so the result lands on exactly the same pixels as direct
@@ -295,9 +286,9 @@ function cachedLayer(name, key, draw, sx, sy, areas) {
   ctx.restore();
 }
 // where the front of the wagon has something to draw: the two side walls (with the viking shields) and the floor beam
-const FRONT_AREAS = [[VX0 - 0.5, VY0 - 0.5, 0.1, VY1 + 0.5], [WORLD_W - 0.1, VY0 - 0.5, VX1 + 0.5, VY1 + 0.5], [0.1, FLOOR_Y - 0.1, WORLD_W - 0.1, FLOOR_Y + 0.6]];
+const FRONT_AREAS = [[VX0 - 0.5, VY0 - 0.5, 0.5, VY1 + 0.5], [WORLD_W - 0.5, VY0 - 0.5, VX1 + 0.5, VY1 + 0.5], [0.5, FLOOR_Y - 0.1, WORLD_W - 0.5, FLOOR_Y + 0.6]];
 // the trophy shelves above the floor
-const SHELF_AREAS = [[-0.4, FLOOR_Y - 4.6, WORLD_W + 0.4, FLOOR_Y + 0.3]];
+const SHELF_AREAS = [[0, VIT.y - 0.3, VIT.x + VIT.w + 0.4, FLOOR_Y + 0.35]];
 // Text sized in world units (a fraction of a ball). Firefox draws boxes for characters missing from every font
 // (like the viking runes on computers without a runic font) at a minimum pixel size, which at a 0.26 px font
 // covered the whole wagon. Such text measures far wider than its characters could be; only then it is drawn
@@ -310,13 +301,28 @@ function worldText(text, x, y, size, weight) {
   ctx.font = `${weight} ${size * TEXT_K}px ${FONT}`; ctx.fillText(text, 0, 0);
   ctx.restore();
 }
+// how round the wagon's corners are drawn (the walls the balls bounce off stay where they were)
+const BEND_R = 0.9, FILLET_R = 0.36;
+// one side wall: rounded where it bends outwards and capped round at the top
+function wallPath(inner, outer, d) {
+  const r = Math.abs(outer - inner) / 2;
+  ctx.beginPath();
+  ctx.moveTo(inner, FLOOR_Y + 0.3);
+  ctx.arcTo(inner, FUN_Y, inner + d * FUN_W, FUN_TOP, BEND_R);
+  ctx.arcTo(inner + d * FUN_W, FUN_TOP, outer + d * FUN_W, FUN_TOP, r);
+  ctx.arcTo(outer + d * FUN_W, FUN_TOP, outer, FUN_Y, r);
+  ctx.arcTo(outer, FUN_Y, outer, FLOOR_Y + 0.3, BEND_R + r * 2);
+  ctx.arcTo(outer, FLOOR_Y + 0.5, inner, FLOOR_Y + 0.5, r);
+  ctx.lineTo(inner, FLOOR_Y + 0.5);
+  ctx.closePath();
+}
 function jarParams() {
   const th = theme();
   return { th, wT: 0.34, gold: goldEdges() && th.id === 'eu', trim: goldEdges() && th.id !== 'eu', roll: reduceMotion ? 0 : time };
 }
 function jarBack() {
   const { th, wT, gold, trim } = jarParams();
-  ctx.fillStyle = goldEdges() && th.id === 'eu' ? 'rgba(120,90,20,0.22)' : th.body; ctx.beginPath(); ctx.moveTo(-FUN_W, FUN_TOP); ctx.lineTo(WORLD_W + FUN_W, FUN_TOP); ctx.lineTo(WORLD_W, FUN_Y); ctx.lineTo(WORLD_W, FLOOR_Y); ctx.lineTo(0, FLOOR_Y); ctx.lineTo(0, FUN_Y); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = goldEdges() && th.id === 'eu' ? 'rgba(120,90,20,0.22)' : th.body; ctx.beginPath(); ctx.moveTo(-FUN_W, FUN_TOP); ctx.lineTo(WORLD_W + FUN_W, FUN_TOP); ctx.arcTo(WORLD_W, FUN_Y, WORLD_W, FLOOR_Y, BEND_R); ctx.arcTo(WORLD_W, FLOOR_Y, 0, FLOOR_Y, 0.35); ctx.arcTo(0, FLOOR_Y, 0, FUN_Y, 0.35); ctx.arcTo(0, FUN_Y, -FUN_W, FUN_TOP, BEND_R); ctx.closePath(); ctx.fill();
   // corrugated back wall of the freight car with steel stakes
   ctx.fillStyle = 'rgba(255,255,255,0.025)';
   for (let x = 0.25; x < WORLD_W; x += 0.5) ctx.fillRect(x, FUN_Y, 0.22, FLOOR_Y - FUN_Y);
@@ -330,7 +336,7 @@ function jarBack() {
   ctx.fillStyle = 'rgba(10,22,60,0.3)'; ctx.fillRect(0, FLOOR_Y - 2.3, WORLD_W, 0.08);
 
   // underframe
-  ctx.fillStyle = '#141b30'; rrect(-wT - 0.15, FLOOR_Y + 0.42, WORLD_W + 2 * wT + 0.3, 0.24, 0.06); ctx.fill();
+  ctx.fillStyle = '#141b30'; rrect(-wT - 0.15, FLOOR_Y + 0.42, WORLD_W + 2 * wT + 0.3, 0.24, 0.12); ctx.fill();
   ctx.fillStyle = '#26304d'; for (let x = 0.4; x < WORLD_W; x += 0.9) ctx.fillRect(x, FLOOR_Y + 0.45, 0.06, 0.18);
   // buffers and couplers at both ends
   for (const side of [0, 1]) {
@@ -346,8 +352,8 @@ function jarFront() {
   const fg = ctx.createLinearGradient(0, FLOOR_Y, 0, FLOOR_Y + 0.5);
   fg.addColorStop(0, th.beam[0]); fg.addColorStop(1, th.beam[1]);
   if (gold) { fg.addColorStop(0, '#ffe37a'); fg.addColorStop(1, '#b8860b'); }
-  ctx.fillStyle = fg; rrect(-wT, FLOOR_Y, WORLD_W + 2 * wT, 0.5, 0.12); ctx.fill();
-  ctx.fillStyle = gold || trim ? '#fff3b0' : th.stripe; ctx.fillRect(-wT + 0.15, FLOOR_Y + 0.05, WORLD_W + 2 * wT - 0.3, 0.04);
+  ctx.fillStyle = fg; rrect(-wT, FLOOR_Y, WORLD_W + 2 * wT, 0.5, 0.25); ctx.fill();
+  ctx.fillStyle = gold || trim ? '#fff3b0' : th.stripe; rrect(-wT + 0.25, FLOOR_Y + 0.05, WORLD_W + 2 * wT - 0.5, 0.045, 0.02); ctx.fill();
   for (let x = 0.3; x < WORLD_W; x += 0.6) rivet(x, FLOOR_Y + 0.4, 0.035, gold ? '#fffbe6' : th.rivet, th.id);
   ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
   ctx.fillStyle = gold ? '#5a3c00' : th.text; worldText(th.label, 0.35, FLOOR_Y + 0.25, 0.26, 800);
@@ -358,11 +364,11 @@ function jarFront() {
     const g = ctx.createLinearGradient(Math.min(inner, outer) - FUN_W, 0, Math.max(inner, outer) + FUN_W, 0);
     if (gold) { g.addColorStop(0, '#b8860b'); g.addColorStop(0.5, '#ffe37a'); g.addColorStop(1, '#c99a00'); }
     else { g.addColorStop(0, th.wall[0]); g.addColorStop(0.5, th.wall[1]); g.addColorStop(1, th.wall[2]); }
-    ctx.fillStyle = g; ctx.beginPath();
-    ctx.moveTo(inner, FLOOR_Y + 0.3); ctx.lineTo(inner, FUN_Y); ctx.lineTo(inner + d * FUN_W, FUN_TOP);
-    ctx.lineTo(outer + d * FUN_W, FUN_TOP); ctx.lineTo(outer, FUN_Y); ctx.lineTo(outer, FLOOR_Y + 0.3); ctx.closePath(); ctx.fill();
-    if (th.id === 'viking' && !gold) { ctx.strokeStyle = 'rgba(30,16,6,0.55)'; ctx.lineWidth = 0.03; ctx.beginPath(); for (let k = 1; k < 3; k++) { const f = k / 3; ctx.moveTo(inner + d * wT * f, FLOOR_Y + 0.3); ctx.lineTo(inner + d * wT * f, FUN_Y); ctx.lineTo(inner + d * (FUN_W + wT * f), FUN_TOP); } ctx.stroke(); }
-    ctx.lineWidth = trim ? 0.07 : 0.05; ctx.strokeStyle = trim ? '#ffd84d' : 'rgba(255,255,255,0.35)'; ctx.beginPath(); ctx.moveTo(inner, FLOOR_Y); ctx.lineTo(inner, FUN_Y); ctx.lineTo(inner + d * FUN_W, FUN_TOP); ctx.stroke();
+    ctx.fillStyle = g; wallPath(inner, outer, d); ctx.fill();
+    // a soft fillet where the wall meets the floor (no smaller than the smallest ball, so no ball ever reaches into it)
+    ctx.beginPath(); ctx.moveTo(inner, FLOOR_Y - FILLET_R); ctx.arcTo(inner, FLOOR_Y, inner - d * FILLET_R, FLOOR_Y, FILLET_R); ctx.lineTo(inner, FLOOR_Y + 0.05); ctx.closePath(); ctx.fill();
+    if (th.id === 'viking' && !gold) { ctx.strokeStyle = 'rgba(30,16,6,0.55)'; ctx.lineWidth = 0.03; ctx.beginPath(); for (let k = 1; k < 3; k++) { const f = k / 3; ctx.moveTo(inner + d * wT * f, FLOOR_Y + 0.3); ctx.arcTo(inner + d * wT * f, FUN_Y, inner + d * (FUN_W + wT * f), FUN_TOP, BEND_R + wT * f); ctx.lineTo(inner + d * (FUN_W + wT * f), FUN_TOP + 0.15); } ctx.stroke(); }
+    ctx.lineWidth = trim ? 0.07 : 0.05; ctx.strokeStyle = trim ? '#ffd84d' : 'rgba(255,255,255,0.35)'; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(inner - d * FILLET_R, FLOOR_Y); ctx.arcTo(inner, FLOOR_Y, inner, FUN_Y, FILLET_R); ctx.arcTo(inner, FUN_Y, inner + d * FUN_W, FUN_TOP, BEND_R); ctx.lineTo(inner + d * (FUN_W - 0.08), FUN_TOP + 0.25); ctx.stroke(); ctx.lineCap = 'butt';
     const rc = gold ? '#fffbe6' : th.rivet;
     for (let y = FUN_Y + 0.6; y < FLOOR_Y; y += 1.3) rivet(inner + d * wT / 2, y, 0.06, rc, th.id);
     for (let u = 0.2; u < 1; u += 0.3) { const y = FUN_Y + (FUN_TOP - FUN_Y) * u; rivet(inner + d * (FUN_W * u + wT / 2), y, 0.06, rc, th.id); }
@@ -378,7 +384,7 @@ function jarFront() {
 }
 function drawJar(sx, sy) {
   const { th, wT, roll } = jarParams();
-  const base = canvas.width + 'x' + canvas.height + '|' + SC + '|' + OX + '|' + OY + '|' + th.id + '|' + goldEdges() + '|' + fontGen;
+  const base = canvas.width + 'x' + canvas.height + '|' + SC + '|' + OX + '|' + OY + '|' + th.id + '|' + look.wagon + '|' + goldEdges() + '|' + fontGen;
   cachedLayer('back', base, jarBack, sx, sy);
   // track across the whole screen: ballast, sleepers scrolling past on a fixed grid, rail
   const ry = FLOOR_Y + 1.12, tx0 = Math.floor((-OX) / SC) - 2, tx1 = Math.ceil((vw - OX) / SC) + 2;
@@ -416,13 +422,18 @@ function drawJar(sx, sy) {
   ctx.fillStyle = `rgba(255,60,60,${0.25 * lamp})`; ctx.beginPath(); ctx.arc(WORLD_W + wT + 0.05, FLOOR_Y + 0.05, 0.3, 0, TAU); ctx.fill();
   ctx.fillStyle = '#ff4040'; ctx.beginPath(); ctx.arc(WORLD_W + wT + 0.05, FLOOR_Y + 0.05, 0.1, 0, TAU); ctx.fill();
   cachedLayer('front', base, jarFront, sx, sy, FRONT_AREAS);
-  // gold milestone cups ride on the wagon's side
-  for (let k = 0, n = trophies(); k < n; k++) drawCup(WORLD_W - 0.5 - k * 0.62, FLOOR_Y + 0.25, 0.22 + k * 0.012);
   // the trophy shelves: cached, except while a newly won trophy is still popping
   const now = Date.now(), popping = ACH.some(a => achGot[a[0]] && now - achGot[a[0]] < 1300);
   if (popping) drawTrophyWall();
-  else cachedLayer('shelf', base + '|' + ACH.map(a => achGot[a[0]] ? 1 : 0).join('') + '|' + Object.keys(TOBJ).join(), drawTrophyWall, sx, sy, SHELF_AREAS);
+  else cachedLayer('shelf', base + '|' + achCount() + '|' + vitrineIds().join() + '|' + Object.keys(TOBJ).join(), drawTrophyWall, sx, sy, SHELF_AREAS);
 }
+// the wall buttons in each theme: ring colours (top, middle, bottom), the hole, rivets and the dome
+const PUSH_LOOK = {
+  eu: { ring: ['#f4f7ff', '#a9b4d4', '#5d6788'], hole: '#1b2140', rivet: '#ffd84d', dome: '#e8283d', shine: '#ffd0d6', deep: '#7a0a1c' },
+  viking: { ring: ['#c08a52', '#8a5a2e', '#4e2f14'], hole: '#2a1608', rivet: '#cfd5de', dome: '#c0343c', shine: '#ffc7b8', deep: '#5a1010' },
+  heart: { ring: ['#ffffff', '#ffd1e0', '#ff9cc0'], hole: '#7a1840', rivet: '#ff6f9f', dome: '#ff3d7a', shine: '#ffe0ec', deep: '#9a1048' },
+  uni: { ring: ['#2f6b52', '#1f4a3a', '#0f2a20'], hole: '#0b1d16', rivet: '#d4af37', dome: '#9a2032', shine: '#ffd7a8', deep: '#4a0a14' }
+};
 function rivet(x, y, r, col, kind) {
   ctx.fillStyle = col;
   if (kind === 'heart') { heartPath(ctx, x, y + r * 0.6, r * 2.4); ctx.fill(); }
@@ -471,78 +482,25 @@ function drawDanger() {
     // the button is a pusher that sinks into the wall; each theme dresses it differently
     const th = theme(), hy = BTN_Y - BTN_H / 2, mx = side ? x - 0.2 : x, out = 0.62 * (1 - Math.min(1, dep * 1.4)) + 0.08, hx = x + dir * out;
     const col = full ? (both ? `rgb(255,${50 + pulse * 90},50)` : '#ff7a1a') : th.btn, rh = BTN_H * 0.22;
-    // mount plate in the wall
-    ctx.save(); ctx.beginPath(); rrect(mx, hy - 0.1, 0.2, BTN_H + 0.2, 0.05); ctx.clip();
-    if (th.id === 'viking') {
-      ctx.fillStyle = '#6b4423'; ctx.fillRect(mx, hy - 0.1, 0.2, BTN_H + 0.2);
-      ctx.fillStyle = '#3a4048'; for (const y of [hy + 0.15, BTN_Y, hy + BTN_H - 0.15]) { ctx.fillRect(mx, y - 0.05, 0.2, 0.1); ctx.fillStyle = '#cfd5de'; ctx.beginPath(); ctx.arc(mx + 0.1, y, 0.035, 0, TAU); ctx.fill(); ctx.fillStyle = '#3a4048'; }
-    } else if (th.id === 'heart') {
-      ctx.fillStyle = '#ffd1e0'; ctx.fillRect(mx, hy - 0.1, 0.2, BTN_H + 0.2);
-      ctx.fillStyle = '#ff6f9f'; for (let y = hy + 0.1; y < hy + BTN_H; y += 0.34) { heartPath(ctx, mx + 0.1, y + 0.05, 0.16); ctx.fill(); }
-    } else if (th.id === 'uni') {
-      // a stack of book spines
-      const bc = ['#7a1f2b', '#1f4a7a', '#2f6b3a', '#a8781e', '#4a2a6a'];
-      for (let y = hy - 0.1, k = 0; y < hy + BTN_H + 0.1; y += 0.24, k++) { ctx.fillStyle = bc[k % 5]; ctx.fillRect(mx, y, 0.2, 0.22); ctx.fillStyle = '#d4af37'; ctx.fillRect(mx, y + 0.09, 0.2, 0.025); }
-    } else {
-      ctx.fillStyle = '#16181f'; ctx.fillRect(mx, hy - 0.1, 0.2, BTN_H + 0.2);
-      ctx.fillStyle = '#ffcc00'; for (let y = hy - 0.4; y < hy + BTN_H + 0.2; y += 0.3) { ctx.beginPath(); ctx.moveTo(mx, y); ctx.lineTo(mx + 0.2, y + 0.2); ctx.lineTo(mx + 0.2, y + 0.35); ctx.lineTo(mx, y + 0.15); ctx.closePath(); ctx.fill(); }
-    }
-    ctx.restore();
-    // push rod
-    const x0 = Math.min(x, hx), len = Math.abs(hx - x);
-    if (th.id === 'viking') {
-      // a wooden oar shaft with an iron band
-      const g = ctx.createLinearGradient(0, BTN_Y - rh / 2, 0, BTN_Y + rh / 2); g.addColorStop(0, '#c08a52'); g.addColorStop(1, '#6b4423');
-      ctx.fillStyle = g; ctx.fillRect(x0, BTN_Y - rh * 0.4, len, rh * 0.8); ctx.fillStyle = '#3a4048'; ctx.fillRect(x + dir * out * 0.45 - 0.03, BTN_Y - rh * 0.45, 0.06, rh * 0.9);
-    } else if (th.id === 'heart') {
-      // a curly pink ribbon spring
-      ctx.strokeStyle = '#ff9cc0'; ctx.lineWidth = 0.06; ctx.lineCap = 'round'; ctx.beginPath();
-      for (let k = 0; k <= 24; k++) { const u = k / 24, px = x + dir * out * u, py = BTN_Y + Math.sin(u * TAU * 3) * rh * 0.7; k ? ctx.lineTo(px, py) : ctx.moveTo(px, py); }
-      ctx.stroke(); ctx.lineCap = 'butt';
-    } else if (th.id === 'uni') {
-      // a yellow pencil
-      ctx.fillStyle = '#f2c230'; ctx.fillRect(x0, BTN_Y - rh * 0.4, len, rh * 0.8);
-      ctx.fillStyle = '#d9a514'; ctx.fillRect(x0, BTN_Y - rh * 0.05, len, rh * 0.12);
-      ctx.fillStyle = '#c9c9c9'; ctx.fillRect(side ? x - 0.08 : x, BTN_Y - rh * 0.4, 0.08, rh * 0.8);
-    } else {
-      const rg = ctx.createLinearGradient(0, BTN_Y - rh / 2, 0, BTN_Y + rh / 2);
-      rg.addColorStop(0, '#e8edf6'); rg.addColorStop(0.5, '#8a93ad'); rg.addColorStop(1, '#3a4258');
-      ctx.fillStyle = rg; ctx.fillRect(x0, BTN_Y - rh / 2, len, rh);
-      ctx.strokeStyle = '#2a2f3f'; ctx.lineWidth = 0.035; ctx.beginPath();
-      for (let k = 0; k <= 6; k++) { const px = x + dir * out * k / 6; ctx.moveTo(px, BTN_Y - rh * 0.85); ctx.lineTo(px + dir * out / 12, BTN_Y + rh * 0.85); }
-      ctx.stroke();
-    }
-    // glow when pressed all the way
-    if (full) { ctx.fillStyle = both ? `rgba(255,60,60,${0.3 + pulse * 0.3})` : 'rgba(255,140,40,0.25)'; ctx.beginPath(); ctx.ellipse(hx, BTN_Y, 0.42, BTN_H * 0.62, 0, 0, TAU); ctx.fill(); }
-    // head
-    if (th.id === 'viking') {
-      // a round shield seen from the side: painted halves and an iron boss
-      const sc = full ? [col, col] : ['#b8323a', '#f2e6cc'];
-      ctx.fillStyle = sc[0]; ctx.beginPath(); ctx.ellipse(hx, BTN_Y, 0.14, BTN_H / 2, 0, -Math.PI / 2, Math.PI / 2); ctx.fill();
-      ctx.fillStyle = sc[1]; ctx.beginPath(); ctx.ellipse(hx, BTN_Y, 0.14, BTN_H / 2, 0, Math.PI / 2, Math.PI * 1.5); ctx.fill();
-      ctx.lineWidth = 0.05; ctx.strokeStyle = '#6b4a2a'; ctx.beginPath(); ctx.ellipse(hx, BTN_Y, 0.14, BTN_H / 2, 0, 0, TAU); ctx.stroke();
-      ctx.fillStyle = '#cfd5de'; ctx.beginPath(); ctx.ellipse(hx - dir * 0.08, BTN_Y, 0.09, 0.2, 0, 0, TAU); ctx.fill();
-    } else if (th.id === 'heart') {
-      // a big puffy heart
-      ctx.save(); ctx.translate(hx + dir * 0.06, BTN_Y); ctx.rotate(dir * Math.PI / 2); ctx.scale(1, 0.3);
-      ctx.fillStyle = col; heartPath(ctx, 0, BTN_H * 0.32, BTN_H * 0.95); ctx.fill();
-      ctx.lineWidth = 0.06; ctx.strokeStyle = 'rgba(120,0,40,0.5)'; ctx.stroke();
-      ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.beginPath(); ctx.ellipse(-BTN_H * 0.18, -BTN_H * 0.05, BTN_H * 0.06, BTN_H * 0.12, 0.5, 0, TAU); ctx.fill();
-      ctx.restore();
-    } else if (th.id === 'uni') {
-      // a thick book with its pages facing the balls
-      const bw = 0.26, bx = side ? hx - bw : hx;
-      ctx.fillStyle = col; rrect(bx, BTN_Y - BTN_H / 2, bw, BTN_H, 0.04); ctx.fill();
-      ctx.fillStyle = '#f6f1e2'; ctx.fillRect(side ? bx + 0.02 : bx + bw - 0.1, BTN_Y - BTN_H / 2 + 0.07, 0.08, BTN_H - 0.14);
-      ctx.strokeStyle = 'rgba(0,0,0,0.25)'; ctx.lineWidth = 0.012; ctx.beginPath();
-      for (let k = 1; k < 4; k++) { const px = (side ? bx + 0.02 : bx + bw - 0.1) + k * 0.02; ctx.moveTo(px, BTN_Y - BTN_H / 2 + 0.08); ctx.lineTo(px, BTN_Y + BTN_H / 2 - 0.08); }
-      ctx.stroke(); ctx.fillStyle = '#d4af37'; ctx.fillRect(side ? bx + bw - 0.08 : bx + 0.03, BTN_Y - 0.3, 0.05, 0.6);
-    } else {
-      const hg = ctx.createLinearGradient(hx - 0.12, 0, hx + 0.12, 0); hg.addColorStop(0, col); hg.addColorStop(side ? 0.2 : 0.8, '#ffffff'); hg.addColorStop(side ? 0.35 : 0.65, col); hg.addColorStop(1, col);
-      ctx.fillStyle = hg; ctx.beginPath(); ctx.ellipse(hx, BTN_Y, 0.13, BTN_H / 2, 0, 0, TAU); ctx.fill();
-      ctx.lineWidth = 0.04; ctx.strokeStyle = 'rgba(0,0,0,0.55)'; ctx.stroke();
-      ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.beginPath(); ctx.ellipse(hx, BTN_Y, 0.04, BTN_H * 0.32, 0, 0, TAU); ctx.fill();
-    }
+    // an arcade dome button: a ring set in the wall and a glossy dome that sinks into it, dressed in the theme's colours
+    const B = PUSH_LOOK[th.id] || PUSH_LOOK.eu, ry = BTN_H * 0.58, a0 = side ? Math.PI / 2 : -Math.PI / 2, a1 = side ? Math.PI * 1.5 : Math.PI / 2;
+    const half = (rx, ryy) => { ctx.beginPath(); ctx.ellipse(x, BTN_Y, rx, ryy, 0, a0, a1); ctx.closePath(); };
+    const rg = ctx.createLinearGradient(0, BTN_Y - ry, 0, BTN_Y + ry); rg.addColorStop(0, B.ring[0]); rg.addColorStop(0.5, B.ring[1]); rg.addColorStop(1, B.ring[2]);
+    if (full) { ctx.fillStyle = both ? `rgba(255,60,60,${0.3 + pulse * 0.3})` : 'rgba(255,140,40,0.25)'; ctx.beginPath(); ctx.ellipse(x + dir * 0.3, BTN_Y, 0.7, BTN_H * 0.66, 0, 0, TAU); ctx.fill(); }
+    ctx.fillStyle = rg; half(0.36, ry); ctx.fill();
+    ctx.fillStyle = B.hole; half(0.27, ry - 0.1); ctx.fill();
+    for (const t of [-0.75, -0.4, 0, 0.4, 0.75]) rivet(x + dir * 0.315 * Math.cos(t * 1.9), BTN_Y + (ry - 0.05) * Math.sin(t * 1.9), 0.04, B.rivet, th.id);
+    // the dome: its face is where the pusher is, so the balls rest against it
+    const rx = out + 0.13, dy = BTN_H * 0.47, dc = full ? col : B.dome;
+    const dg = ctx.createRadialGradient(x + dir * rx * 0.55, BTN_Y - dy * 0.45, 0.04, x + dir * rx * 0.2, BTN_Y, dy * 1.05);
+    dg.addColorStop(0, B.shine); dg.addColorStop(0.35, dc); dg.addColorStop(1, B.deep);
+    ctx.fillStyle = dg; half(rx, dy); ctx.fill();
+    ctx.lineWidth = 0.035; ctx.strokeStyle = 'rgba(0,0,0,0.35)'; ctx.beginPath(); ctx.ellipse(x, BTN_Y, rx, dy, 0, a0, a1); ctx.stroke();
+    if (th.id === 'heart') { ctx.save(); ctx.translate(x + dir * rx * 0.45, BTN_Y + 0.05); ctx.rotate(dir * Math.PI / 2); ctx.fillStyle = 'rgba(255,255,255,0.35)'; heartPath(ctx, 0, 0.12, 0.5); ctx.fill(); ctx.restore(); }
+    else if (th.id === 'uni') { ctx.fillStyle = 'rgba(255,225,140,0.75)'; starPath(ctx, x + dir * rx * 0.48, BTN_Y + 0.05, 0.16, 0.07); ctx.fill(); }
+    else if (th.id === 'viking') { ctx.fillStyle = '#cfd5de'; ctx.beginPath(); ctx.ellipse(x + dir * rx * 0.5, BTN_Y + 0.05, Math.max(0.03, rx * 0.16), 0.2, 0, 0, TAU); ctx.fill(); }
+    // bright highlight near the top of the dome
+    ctx.fillStyle = 'rgba(255,255,255,0.6)'; ctx.beginPath(); ctx.ellipse(x + dir * rx * 0.42, BTN_Y - dy * 0.5, Math.max(0.03, rx * 0.2), dy * 0.15, 0, 0, TAU); ctx.fill();
     // gauge beside the button: fills from green through yellow to red
     const gw = 0.3, gx = side ? WORLD_W + 0.45 : -0.45 - gw, gh = BTN_H + 0.3, gy = BTN_Y - gh / 2;
     ctx.fillStyle = 'rgba(10,15,35,0.8)'; rrect(gx, gy, gw, gh, 0.1); ctx.fill();
@@ -619,46 +577,126 @@ function bonusStep() {
   bonusT -= STEP;
   if (bonusT <= 0) {
     bonusT = 18 + Math.random() * 16;
-    const heart = Math.random() < 0.08, dir = Math.random() < 0.5 ? 1 : -1;
-    bonuses.push({ x: dir > 0 ? -0.6 : WORLD_W + 0.6, y: 2.2 + Math.random() * 1.6, vx: dir * (1.2 + Math.random() * 0.8), r: heart ? 0.42 : 0.38, heart, t: 0 });
+    const heart = Math.random() < 0.3, dir = Math.random() < 0.5 ? 1 : -1;
+    bonuses.push({ x: dir > 0 ? -0.8 : WORLD_W + 0.8, y: 2.4 + Math.random() * 1.4, vx: dir * (0.9 + Math.random() * 0.6), r: heart ? 0.6 : 0.56, heart, t: 0, ph: Math.random() * TAU });
   }
   for (let i = bonuses.length - 1; i >= 0; i--) {
     const o = bonuses[i];
     o.t += STEP; o.x += o.vx * STEP;
-    const oy = o.y + Math.sin(o.t * 2.5) * 0.25;
-    if (o.x < -1 || o.x > WORLD_W + 1) { bonuses.splice(i, 1); continue; }
+    const [ox, oy] = bubblePos(o);
+    if (o.x < -1.2 || o.x > WORLD_W + 1.2) { bonuses.splice(i, 1); continue; }
     // any ball touching it collects it
     let hit = false;
     for (const b of E.blobs) {
-      const dx = b.cx - o.x, dy = b.cy - oy, rr = b.R * b.scale + o.r;
+      const dx = b.cx - ox, dy = b.cy - oy, rr = b.R * b.scale + o.r;
       if (dx * dx + dy * dy < rr * rr) { hit = true; break; }
     }
     if (hit) {
       bonuses.splice(i, 1);
-      unlock(o.heart ? 'heart' : 'star');
+      if (o.heart) unlock('heart');
       const pts = o.heart ? 1000 : 500;
       addScore(pts);
-      for (let l = 0; l < 6; l++) burst(o.x, oy, o.heart ? 0 : 8, 4, 0.8);
-      ring(o.x, oy, 1, o.heart ? 0 : 8);
-      floater(T(o.heart ? 'Harvinainen bonus +{0}' : 'Tähtibonus +{0}', pts), o.x, oy - 0.6, o.heart ? '#ff8fab' : '#ffe066', 22);
-      sfx.mega(); mascotBounce = 1;
+      bubblePop(ox, oy, o.r, o.heart);
+      floater(T(o.heart ? 'Nelli-bonus +{0}' : 'Tähtibonus +{0}', pts), ox, oy - 0.6, o.heart ? '#ff8fab' : '#ffe066', 22);
+      sfx.pop(); mascotBounce = 1;
     }
   }
 }
+// the bonuses are soap bubbles with a little star (or Nelli's heart) inside: they drift across the top of the
+// wagon swaying and bobbing, wobble a little as they go, and pop when a ball touches them
+function bubblePos(o) {
+  return [o.x + Math.sin(o.t * 0.9 + o.ph) * 0.35, o.y + Math.sin(o.t * 1.4 + o.ph) * 0.32 + Math.sin(o.t * 0.55) * 0.25];
+}
+function bubblePop(x, y, r, heart) {
+  // a thin ring that flashes outwards and a spray of tiny droplets
+  parts.push({ k: 1, x, y, r: r, r1: r * 2.4, life: 0.28, max: 0.28, c: 'rgba(220,245,255,0.95)' });
+  const cols = ['#bff4ff', '#ffd0f0', '#fff3b0', '#d0ffd8'];
+  for (let i = 0; i < 18; i++) {
+    const a = i / 18 * TAU + Math.random() * 0.3, sp = rand(3, 6), life = rand(0.3, 0.55);
+    parts.push({ k: 0, x: x + Math.cos(a) * r, y: y + Math.sin(a) * r, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 1, r: rand(0.04, 0.08), life, max: life, c: cols[i % 4] });
+  }
+  for (let i = 0; i < 6; i++) { const a = Math.random() * TAU, life = rand(0.5, 0.8);
+    parts.push({ k: 0, x, y, vx: Math.cos(a) * 2, vy: Math.sin(a) * 2 - 2.5, r: rand(0.07, 0.12), life, max: life, c: heart ? '#ff4d7d' : '#ffcc00' }); }
+}
+function roundStarPath(r) {
+  const pts = [];
+  for (let p = 0; p < 10; p++) { const rr = p % 2 ? r * 0.5 : r, a = -Math.PI / 2 + p * Math.PI / 5; pts.push([Math.cos(a) * rr, Math.sin(a) * rr]); }
+  ctx.beginPath();
+  for (let i = 0; i <= 10; i++) {
+    const [x, y] = pts[i % 10], [nx, ny] = pts[(i + 1) % 10], mx = (x + nx) / 2, my = (y + ny) / 2;
+    if (i === 0) ctx.moveTo(mx, my); else ctx.quadraticCurveTo(x, y, mx, my);
+  }
+  ctx.closePath();
+}
 function drawBonuses() {
   for (const o of bonuses) {
-    const oy = o.y + Math.sin(o.t * 2.5) * 0.25, sc = 1 + Math.sin(o.t * 6) * 0.06;
-    ctx.save(); ctx.translate(o.x, oy); ctx.scale(sc, sc);
-    ctx.fillStyle = o.heart ? 'rgba(255,77,125,0.25)' : 'rgba(255,204,0,0.25)';
-    ctx.beginPath(); ctx.arc(0, 0, o.r * 1.7, 0, TAU); ctx.fill();
-    if (o.heart) { ctx.fillStyle = '#ff4d7d'; heartPath(ctx, 0, o.r * 0.25, o.r * 1.1); ctx.fill(); }
-    else {
-      ctx.rotate(o.t * 1.5); ctx.fillStyle = '#ffcc00'; ctx.beginPath();
-      for (let p = 0; p < 10; p++) { const rr = p % 2 ? o.r * 0.45 : o.r, a = -Math.PI / 2 + p * Math.PI / 5; ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr); }
-      ctx.closePath(); ctx.fill(); ctx.lineWidth = 0.04; ctx.strokeStyle = '#a07800'; ctx.stroke();
-    }
+    const [x, y] = bubblePos(o), r = o.r, w = Math.sin(o.t * 4.2 + o.ph) * 0.06;
+    ctx.save(); ctx.translate(x, y); ctx.scale(1 + w, 1 - w);
+    // the bubble: clear in the middle, a faint tint and a rainbow rim
+    const g = ctx.createRadialGradient(-r * 0.3, -r * 0.35, r * 0.1, 0, 0, r * 1.1);
+    g.addColorStop(0, 'rgba(255,255,255,0.22)'); g.addColorStop(0.8, 'rgba(160,220,255,0.1)'); g.addColorStop(1, 'rgba(255,160,255,0.42)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, r, 0, TAU); ctx.fill();
+    const rg = ctx.createLinearGradient(-r, -r, r, r);
+    const sh = (o.t * 0.4) % 1;   // the colours slowly run round the rim
+    ['#7fe7ff', '#ff9ad8', '#ffe680', '#9af0a0', '#7fe7ff'].forEach((c, k) => rg.addColorStop(Math.min(1, Math.max(0, (k / 4 + sh) % 1.0001)), c));
+    ctx.strokeStyle = rg; ctx.lineWidth = r * 0.07; ctx.stroke();
+    // the star or heart inside bobs and turns a little on its own
+    ctx.save(); ctx.translate(Math.sin(o.t * 1.7) * r * 0.06, Math.cos(o.t * 1.3) * r * 0.08); ctx.rotate(Math.sin(o.t * 1.1) * 0.25);
+    const s = r * 0.56;
+    if (o.heart) heartPath(ctx, 0, s * 0.3, s * 1.15); else roundStarPath(s);
+    const sg = ctx.createRadialGradient(-s * 0.3, -s * 0.4, s * 0.05, 0, 0, s);
+    sg.addColorStop(0, o.heart ? '#ffd0dc' : '#fff6c0'); sg.addColorStop(1, o.heart ? '#e0205a' : '#f0a800');
+    ctx.fillStyle = sg; ctx.fill(); ctx.lineWidth = s * 0.09; ctx.lineJoin = 'round'; ctx.strokeStyle = 'rgba(8,20,55,0.7)'; ctx.stroke();
+    // a tiny face like the balls have
+    ctx.fillStyle = INK;
+    for (const d of [-1, 1]) { ctx.beginPath(); ctx.ellipse(d * s * 0.2, s * 0.02, s * 0.07, s * 0.1, 0, 0, TAU); ctx.fill(); }
+    ctx.strokeStyle = INK; ctx.lineWidth = s * 0.06; ctx.lineCap = 'round'; ctx.beginPath(); ctx.arc(0, s * 0.17, s * 0.11, 0.2, Math.PI - 0.2); ctx.stroke();
+    ctx.restore();
+    // shine on the bubble
+    ctx.fillStyle = 'rgba(255,255,255,0.75)'; ctx.beginPath(); ctx.ellipse(-r * 0.45, -r * 0.5, r * 0.24, r * 0.09, -0.7, 0, TAU); ctx.fill();
+    ctx.beginPath(); ctx.arc(r * 0.55, r * 0.5, r * 0.06, 0, TAU); ctx.fill();
     ctx.restore();
   }
+}
+// ---- transitions when a game starts or the stage changes: a circle opens from the middle of the wagon (with a
+// flash on a new stage) and a banner with the stage name slides in, stays a moment and fades ----
+let trans = null;
+function startTransition(kind, title, sub) { trans = { kind, title, sub: sub || '', t0: time }; }
+function drawTransition() {
+  if (!trans) return;
+  const age = time - trans.t0;
+  if (age > 2.1) { trans = null; return; }
+  const cx = OX + WORLD_W / 2 * SC, cy = OY + FLOOR_Y * 0.5 * SC;
+  if (trans.kind === 'stage' && age < 0.45) { ctx.fillStyle = `rgba(255,255,255,${0.6 * (1 - age / 0.45)})`; ctx.fillRect(0, 0, vw, vh); }
+  if (!reduceMotion && age < 0.6) {
+    const e = 1 - Math.pow(1 - age / 0.6, 3), R = e * Math.hypot(vw, vh);
+    ctx.fillStyle = '#0a1230'; ctx.beginPath(); ctx.rect(0, 0, vw, vh); ctx.arc(cx, cy, Math.max(1, R), 0, TAU, true); ctx.fill('evenodd');
+    ctx.strokeStyle = 'rgba(255,214,77,0.7)'; ctx.lineWidth = 4 * ui; ctx.beginPath(); ctx.arc(cx, cy, Math.max(1, R), 0, TAU); ctx.stroke();
+  }
+  // the banner
+  const a = age < 0.35 ? age / 0.35 : age > 1.7 ? Math.max(0, (2.1 - age) / 0.4) : 1;
+  if (a <= 0) return;
+  const u = ui, drop = reduceMotion ? 0 : (1 - Math.min(1, age / 0.4)) * -26 * u, by = OY + 5.4 * SC + drop;
+  ctx.save(); ctx.globalAlpha = a;
+  ctx.font = `900 ${24 * u}px ${FONT}`;
+  const tw = ctx.measureText(trans.title).width, w = Math.min(vw - 20, Math.max(tw + 48 * u, 180 * u)), h = trans.sub ? 66 * u : 50 * u;
+  const pop = reduceMotion ? 1 : 1 + Math.max(0, 0.12 - age * 0.3);
+  ctx.translate(cx, by); ctx.scale(pop, pop);
+  ctx.fillStyle = 'rgba(10,28,71,0.9)'; ctx.strokeStyle = '#ffcc00'; ctx.lineWidth = 3 * u;
+  ctx.beginPath(); ctx.roundRect ? ctx.roundRect(-w / 2, -h / 2, w, h, 18 * u) : ctx.rect(-w / 2, -h / 2, w, h); ctx.fill(); ctx.stroke();
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  const fs = tw > w - 30 * u ? 24 * u * (w - 30 * u) / tw : 24 * u;
+  ctx.font = `900 ${fs}px ${FONT}`; ctx.fillStyle = '#ffffff'; ctx.fillText(trans.title, 0, trans.sub ? -10 * u : 1);
+  if (trans.sub) { ctx.font = `800 ${16 * u}px ${FONT}`; ctx.fillStyle = '#ffd84d'; ctx.fillText(trans.sub, 0, 17 * u); }
+  // little sparkles that circle the banner
+  if (!reduceMotion) {
+    ctx.fillStyle = '#ffe066';
+    for (let k = 0; k < 6; k++) {
+      const ang = age * 2.2 + k / 6 * TAU, sx = Math.cos(ang) * (w / 2 + 10 * u), sy = Math.sin(ang) * (h / 2 + 8 * u), s = (4 + 3 * Math.sin(age * 9 + k)) * u;
+      ctx.beginPath(); ctx.moveTo(sx, sy - s); ctx.quadraticCurveTo(sx, sy, sx + s, sy); ctx.quadraticCurveTo(sx, sy, sx, sy + s); ctx.quadraticCurveTo(sx, sy, sx - s, sy); ctx.quadraticCurveTo(sx, sy, sx, sy - s); ctx.fill();
+    }
+  }
+  ctx.restore(); ctx.textBaseline = 'alphabetic';
 }
 function drawParticles() {
   for (const p of parts) {
@@ -737,7 +775,7 @@ function drawChain(x0, y0, vertical, room, u) {
   // device pixels and keeps the exact sub-pixel position, so it looks the same as drawing directly.
   const seenNow = chainSeen(), maxR = (8 + RADII[MAXL] * 2.6 + 2) * u;
   const bw = vertical ? maxR * 2 + 4 : room + 8 * u, bh = vertical ? room + 8 * u : maxR * 2 + 4, bx = x0 - bw / 2, by = vertical ? y0 - 4 * u : y0 - bh / 2;
-  const key = [x0, y0, vertical, room, u, seenNow, dpr, fontGen, theme().id, stage, goldBalls()].join('|');
+  const key = [x0, y0, vertical, room, u, seenNow, dpr, fontGen, theme().id, stage, rimStyle()].join('|');
   if (chainCache.key !== key) {
     const cv = chainCache.cv || (chainCache.cv = document.createElement('canvas'));
     const dx = Math.floor(bx * dpr), dy = Math.floor(by * dpr);
@@ -753,7 +791,11 @@ function drawChain(x0, y0, vertical, room, u) {
   drawGoalMarks(x0, y0, vertical, room, u);
 }
 // the time-limit goals of the stage, still to reach: [level, seconds]
-const openGoals = () => (gmode === 'classic' && stage > 0 && (state === 'play' || state === 'paused') && !invincible ? STAGE_GOALS[stage].filter(g => maxLevel < g[0]) : []);
+// the time limits of the stage still to reach: { lv, t }
+const openGoals = () => (gmode === 'classic' && stage > 0 && (state === 'play' || state === 'paused') && !invincible ? stageGoals(stage).filter(g => maxLevel < g.lv) : []);
+// seconds left, and whether that is getting tight
+const goalLeft = g => Math.max(0, g.t - playT);
+const goalUrgent = g => goalLeft(g) < 30;
 function chainLayout(x0, y0, vertical, room, u) {
   const base = RADII.map(r => (8 + r * 2.6) * u), full = base.reduce((a, r) => a + 2 * r, 0) + 5 * u * (base.length - 1);
   const scale = Math.min(1, room / full), sizes = base.map(r => r * scale), gap = 5 * u * scale;
@@ -767,7 +809,7 @@ function drawGoalMarks(x0, y0, vertical, room, u) {
   if (!goals.length) return;
   const pos = chainLayout(x0, y0, vertical, room, u);
   goals.forEach((g, k) => {
-    const [cx, cy, r] = pos[g[0]], left = g[1] - playT, blink = k === 0 ? 0.55 + 0.45 * Math.abs(Math.sin(time * (left < 30 ? 9 : 4))) : 0.45;
+    const [cx, cy, r] = pos[g.lv], blink = k === 0 ? 0.55 + 0.45 * Math.abs(Math.sin(time * (goalUrgent(g) ? 9 : 4))) : 0.45;
     const R = Math.max(8 * u, r * 0.62), bx = cx + r * 0.62, by = cy - r * 0.62;
     ctx.save(); ctx.globalAlpha = blink;
     ctx.strokeStyle = '#ff3b3b'; ctx.lineWidth = 2 * u; ctx.beginPath(); ctx.arc(cx, cy, r + 2 * u, 0, TAU); ctx.stroke();
@@ -782,14 +824,12 @@ function drawGoalMarks(x0, y0, vertical, room, u) {
 function drawStageGoal() {
   const g = openGoals()[0];
   if (!g) return;
-  const left = Math.max(0, g[1] - playT), mm = Math.floor(left / 60) + ':' + String(Math.floor(left % 60)).padStart(2, '0');
-  const urgent = left < 30, a = urgent ? 0.45 + 0.35 * Math.abs(Math.sin(time * 6)) : 0.42;
+  const left = goalLeft(g), mm = Math.floor(left / 60) + ':' + String(Math.floor(left % 60)).padStart(2, '0');
+  const urgent = goalUrgent(g), a = urgent ? 0.45 + 0.35 * Math.abs(Math.sin(time * 6)) : 0.42;
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = `rgba(255,50,60,${a})`;
-  let size = 0.62; ctx.font = `900 ${size}px ${FONT}`;
-  const name = NAMES[g[0]], w = ctx.measureText(name).width;
-  if (w > WORLD_W - 1.4) size *= (WORLD_W - 1.4) / w;
-  worldText(name, WORLD_W / 2, 2.95, size, 900);
-  worldText(mm, WORLD_W / 2, 3.95, 0.95, 900);
+  // only the time left, off to the side so the ball about to be shot never covers it;
+  // the goal ball itself is marked with a red ! in the ball row
+  worldText(mm, 2.3, 2.45, 0.95, 900);
   ctx.textBaseline = 'alphabetic';
 }
 function drawChainRaw(x0, y0, vertical, room, u) {
@@ -815,13 +855,10 @@ function drawChainRaw(x0, y0, vertical, room, u) {
 function modeLine() {
   const mmss = t => Math.floor(t / 60) + ':' + String(Math.floor(t % 60)).padStart(2, '0');
   if (state === 'menu') return T('Ennätys {0}', best);
-  if (gmode === 'time') return T('Aikaa {0} · ennätys {1}', mmss(modeT), modeBest('time'));
-  if (gmode === 'daily') return T('Laukaukset {0} · tavoite {1}', shots, NAMES[10]);
-  if (gmode === 'zen') return T('Rentoudu');
-  if (gmode === 'gravity') return T('Painovoima: {0}', GRAVS[gravI][2]);
+  if (gmode === 'daily') return T('Laukaukset {0} · tavoite {1}', shots, ballLabel(10));
   if (gmode === 'classic' && stage > 0) {
-    const gl = STAGE_GOALS[stage].find(g => maxLevel < g[0]);
-    if (gl && !invincible) return NAMES[gl[0]] + ': ' + T('aikaa {0}', mmss(Math.max(0, gl[1] - playT)));
+    const gl = openGoals()[0];
+    if (gl) return T('{0}. pallo', gl.lv + 1) + ': ' + T('aikaa {0}', mmss(goalLeft(gl)));
     return T('Taso {0}: {1}', stage + 1, T(stageInfo().name));
   }
   if (gmode === 'map' && missionIdx >= 0) {
@@ -830,6 +867,47 @@ function modeLine() {
   }
   return T('Ennätys {0}', best);
 }
+// how long this game has gone on: m:ss, or h:mm:ss after an hour
+function fmtPlayTime(t) {
+  const s = Math.floor(t), h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60, ss = String(s % 60).padStart(2, '0');
+  return h ? h + ':' + String(m).padStart(2, '0') + ':' + ss : m + ':' + ss;
+}
+// the game clock: a rounded pill in the train's own colours, with a little stopwatch
+function drawTimer(x, y, align, h) {
+  if (state !== 'play' && state !== 'paused') return;
+  h = h || 34;
+  const th = theme(), txt = fmtPlayTime(playT), fs = Math.round(h * 0.47);
+  ctx.font = `800 ${fs}px ${FONT}`;
+  const tw = ctx.measureText(txt.replace(/\d/g, '0')).width, ir = h * 0.26, pad = h * 0.36;
+  const w = pad + ir * 2 + h * 0.22 + tw + pad, x0 = align === 'right' ? x - w : x, r = h / 2;
+  timerBox = [x0, y, w, h];
+  ctx.save();
+  // a darker lip underneath, then the body in the wagon's colours and a bright rim
+  ctx.fillStyle = 'rgba(0,0,0,0.35)'; rrect(x0, y + 3, w, h, r); ctx.fill();
+  const g = ctx.createLinearGradient(0, y, 0, y + h); g.addColorStop(0, th.wall[1]); g.addColorStop(0.5, th.wall[0]); g.addColorStop(1, th.wall[2]);
+  ctx.fillStyle = g; rrect(x0, y, w, h, r); ctx.fill();
+  ctx.fillStyle = 'rgba(0,0,0,0.25)'; rrect(x0, y, w, h, r); ctx.fill();
+  ctx.lineWidth = 2; ctx.strokeStyle = th.stripe; rrect(x0 + 1, y + 1, w - 2, h - 2, r - 1); ctx.stroke();
+  // a soft shine that fades out on every side
+  ctx.save(); rrect(x0, y, w, h, r); ctx.clip();
+  ctx.translate(x0 + w * 0.38, y + h * 0.05); ctx.scale(w * 0.62, h * 0.5);
+  const sh = ctx.createRadialGradient(0, 0, 0, 0, 0, 1); sh.addColorStop(0, 'rgba(255,255,255,0.42)'); sh.addColorStop(0.5, 'rgba(255,255,255,0.14)'); sh.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = sh; ctx.beginPath(); ctx.arc(0, 0, 1, 0, TAU); ctx.fill(); ctx.restore();
+  // stopwatch: face, crown and a hand that ticks round once a minute
+  const cx = x0 + pad + ir, cy = y + h / 2 + ir * 0.12;
+  ctx.fillStyle = th.stripe; ctx.fillRect(cx - ir * 0.28, cy - ir * 1.42, ir * 0.56, ir * 0.36);
+  ctx.beginPath(); ctx.arc(cx, cy, ir, 0, TAU); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.92)'; ctx.beginPath(); ctx.arc(cx, cy, ir * 0.72, 0, TAU); ctx.fill();
+  const a = (Math.floor(playT) % 60) / 60 * TAU - Math.PI / 2;
+  ctx.strokeStyle = th.wall[2]; ctx.lineWidth = Math.max(1.4, ir * 0.18); ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(a) * ir * 0.58, cy + Math.sin(a) * ir * 0.58); ctx.stroke();
+  // the time itself
+  ctx.fillStyle = '#fff'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  ctx.shadowColor = 'rgba(0,0,0,0.55)'; ctx.shadowBlur = 2; ctx.shadowOffsetY = 1;
+  ctx.fillText(txt, cx + ir + h * 0.22, y + h / 2 + 1);
+  ctx.restore(); ctx.textBaseline = 'alphabetic';
+}
+let timerBox = null;
 function drawHUD() {
   const fl = OX + VX0 * SC, fr = OX + VX1 * SC, ft = OY + VY0 * SC, fb = OY + VY1 * SC, fc = OX + LX * SC;
   ctx.textBaseline = 'alphabetic';
@@ -841,7 +919,7 @@ function drawHUD() {
     // Labels are placed in units local to the HUD (scaled by ui). On ordinary screens both sit exactly where they
     // always did; only when a long translation on a narrow screen would collide, the next-ball label moves left
     // of the sound button and the labels get smaller (down to half size, then shortened with an ellipsis).
-    const label = gmode === 'zen' ? 'ZEN' : gmode === 'classic' ? T('PISTEET') : MODE_INFO[gmode].name.toUpperCase(), nl = T('SEURAAVA');
+    const label = gmode === 'classic' ? T('PISTEET') : MODE_INFO[gmode].name.toUpperCase(), nl = T('SEURAAVA');
     const lw = hudTextWidth(label, HUD_LABEL_FONT, '1.6px'), nw = hudTextWidth(nl, HUD_LABEL_FONT, '1.6px');
     const cx = (fc - hl) / u, limit = (hr - 92 * u - hl) / u - 6;
     let next = { t: nl, k: 1, x0: cx - nw / 2, w: nw, align: 'center', x: cx };
@@ -852,7 +930,7 @@ function drawHUD() {
     const modeLbl = (6 + lw <= next.x0 - 10) ? { t: label, k: 1, w: lw } : fitHudLabel(label, next.x0 - 10 - 6);
     at(hl, ft);
     if (modeLbl.k === 1 && modeLbl.t === label) hudLabel(label, 6, -64, 'left'); else hudLabelSized(modeLbl, 6, -64, 'left');
-    hudNum(gmode === 'zen' ? '∞' : sc, 4, -28, 36, 'left');
+    hudNum(sc, 4, -28, 36, 'left');
     hudSmall(info, 6, -9, 'left');
     if (next.align === 'center' && next.k === 1) hudLabel(nl, next.x, -64, 'center'); else hudLabelSized(next, next.x, -64, next.align);
     at(fc, ft);
@@ -861,13 +939,16 @@ function drawHUD() {
     hudSmall(NAMES[nxt], pr + 8, -27, 'left');
     screenTf();
     drawChain(fc, fb + 78 * u, false, Math.min(vw - 12, hr - hl + 40), u);
+    at(hr, fb); drawTimer(-4, 6, 'right');
+    screenTf();
     // where the labels ended up, in CSS pixels (used by the layout tests)
     hudLayout = { modeLabel: [hl + 6 * u, ft - 76 * u, hl + (6 + modeLbl.w) * u, ft - 62 * u], nextLabel: [hl + next.x0 * u, ft - 76 * u, hl + (next.x0 + next.w) * u, ft - 62 * u] };
   } else {
     at(fl, ft);
     hudLabel(gmode === 'classic' ? T('PISTEET') : MODE_INFO[gmode].name.toUpperCase(), -30, 30, 'right');
-    hudNum(gmode === 'zen' ? '∞' : sc, -30, 80, 52, 'right');
+    hudNum(sc, -30, 80, 52, 'right');
     hudSmall(info, -30, 106, 'right');
+    drawTimer(-30, 116, 'right', 28);
     screenTf();
     drawSideMascot(fl, ft, fb, u);
     at(fl, ft);
@@ -921,6 +1002,7 @@ function render() {
   screenTf();
   drawFloaters(sx, sy);
   drawHUD();
+  drawTransition();
   // shown while a cheat is in use, so it is clear why no record is kept
   if ((invincible || infSwing || cheated) && (state === 'play' || state === 'paused')) { ctx.font = `800 11px ${FONT}`; ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillStyle = invincible ? '#ff6b6b' : '#ffcc00'; ctx.fillText((invincible ? 'ADMIN · ' + T('KUOLEMATON') : 'ADMIN') + (infSwing ? ' · ∞' : ''), 8, 6); ctx.textBaseline = 'alphabetic'; }
   drawNelli();

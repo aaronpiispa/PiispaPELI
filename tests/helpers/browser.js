@@ -50,6 +50,13 @@ async function openPage(browser, base, t, opts = {}) {
     localStorage.setItem('piispanpeli-lang', JSON.stringify(o.lang || 'fi'));
     for (const [k, v] of Object.entries(o.store || {})) localStorage.setItem(k, JSON.stringify(v));
   }, { lang: opts.lang, store: opts.store });
+  // the menu screens pop in with a short animation; Playwright waits for it before every click, which made the
+  // big screen tests slow, so tests run with it finished at once unless they ask for it (opts.animations)
+  if (!opts.animations) await page.addInitScript(() => document.addEventListener('DOMContentLoaded', () => {
+    const st = document.createElement('style');
+    st.textContent = '#overlay.fadein,.card.pop,.card.pop *{animation-duration:1ms!important;animation-delay:0s!important}';
+    document.head.appendChild(st);
+  }));
   if (opts.init) await page.addInitScript(opts.init);
   await page.goto(base + (opts.hash ? '#' + opts.hash : ''));
   await page.waitForSelector('#startBtn');

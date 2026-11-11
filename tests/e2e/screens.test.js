@@ -155,7 +155,7 @@ const MEASURE_ALL_MODES = () => {
   const ascent = (() => { ctx.save(); ctx.font = `600 14px ${FONT}`; const a = Math.max(...names.map(n => ctx.measureText(n).actualBoundingBoxAscent || 11)); ctx.restore(); return a * u; })();
   // draw the HUD in every game mode and collect where the game put its labels
   const boxes = {}, keepMode = gmode;
-  ['classic', 'time', 'daily', 'zen', 'gravity', 'map'].forEach(g => {
+  ['classic', 'daily', 'map'].forEach(g => {
     gmode = g;
     drawHUD(); ctx.setTransform(1, 0, 0, 1, 0, 0);
     boxes['modeLabel-' + g] = hudLayout.modeLabel; boxes['nextLabel-' + g] = hudLayout.nextLabel;
@@ -190,7 +190,7 @@ for (const [name, w, h, dsf, touch] of LANG_SCREENS) {
           assert.ok(inside(box, w, h), `${lang}: ${k} on screen ${box.map(Math.round)}`);
           for (const b of ['pause', 'sound', 'abil']) assert.ok(!overlap(box, m[b]), `${lang}: ${k} clear of the ${b} button`);
         }
-        for (const g of ['classic', 'time', 'daily', 'zen', 'gravity', 'map']) assert.ok(!overlap(m.boxes['modeLabel-' + g], m.boxes['nextLabel-' + g]), `${lang}/${g}: mode and next labels apart`);
+        for (const g of ['classic', 'daily', 'map']) assert.ok(!overlap(m.boxes['modeLabel-' + g], m.boxes['nextLabel-' + g]), `${lang}/${g}: mode and next labels apart`);
         assert.deepEqual(errors, [], lang);
       } finally { await ctx.close(); }
     }
@@ -256,3 +256,14 @@ for (const [name, w, h, pad] of [['notched phone', 393, 852, '59px 0 34px 0'], [
     assert.deepEqual(errors, []);
   });
 }
+
+test('the shake button never covers the row of balls on phones', { skip }, async t => {
+  for (const [w, h] of [[360, 640], [375, 667], [390, 700], [393, 852], [412, 915], [430, 932]]) {
+    const { page, errors } = await openPage(browser, base, t, { viewport: { width: w, height: h }, touch: true });
+    await page.click('#startBtn');
+    const r = await page.evaluate(() => { const b = abilBtn.getBoundingClientRect(), fb = OY + VY1 * SC, top = fb + 78 * ui - (8 + RADII[MAXL] * 2.6) * ui; return [b.bottom, top]; });
+    assert.ok(r[0] + 8 <= r[1], `${w}x${h}: button bottom ${Math.round(r[0])}, balls start ${Math.round(r[1])}`);
+    assert.deepEqual(errors, []);
+    await page.context().close();
+  }
+});

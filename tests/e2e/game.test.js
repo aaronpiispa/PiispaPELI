@@ -64,13 +64,14 @@ test('the game loads without errors and shows the main menu', { skip }, async t 
   assert.deepEqual(errors, []);
 });
 
-test('shooting balls scores points and unlocks the first achievement', { skip }, async t => {
+test('shooting balls merges them, scores points and saves the game', { skip }, async t => {
   const { page, errors } = await open(t);
   await page.click('#startBtn');
   for (let i = 0; i < 10; i++) { await page.mouse.click(215 + (i % 3) * 20, 600); await page.waitForTimeout(450); }
-  const ach = await page.evaluate(() => JSON.parse(localStorage.getItem('piispanpeli-ach') || '{}'));
+  const merged = await page.evaluate(() => mergesThisGame);
   const auto = await page.evaluate(() => JSON.parse(localStorage.getItem('piispanpeli-autosave') || 'null'));
-  assert.ok(ach.first, 'first merge achievement');
+  assert.ok(merged > 0, 'balls merged');
+  assert.ok(!(await page.evaluate(() => JSON.parse(localStorage.getItem('piispanpeli-ach') || '{}'))).first, 'no achievement just for the first merges');
   assert.ok(auto && auto.blobs.length > 0, 'game is autosaved');
   assert.deepEqual(errors, []);
 });
@@ -134,7 +135,7 @@ test('a theme can be chosen once it is unlocked', { skip }, async t => {
 
 test('every game mode starts and runs', { skip }, async t => {
   const { page, errors } = await open(t);
-  for (const m of ['classic', 'time', 'daily', 'zen', 'gravity']) {
+  for (const m of ['classic', 'daily']) {
     await page.evaluate(() => { const b = document.getElementById('menuBtn'); if (b) b.click(); });
     await page.click('#modesBtn');
     await page.click(`[data-mode="${m}"]`);

@@ -6,7 +6,7 @@
 const M_SKIN = { light: ['#f2c7ab', '#d99c82'], pale: ['#ffe0cc', '#e8b49a'], tan: ['#e0ac82', '#c08a60'], brown: ['#b97c56', '#93603e'], dark: ['#7a4a32', '#5a3422'],
   alien: ['#9be08a', '#6ab45a'], gold: ['#f2cc5a', '#c89a28'], cosmic: ['#3a2a7a', '#22184a'], frost: ['#b8e4f8', '#7ab4d8'], sun: ['#ffd24a', '#e09a10'] };
 const M_EYES = { glow: '#5af0ff', brown: '#5b3a2c', blue: '#3a7ad8', green: '#3a9a4a', grey: '#7a8a9a', purple: '#8a4ad8', gold: '#d9a400', pink: '#ff4d8d' };
-const M_HAIR = { brown: '#7a4a32', black: '#1e1a1a', blonde: '#e8c66a', ginger: '#c8582a', grey: '#c8c8cc', pink: '#ff7ab0', blue: '#3a7ad8', green: '#3aa860', purple: '#8a4ad8', white: '#f4f4f4' };
+const M_HAIR = { brown: '#7a4a32', black: '#1e1a1a', blonde: '#e8c66a', ginger: '#c8582a', grey: '#c8c8cc', pink: '#ff7ab0', blue: '#3a7ad8', green: '#3aa860', purple: '#8a4ad8', white: '#f4f4f4', teal: '#1fb8b0', orange: '#ff8a2a', silver: '#d8dde6' };
 // special costumes: each one dresses the whole mascot at once and adds its own effects around it
 const COSTUMES = {
   odin: { look: { skin: 'light', hair: 'long', hairc: 'grey', eyes: 'blue', face: 'odinbeard', hat: 'odinhelm', glasses: 'patch', neck: 'none', top: 'odincloak' }, post: 'ravens' },
@@ -194,7 +194,7 @@ function mTop(c, k, cx, by, s, t) {
     c.fillStyle = k === 'cape' ? '#b8323a' : k === 'fur' ? '#7a5236' : '#1a1f4a';
     c.beginPath(); c.ellipse(cx, y0 + s * 0.05, s * 1.18, s * 0.66, 0, Math.PI, 0); c.closePath(); c.fill();
   }
-  const COL = { odincloak: '#1f2a5a', toga: '#f6f2e8', tee: '#2d5fc4', sailor: '#ffffff', mail: '#8a94a4', fur: '#a8784a', cape: '#d0404a', labcoat: '#f4f6f8', robe: '#15182a', hoodie: '#3a3f4a',
+  const COL = { jersey: '#2d5fc4', hawaii: '#2ac0b0', rbtee: '#ffffff', suit: '#5a6070', odincloak: '#1f2a5a', toga: '#f6f2e8', tee: '#2d5fc4', sailor: '#ffffff', mail: '#8a94a4', fur: '#a8784a', cape: '#d0404a', labcoat: '#f4f6f8', robe: '#15182a', hoodie: '#3a3f4a',
     space: '#eef2f6', sweater: '#d0304a', tux: '#15182a', starcloak: '#232a66', college: '#7a1a2a' };
   c.save(); body(); c.fillStyle = COL[k] || '#888'; c.fill(); c.clip();
   if (k === 'tee') { c.fillStyle = '#ffcc00'; mStar(c, cx + s * 0.5, y0 - s * 0.25, s * 0.1, s * 0.045); c.fill(); }
@@ -211,6 +211,10 @@ function mTop(c, k, cx, by, s, t) {
   else if (k === 'starcloak') { c.fillStyle = '#ffffff'; const r = (n => () => (n = (n * 9301 + 49297) % 233280) / 233280)(7); for (let i = 0; i < 26; i++) { c.globalAlpha = 0.4 + r() * 0.6; c.beginPath(); c.arc(cx + (r() * 2 - 1) * s, y0 - r() * s * 0.55, s * (0.015 + r() * 0.025), 0, Math.PI * 2); c.fill(); } c.globalAlpha = 1; c.fillStyle = '#ffd84d'; mStar(c, cx - s * 0.5, y0 - s * 0.25, s * 0.09, s * 0.04); c.fill(); }
   else if (k === 'odincloak') { c.fillStyle = '#9a8a7a'; for (let i = 0; i < 9; i++) { c.beginPath(); c.arc(cx + (i - 4) * s * 0.2, y0 - s * 0.5 + Math.abs(i - 4) * s * 0.05, s * 0.14, 0, Math.PI * 2); c.fill(); } c.fillStyle = '#e8b400'; c.beginPath(); c.arc(cx - s * 0.55, y0 - s * 0.3, s * 0.09, 0, Math.PI * 2); c.fill(); }
   else if (k === 'toga') { c.fillStyle = '#e8b400'; c.beginPath(); c.moveTo(cx - s * 0.7, y0 - s * 0.5); c.lineTo(cx - s * 0.5, y0 - s * 0.56); c.lineTo(cx + s * 0.8, y0); c.lineTo(cx + s * 0.55, y0); c.closePath(); c.fill(); }
+  else if (k === 'jersey') { c.fillStyle = '#ffffff'; c.fillRect(cx - s * 1.1, y0 - s * 0.3, s * 2.2, s * 0.06); c.font = `900 ${s * 0.34}px sans-serif`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('10', cx + s * 0.48, y0 - s * 0.14); c.textBaseline = 'alphabetic'; }
+  else if (k === 'hawaii') { for (const [x, y, col] of [[-0.7, -0.3, '#ff6a8a'], [-0.2, -0.15, '#ffd84d'], [0.4, -0.35, '#ff6a8a'], [0.8, -0.12, '#ffffff'], [0.1, -0.45, '#ffffff']]) { c.fillStyle = col; for (let p = 0; p < 5; p++) { const a = p / 5 * Math.PI * 2; c.beginPath(); c.arc(cx + x * s + Math.cos(a) * s * 0.06, y0 + y * s + Math.sin(a) * s * 0.06, s * 0.05, 0, Math.PI * 2); c.fill(); } } }
+  else if (k === 'rbtee') { ['#e40303', '#ff8c00', '#ffed00', '#008026', '#004dff', '#750787'].forEach((col, i) => { c.fillStyle = col; c.fillRect(cx - s * 1.1, y0 - s * (0.4 - i * 0.065), s * 2.2, s * 0.066); }); }
+  else if (k === 'suit') { c.fillStyle = '#ffffff'; c.beginPath(); c.moveTo(cx - s * 0.28, y0 - s * 0.56); c.lineTo(cx, y0 - s * 0.05); c.lineTo(cx + s * 0.28, y0 - s * 0.56); c.closePath(); c.fill(); c.fillStyle = '#b8323a'; c.beginPath(); c.moveTo(cx - s * 0.05, y0 - s * 0.5); c.lineTo(cx + s * 0.05, y0 - s * 0.5); c.lineTo(cx + s * 0.07, y0 - s * 0.15); c.lineTo(cx, y0 - s * 0.08); c.lineTo(cx - s * 0.07, y0 - s * 0.15); c.closePath(); c.fill(); c.strokeStyle = '#3a404c'; c.lineWidth = s * 0.03; c.beginPath(); c.moveTo(cx - s * 0.3, y0 - s * 0.55); c.lineTo(cx - s * 0.12, y0 - s * 0.2); c.moveTo(cx + s * 0.3, y0 - s * 0.55); c.lineTo(cx + s * 0.12, y0 - s * 0.2); c.stroke(); }
   else if (k === 'college') { c.fillStyle = '#ffffff'; c.font = `800 ${s * 0.38}px sans-serif`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('P', cx + s * 0.45, y0 - s * 0.22); c.textBaseline = 'alphabetic'; c.fillStyle = '#e8b400'; c.fillRect(cx - s * 1.1, y0 - s * 0.06, s * 2.2, s * 0.06); }
   c.restore();
 }
@@ -315,6 +319,14 @@ function mGlasses(c, k, cx, by, s, t) {
       c.beginPath(); c.moveTo(x - s * 0.17, ey - s * 0.02); c.quadraticCurveTo(x, ey + s * 0.18, x + s * 0.17, ey - s * 0.02);
       c.lineTo(x + d * s * 0.24, ey - s * 0.2); c.quadraticCurveTo(x, ey - s * 0.12, x - d * s * 0.2, ey - s * 0.1); c.closePath(); c.fill(); c.stroke();
     }
+  } else if (k === 'aviator') {
+    c.strokeStyle = '#c8a040'; c.lineWidth = s * 0.035;
+    for (const x of [L, R]) { const g = c.createLinearGradient(0, ey - s * 0.15, 0, ey + s * 0.2); g.addColorStop(0, '#2a3a5a'); g.addColorStop(1, '#8aa8d0'); c.fillStyle = g; c.beginPath(); c.moveTo(x - s * 0.2, ey - s * 0.12); c.lineTo(x + s * 0.2, ey - s * 0.12); c.quadraticCurveTo(x + s * 0.2, ey + s * 0.2, x, ey + s * 0.18); c.quadraticCurveTo(x - s * 0.22, ey + s * 0.15, x - s * 0.2, ey - s * 0.12); c.fill(); c.stroke(); }
+    c.beginPath(); c.moveTo(L + s * 0.2, ey - s * 0.1); c.lineTo(R - s * 0.2, ey - s * 0.1); c.stroke();
+  } else if (k === 'laser') {
+    const pulse = 0.6 + 0.4 * Math.sin(t * 6);
+    c.fillStyle = `rgba(255,40,60,${0.55 + 0.3 * pulse})`; c.beginPath(); c.roundRect ? c.roundRect(cx - s * 0.62, ey - s * 0.1, s * 1.24, s * 0.2, s * 0.1) : c.rect(cx - s * 0.62, ey - s * 0.1, s * 1.24, s * 0.2); c.fill();
+    c.fillStyle = 'rgba(255,220,220,0.9)'; c.fillRect(cx - s * 0.55, ey - s * 0.025, s * 1.1, s * 0.05);
   } else if (k === 'mono') {
     c.strokeStyle = '#c99a00'; c.beginPath(); c.arc(R, ey, s * 0.19, 0, Math.PI * 2); c.stroke();
     c.lineWidth = s * 0.015; c.beginPath(); c.moveTo(R + s * 0.18, ey + s * 0.06); c.quadraticCurveTo(R + s * 0.5, ey + s * 0.6, R + s * 0.2, ey + s * 1.0); c.stroke();
@@ -441,6 +453,33 @@ function mHat(c, k, cx, by, s, t) {
     c.fillStyle = '#3a4fa8'; c.beginPath(); c.moveTo(-s * 0.85, 0); c.quadraticCurveTo(-s * 0.2, -s * 1.3, s * 1.1, -s * 0.4 + droop); c.quadraticCurveTo(s * 0.4, -s * 0.5, s * 0.85, 0); c.closePath(); c.fill();
     c.fillStyle = '#ffd84d'; for (const [x, y] of [[-0.3, -0.45], [0.2, -0.6], [0.55, -0.4]]) { mStar(c, x * s, y * s, s * 0.08, s * 0.035); c.fill(); }
     c.fillStyle = '#ffffff'; c.fillRect(-s * 0.88, -s * 0.12, s * 1.76, s * 0.16); c.beginPath(); c.arc(s * 1.12, -s * 0.38 + droop, s * 0.15, 0, Math.PI * 2); c.fill();
+  } else if (k === 'party') {
+    c.fillStyle = '#ff4d7d'; c.beginPath(); c.moveTo(-s * 0.4, -s * 0.05); c.lineTo(s * 0.05, -s * 1.25); c.lineTo(s * 0.45, -s * 0.05); c.closePath(); c.fill();
+    c.fillStyle = '#ffd84d'; for (const [x, y] of [[-0.12, -0.35], [0.15, -0.6], [-0.02, -0.85], [0.22, -0.25]]) { c.beginPath(); c.arc(x * s, y * s, s * 0.06, 0, Math.PI * 2); c.fill(); }
+    c.fillStyle = '#3ad8ff'; c.beginPath(); c.arc(s * 0.05, -s * 1.28, s * 0.12, 0, Math.PI * 2); c.fill();
+  } else if (k === 'elf') {
+    // a Finnish elf's red cap that droops to the side
+    c.fillStyle = '#d0202e'; c.beginPath(); c.moveTo(-s * 0.85, 0); c.quadraticCurveTo(-s * 0.3, -s * 1.2, s * 0.9, -s * 0.9); c.quadraticCurveTo(s * 0.4, -s * 0.5, s * 0.85, 0); c.closePath(); c.fill();
+    c.fillStyle = '#ffffff'; c.beginPath(); c.arc(s * 0.95, -s * 0.88, s * 0.14, 0, Math.PI * 2); c.fill();
+  } else if (k === 'catears' || k === 'devil') {
+    for (const d of [-1, 1]) {
+      c.fillStyle = k === 'devil' ? '#d0202e' : '#2a2a34';
+      c.beginPath();
+      if (k === 'devil') { c.moveTo(d * s * 0.35, -s * 0.15); c.quadraticCurveTo(d * s * 0.55, -s * 0.5, d * s * 0.45, -s * 0.85); c.quadraticCurveTo(d * s * 0.38, -s * 0.45, d * s * 0.18, -s * 0.25); }
+      else { c.moveTo(d * s * 0.2, -s * 0.2); c.lineTo(d * s * 0.5, -s * 0.85); c.lineTo(d * s * 0.72, -s * 0.15); }
+      c.closePath(); c.fill();
+      if (k === 'catears') { c.fillStyle = '#ff9ac0'; c.beginPath(); c.moveTo(d * s * 0.32, -s * 0.25); c.lineTo(d * s * 0.5, -s * 0.65); c.lineTo(d * s * 0.62, -s * 0.22); c.closePath(); c.fill(); }
+    }
+  } else if (k === 'pirate') {
+    c.fillStyle = '#1a1a22'; c.beginPath(); c.moveTo(-s * 1.1, -s * 0.05); c.quadraticCurveTo(-s * 0.6, -s * 0.95, 0, -s * 0.85); c.quadraticCurveTo(s * 0.6, -s * 0.95, s * 1.1, -s * 0.05); c.quadraticCurveTo(0, -s * 0.35, -s * 1.1, -s * 0.05); c.fill();
+    c.fillStyle = '#ffffff'; c.beginPath(); c.arc(0, -s * 0.55, s * 0.13, 0, Math.PI * 2); c.fill();
+    c.strokeStyle = '#ffffff'; c.lineWidth = s * 0.04; c.beginPath(); c.moveTo(-s * 0.15, -s * 0.32); c.lineTo(s * 0.15, -s * 0.42); c.moveTo(s * 0.15, -s * 0.32); c.lineTo(-s * 0.15, -s * 0.42); c.stroke();
+    c.strokeStyle = '#e8b400'; c.lineWidth = s * 0.04; c.beginPath(); c.moveTo(-s * 1.0, -s * 0.12); c.quadraticCurveTo(0, -s * 0.42, s * 1.0, -s * 0.12); c.stroke();
+  } else if (k === 'starcrown') {
+    const g = c.createLinearGradient(0, -s, 0, 0); g.addColorStop(0, '#fff3b0'); g.addColorStop(1, '#e8b400');
+    c.fillStyle = g; c.fillRect(-s * 0.62, -s * 0.28, s * 1.24, s * 0.28);
+    for (let i = -2; i <= 2; i++) { mStar(c, i * s * 0.28, -s * (0.45 + (2 - Math.abs(i)) * 0.12), s * 0.17, s * 0.07); c.fill(); }
+    c.fillStyle = '#3ad8ff'; c.beginPath(); c.arc(0, -s * 0.14, s * 0.07, 0, Math.PI * 2); c.fill();
   } else if (k === 'odinhelm') {
     // Odin's golden helmet with raven-black wings
     for (const d of [-1, 1]) {

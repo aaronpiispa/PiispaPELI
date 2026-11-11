@@ -2,7 +2,7 @@
 'use strict';
 
 // ------------------------------ easter egg for Nelli ------------------------------
-let nelliT = 0, typed = '', mascotTaps = 0, mascotTapT = 0, invincible = false, adminOn = false, usedKeys = false, aimId = null, cornerTaps = 0, cornerT = 0;
+let nelliT = 0, nelliMax = 7, typed = '', mascotTaps = 0, mascotTapT = 0, invincible = false, adminOn = false, usedKeys = false, aimId = null, cornerTaps = 0, cornerT = 0;
 const hearts = [];
 function heartPath(c, x, y, s) {
   c.beginPath();
@@ -11,9 +11,9 @@ function heartPath(c, x, y, s) {
   c.bezierCurveTo(x + s * 0.45, y - s * 1.05, x + s * 1.1, y - s * 0.35, x, y + s * 0.35);
   c.closePath();
 }
-function triggerNelli() {
+function triggerNelli(dur) {
   unlock('nelli');
-  nelliT = 7;
+  nelliT = nelliMax = dur || 7;
   const cols = ['#ff4d7d', '#ff8fab', '#e01e37', '#ffc2d1', '#ff5c8a'];
   for (let i = 0; i < (reduceMotion ? 20 : 70); i++)
     hearts.push({ x: Math.random() * vw, y: -20 - Math.random() * vh, vy: 60 + Math.random() * 120, s: 8 + Math.random() * 18, sw: Math.random() * TAU, c: cols[i % cols.length] });
@@ -39,8 +39,9 @@ function drawNelli() {
   const ctx = fctx;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, vw, vh);
   for (const h of hearts) { ctx.fillStyle = h.c; heartPath(ctx, h.x + Math.sin(h.sw) * 14, h.y, h.s); ctx.fill(); }
-  if (nelliT <= 0) return;
-  const a = Math.min(1, nelliT / 1.2, (7 - nelliT) / 0.4), pulse = 1 + Math.sin(time * 6) * 0.05;
+  // the short in-game version keeps its name off menus opened while it plays
+  if (nelliT <= 0 || (nelliMax < 7 && !overlay.hidden)) return;
+  const a = Math.min(1, nelliT / 1.2, (nelliMax - nelliT) / 0.4), pulse = 1 + Math.sin(time * 6) * 0.05;
   const fs = Math.min(vw / 6, 96) * pulse;
   ctx.save(); ctx.globalAlpha = a; ctx.translate(vw / 2, vh * 0.3);
   ctx.fillStyle = 'rgba(45,0,22,0.82)'; ctx.beginPath(); ctx.roundRect(-fs * 1.9, -fs * 0.85, fs * 3.8, fs * 2.35, fs * 0.35); ctx.fill();
@@ -57,9 +58,19 @@ const ICON_ON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stro
 const ICON_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor"/><path d="M16 9.5l5 5M21 9.5l-5 5"/></svg>';
 
 let cardMascot = null;
+// a new screen pops in with its parts sliding up one after another; redrawing the same screen (picking a stage,
+// buying from the shop) does not replay it
+let lastScreen = '';
 function showOverlay(html, cls) {
+  const wasHidden = overlay.hidden, h = (html.match(/<h[12][^>]*>(.*?)<\/h[12]>/) || [])[1] || '', key = (cls || '') + '|' + h;
   card.className = 'card start' + (cls && cls !== 'start' ? ' ' + cls : '');
   card.innerHTML = '<canvas class="mascot" width="200" height="200" aria-hidden="true"></canvas>' + html;
+  if (wasHidden || key !== lastScreen) {
+    card.classList.add('pop'); if (wasHidden) overlay.classList.add('fadein');
+    if (cls !== 'menu' || wasHidden) mascotBounce = Math.max(mascotBounce, 0.6);
+    sfx.whoosh();
+  }
+  lastScreen = key;
   overlay.hidden = false;
   cardMascot = card.querySelector('.mascot');
   if (usedKeys) { const f = card.querySelector('.mb.primary') || card.querySelector('button, select'); if (f) f.focus({ preventScroll: true }); }
@@ -71,7 +82,7 @@ function drawCardMascot() {
   c.clearRect(0, 0, w, w);
   drawMascot(c, w / 2, w * 0.46, w * 0.26, time, mascotBounce);
 }
-function hideOverlay() { overlay.hidden = true; }
+function hideOverlay() { overlay.hidden = true; lastScreen = ''; overlay.classList.remove('fadein'); }
 
 const TITLE_COLORS = ['#ffcc00', '#4a8df0', '#ffffff', '#ffcc00', '#4a8df0', '#ffffff', '#ffcc00', '#ef4135', '#ffffff', '#169b62', '#ffcc00'];
 function titleHTML() {
@@ -97,6 +108,7 @@ const MI = {
   heart: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.7 4.5c2.2 0 3.6 1.2 5.3 3.1 1.7-1.9 3.1-3.1 5.3-3.1 3.7 0 5.8 3.9 4.3 7.3C19.5 16.4 12 21 12 21z"/></svg>',
   cap: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3 1 8.5 12 14l9-4.5V16h2V8.5z"/><path d="M5.5 12.3v3.9C7 18 9.4 19 12 19s5-1 6.5-2.8v-3.9L12 15.6z"/></svg>',
   palette: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3a9 9 0 0 0 0 18c1.4 0 2-.9 2-1.8 0-1.3-1-1.6-1-2.7 0-1 .8-1.5 1.8-1.5H17a4 4 0 0 0 4-4C21 6.6 17 3 12 3zM7 12a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm3-4a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm4 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm3 4a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"/></svg>',
+  shop: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 7h16l-1.4 11.2A2 2 0 0 1 16.6 20H7.4a2 2 0 0 1-2-1.8z"/><path d="M8.5 9V6.5a3.5 3.5 0 0 1 7 0V9" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>',
   chev: '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>'
 };
 function mb(id, icon, bg, fg, label, sub, primary) {
@@ -105,9 +117,9 @@ function mb(id, icon, bg, fg, label, sub, primary) {
 }
 function stageLine() {
   // the goal of the selected stage, shown under the stage buttons in the menu
-  const goals = STAGE_GOALS[stage];
-  if (!goals.length) return T('Yhdistä kaksi suurinta palloa ({0}), niin pääset seuraavalle tasolle.', NAMES[MAXL]);
-  return T('Aikaraja: {0}', goals.map(([lv, t]) => T('{0} {1} minuutissa', NAMES[lv], t / 60)).join(' · '));
+  const goals = stageGoals(stage);
+  if (!goals.length) return T('Yhdistä kaksi suurinta palloa, niin pääset seuraavalle tasolle.');
+  return T('Aikaraja: {0}', goals.map(g => goalText(g, ballLabel(g.lv))).join(' · '));
 }
 // small (i) buttons that explain the goal of a stage or a game mode
 const infoBtn = (kind, id, name) => `<button class="info" type="button" data-info="${kind}" data-id="${id}" aria-label="${T('Lisätietoa: {0}', name)}">i</button>`;
@@ -120,24 +132,26 @@ function showInfo(kind, id, back) {
   let title, body = '';
   const p = x => `<p class="info-p">${x}</p>`;
   if (kind === 'stage') {
-    const i = Number(id), set = STAGES[theme().id], names = stageNames(i), goals = STAGE_GOALS[i];
+    const i = Number(id), set = STAGES[theme().id], names = stageNames(i), goals = stageGoals(i), r = STAGE_RULES[i], st = starsOf(theme().id)[i];
+    // names of balls the player has not seen on that stage stay hidden
+    const open = stagesDone(theme().id) > i, lbl = l => (open || l <= 4 || (i === stage && l <= maxLevel) || (i === 0 && seenFor(theme().id).has(l)) ? names[l] : T('{0}. pallo', l + 1));
     title = T('Taso {0}: {1}', i + 1, T(set[i].name));
-    body = p(T('Pallot: {0} → … → {1}', names[0], names[MAXL])) +
-      p('<b>' + T('Tavoite') + ':</b> ' + T('Yhdistä kaksi suurinta palloa ({0}).', names[MAXL]) + ' ' +
+    body = p(T('Pallot: {0} → … → {1}', names[0], open ? names[MAXL] : '?')) +
+      p('<b>' + T('Tavoite') + ':</b> ' + T('Yhdistä kaksi suurinta palloa.') + ' ' +
         (i + 1 < set.length ? T('Silloin peli siirtyy heti tasolle {0}: {1}.', i + 2, T(set[i + 1].name)) : T('Tämä on teeman viimeinen taso.'))) +
-      p(goals.length ? '<b>' + T('Aikarajat') + ':</b> ' + goals.map(([lv, t]) => T('{0} {1} minuutissa', names[lv], t / 60)).join(' · ') + '. ' + T('Jos aikaraja ylittyy, peli päättyy.')
+      p(goals.length ? '<b>' + T('Aikarajat') + ':</b> ' + goals.map(g => goalText(g, lbl(g.lv))).join(' · ') + '. ' + T('Jos aikaraja ylittyy, peli päättyy.')
         : T('Ei aikarajaa.')) +
+      (r.stones ? p('<b>' + T('Kivet') + ':</b> ' + T('Joka {0}. laukauksella vaunuun putoaa kivi, joka ei yhdisty. Se hajoaa, kun sen vieressä yhdistetään palloja kaksi kertaa.', r.stones)) : '') +
+      (r.boss ? p('<b>' + T('Pomo') + ':</b> ' + T('Kun saat {0}, vaunuun saapuu pomo. Voita se yhdistämällä palloja sen vieressä.', lbl(r.boss))) : '') +
+      p('<b>' + T('Tähdet') + ':</b> ' + `<span class="stars">${starStr(st)}</span> ` + T('Yksi tähti läpäisystä ja yksi kummastakin lisätavoitteesta: {0}.', STAR_GOALS[i].map(g => T(g[0])).join(' · '))) +
       (i > 0 ? p(T('Pisteet ja heilautukset säilyvät, kun siirryt seuraavalle tasolle.')) : '') +
       (stageOpen(i, theme().id) ? '' : p('🔒 ' + T('Avautuu, kun läpäiset tason {0}.', i)));
   } else {
     const goal = { classic: 'Kerää mahdollisimman paljon pisteitä ja läpäise tasot yhdistämällä kaksi suurinta palloa. Peli päättyy, jos pallot painavat molempia nappeja yhtä aikaa.',
-      time: 'Kerää kahdessa minuutissa niin paljon pisteitä kuin ehdit. Nappeihin ei voi hävitä.',
       daily: 'Saa {0} mahdollisimman vähillä laukauksilla. Kaikilla on sama pallojärjestys, ja haaste vaihtuu joka päivä klo 15.',
-      zen: 'Ei mitään, vain rentoutumista. Pisteitä ei lasketa, eikä peliä voi hävitä.',
-      gravity: 'Kerää mahdollisimman paljon pisteitä, kun painovoiman suunta vaihtuu muutaman sekunnin välein. Peli päättyy, jos pallot painavat molempia nappeja.',
       map: 'Suorita {1} tehtävää järjestyksessä. Jokaisella tehtävällä on oma tavoitteensa, esimerkiksi tietty pallo rajatuilla laukauksilla tai pisteitä aikarajassa.' }[id];
     title = MODE_INFO[id].name;
-    body = (id === 'daily' ? '' : p(MODE_INFO[id].desc)) + p('<b>' + T('Tavoite') + ':</b> ' + T(goal, NAMES[10], MISSIONS.length));
+    body = (id === 'daily' ? '' : p(MODE_INFO[id].desc)) + p('<b>' + T('Tavoite') + ':</b> ' + T(goal, ballLabel(10), MISSIONS.length));
   }
   showOverlay(`<h2 class="h2">${title}</h2>` + body + `<div class="row" style="margin-top:14px"><button class="btn" id="${back === 'modes' ? 'modesBtn' : 'backMenu'}" type="button">${T('Selvä!')}</button></div>`);
 }
@@ -146,7 +160,7 @@ function stagesHTML() {
   return '<div class="stages" role="group" aria-label="' + T('Tasot') + '">' + STAGES[id].map((s, i) => {
     const open = stageOpen(i, id), on = i === stage;
     return `<div class="stgw"><button class="stg${on ? ' on' : ''}${open ? '' : ' locked'}" type="button" data-stage="${i}"${open ? '' : ' disabled'} aria-pressed="${on}"` +
-      ` title="${open ? T(s.name) : T('Läpäise edellinen taso')}"><b>${open ? i + 1 : '🔒'}</b><span>${T(s.name)}</span></button>` +
+      ` title="${open ? T(s.name) : T('Läpäise edellinen taso')}"><b>${open ? i + 1 : '🔒'}</b><span>${T(s.name)}</span><em class="stars">${starStr(starsOf(id)[i])}</em></button>` +
       infoBtn('stage', i, T('Taso {0}: {1}', i + 1, T(s.name))) + '</div>';
   }).join('') + '</div><p class="stgoal">' + stageLine() + '</p>';
 }
@@ -154,9 +168,9 @@ function showMenu() {
   if (state === 'menu') setStage(stageSel());
   const autoG = store.get(AUTO_KEY, null), auto = validSave(autoG) ? autoG : null;
   // two groups: on phones held sideways they become two columns so the play button stays in view
-  showOverlay('<div class="menu-l">' + titleHTML() +
-    '<p class="lead">' + (stage ? T('Kaksi samaa palloa yhdistyy isommaksi: {0} → … → {1}.', NAMES[0], NAMES[MAXL])
-      : T((THEME_BALLS[theme().id] || {}).lead || 'Ammu lippupalloja junavaunuun. Kaksi samaa maata yhdistyy isommaksi maaksi, Virosta aina USSR:ään asti.')) + '</p>' +
+  showOverlay('<div class="menu-l">' + nameTag() + titleHTML() + metaBarHTML() +
+    '<p class="lead">' + (stage ? T('Kaksi samaa palloa yhdistyy isommaksi: {0} → … → {1}.', NAMES[0], ballTail(MAXL))
+      : T((THEME_BALLS[theme().id] || {}).lead || 'Ammu lippupalloja junavaunuun. Kaksi samaa maata yhdistyy isommaksi maaksi. Mikä mahtaa olla suurin?')) + '</p>' +
     '<div class="stats">' +
       `<div class="stat" style="color:#ffcc00">${MI.star}<b style="color:#fff">${best}</b><small>${T('Ennätys')}</small></div>` +
       `<div class="stat" style="color:#ffcc00">${MI.trophy}<b style="color:#fff">${achCount()}/${ACH.length}</b><small>${T('Saavutukset')}</small></div>` +
@@ -165,11 +179,12 @@ function showMenu() {
     '<div class="menu-r">' + stagesHTML() + '<div class="menu-btns">' +
     (auto ? mb('continueBtn', 'play', '', '', T('Jatka peliä'), T('{0} pistettä', (auto.score | 0).toLocaleString('fi-FI')), true) + mb('startBtn', 'plus', '#2fbf71', '#fff', T('Uusi peli'), T('Taso {0}: {1}', stage + 1, T(stageInfo().name)))
           : mb('startBtn', 'play', '', '', T('Pelaa'), T('Taso {0}: {1}', stage + 1, T(stageInfo().name)), true)) +
-    mb('modesBtn', 'modes', '#7b5cff', '#fff', T('Pelimuodot'), T('Aikahaaste, Zen, Tehtäväkartta…')) +
+    mb('modesBtn', 'modes', '#7b5cff', '#fff', T('Pelimuodot'), T('Päivän haaste') + ', ' + T('Tehtäväkartta')) +
     '<div class="two">' +
       mb('achBtn', 'trophy', '#ffcc00', '#0a1c47', T('Saavutukset'), '') +
       mb('wardBtn', 'hat', '#ff6fa8', '#fff', T('Hahmo'), '') +
     '</div>' +
+    mb('shopBtn', 'shop', '#ffcc00', '#0a1c47', T('Kauppa'), '🪙 ' + meta.coins.toLocaleString('fi-FI')) +
     mb('themeBtn', 'palette', '#2fbf71', '#fff', T('Teemat'), T('{0} / {1} avattu', THEMES.filter(themeOpen).length, THEMES.length)) +
     mb('rulesBtn', 'book', '#2aa7e0', '#fff', T('Ohjeet'), T('Näin peli toimii')) +
     '</div>' +
@@ -211,8 +226,9 @@ function showRules() {
     [COLORS[4], 'Kevyt laukaus laskee pallon varovasti, kova laukaus <b>tönii ja litistää</b> muita.'],
     [COLORS[9], 'Vaunun seinissä on kaksi nappia. Jos pallot koskettavat <b>molempia nappeja</b> yhtä aikaa, peli päättyy.'],
     ['#ffcc00', 'Joka <b>40 000 pisteellä</b> saat heilautuksen, joka ravistaa vaunua ja sekoittaa pallot.'],
-    ['#ff4d7d', 'Ammu vaunun yläosassa lentäviä <b>tähtiä</b> ja harvinaisia <b>sydämiä</b>, niin saat bonuspisteitä.'],
+    ['#ff4d7d', 'Ammu vaunun yläosassa lentäviä <b>tähtiä</b> ja <b>Nelli-sydämiä</b>, niin saat bonuspisteitä.'],
     ['#6fd3ff', 'Kun yhdistät kaksi suurinta palloa, siirryt heti <b>uudelle tasolle</b> uusine palloineen. Ylemmillä tasoilla tietty pallo pitää saada <b>aikarajassa</b>.'],
+    ['#3ad8ff', 'Pelaamalla saat <b>kokemusta</b> ja <b>kolikoita</b>. Uusista pelaajatasoista saa palkintoja, ja kolikoilla voi ostaa <b>kaupasta</b> uusia tavaroita. Jokaisesta tasosta saa 1–3 <b>tähteä</b>.'],
     ['#e8b400', 'Saavutuksista saat <b>pokaaleja</b> vaunun pohjan hyllyille. Tartu pokaaliin sormella ja <b>heitä</b> sitä ympäri vaunua!']
   ];
   showOverlay('<h2 class="h2">' + T('Ohjeet') + '</h2><ul class="rules">' +
@@ -221,11 +237,10 @@ function showRules() {
 }
 function showModes() {
   setStage(0);   // the other game modes always use the theme's first balls
-  const rows = ['classic', 'time', 'daily', 'zen', 'gravity', 'map'].map(m => {
+  refreshGoalTexts();
+  const rows = ['classic', 'daily', 'map'].map(m => {
     let extra = '';
     if (m === 'classic') extra = T('Ennätys {0}', best);
-    if (m === 'time') extra = T('Ennätys {0}', modeBest('time'));
-    if (m === 'gravity') extra = T('Ennätys {0}', modeBest('gravity'));
     if (m === 'daily') { const d = Number(store.get('piispanpeli-daily-' + todayKey(), 0)) || 0; extra = (d ? T('Paras: {0} laukausta', d) : T('Haaste odottaa')) + ' · ' + T('uusi haaste {0} päästä', dailyLeft()); }
     if (m === 'map') extra = T('Suoritettu {0} / {1}', mapDone(), MISSIONS.length);
     return `<li><b>${MODE_INFO[m].name}${infoBtn('mode', m, MODE_INFO[m].name)}</b><button class="mini" type="button" data-mode="${m}">${T(m === 'map' ? 'Avaa' : 'Pelaa')}</button><small>${MODE_INFO[m].desc}<br>${extra}</small></li>`;
@@ -233,7 +248,7 @@ function showModes() {
   showOverlay('<h2 class="h2">' + T('Pelimuodot') + '</h2><ul class="list">' + rows + '</ul><div class="row" style="margin-top:14px"><button class="btn alt" id="backMenu" type="button">' + T('Takaisin') + '</button></div>');
 }
 function showMap() {
-  setStage(0);
+  setStage(0); refreshGoalTexts();
   const done = mapDone();
   const rows = MISSIONS.map((m, i) => {
     const st = i < done ? 'done' : i === done ? '' : 'locked';
@@ -247,12 +262,28 @@ function showAch() {
   const cups = TROPHY_AT.map((n, i) => `<span class="${achCount() >= n ? '' : 'off'}" title="${T('{0} saavutusta', n)}">${CUP('#ffcc00', '#a07800')}</span>`).join('');
   const group = (title, filter) => `<h4>${title}</h4>` + ACH.filter(filter).map(a => {
     const got = !!achGot[a[0]], hidden = a[3] === 'secret' && !got;
-    return `<li class="${got ? 'got' : ''}"><img class="ico" src="${hidden ? trophyImg('admin', true) : trophyImg(a[0], !got)}" alt="" width="28" height="28"><b>${hidden ? '???' : a[1]}</b><small>${hidden ? T('Salainen saavutus') : a[2]}</small></li>`;
+    return `<li class="${got ? 'got' : ''}"><img class="ico" src="${hidden ? trophyImg('admin', true) : trophyImg(a[0], !got)}" alt="" width="28" height="28"><b>${hidden ? '???' : achTitle(a)}</b><small>${hidden ? T('Salainen saavutus') : achDesc(a)}</small></li>`;
   }).join('');
   showOverlay('<h2 class="h2">' + T('Saavutukset') + '</h2><p class="sub">' + T('{0} / {1} · kultapalkintoja {2} / {3}', achCount(), ACH.length, trophies(), TROPHY_AT.length) + '</p>' +
     '<div class="trophies">' + cups + '</div><p class="hint">' + T('Kultapalkinto {0} ja {1} saavutuksesta.', TROPHY_AT.slice(0, -1).join(', '), ACH.length) + (goldEdges() ? ' ' + T('Kultaiset reunat käytössä!') : '') + '</p>' +
+    '<div class="row" style="margin:8px 0 4px"><button class="btn" id="vitBtn" type="button">' + T('Muokkaa vitriiniä') + '</button></div>' +
     '<ul class="ach">' + group(T('Peli'), a => !a[3]) + group(T('Pelimuodot'), a => a[3] === 'mode') + group(T('Salaiset'), a => a[3] === 'secret') + THEMES.filter(t => t.id !== 'eu').map(t => group(T(t.name), a => a[3] === t.id)).join('') + '</ul>' +
     '<div class="row" style="margin-top:14px"><button class="btn alt" id="backMenu" type="button">' + T('Takaisin') + '</button></div>');
+}
+
+// the trophy case editor: pick up to six earned trophies to show in the wagon
+function showVitrine(note) {
+  const ids = vitrineIds(), auto = !Array.isArray(vitPick);
+  const slots = Array.from({ length: VIT_N }, (_, k) => ids[k]
+    ? `<button class="vslot" type="button" data-vit="${ids[k]}" title="${T('Poista vitriinistä')}"><img src="${trophyImg(ids[k])}" alt="" width="40" height="40"></button>`
+    : '<span class="vslot empty"></span>').join('');
+  const got = ACH.filter(a => achGot[a[0]]);
+  const items = got.map(a => `<button class="witem vpick${ids.includes(a[0]) ? ' on' : ''}" type="button" data-vit="${a[0]}"><img src="${trophyImg(a[0])}" alt="" width="30" height="30"><b>${achTitle(a)}</b></button>`).join('');
+  showOverlay('<h2 class="h2">' + T('Vitriini') + '</h2><p class="sub">' + T('Valitse enintään {0} palkintoa näytille vaunuun.', VIT_N) + '</p>' +
+    '<div class="vslots">' + slots + '</div><p class="hint">' + (auto ? T('Nyt näkyvät uusimmat palkinnot automaattisesti.') : T('Napauta palkintoa lisätäksesi tai poistaaksesi sen.')) + '</p>' +
+    (note ? `<p class="note">${note}</p>` : '') +
+    (got.length ? '<div class="wgrid vgrid">' + items + '</div>' : '<p class="hint">' + T('Sinulla ei ole vielä palkintoja.') + '</p>') +
+    '<div class="row" style="margin-top:14px"><button class="btn alt" id="vitAuto" type="button">' + T('Automaattisesti uusimmat') + '</button><button class="btn" id="achBtn" type="button">' + T('Valmis') + '</button></div>');
 }
 
 // ------------------------------ install as an app (only in the app build) ------------------------------
@@ -275,7 +306,7 @@ if (isAppBuild && 'serviceWorker' in navigator && window.isSecureContext) {
 }
 
 function showPause(note) {
-  showOverlay('<h2 class="h2">' + T('Tauko') + '</h2><p class="sub">' + MODE_INFO[gmode].name + (gmode === 'zen' ? '' : ' · ' + T('pisteet {0}', score)) + '</p>' +
+  showOverlay('<h2 class="h2">' + T('Tauko') + '</h2><p class="sub">' + MODE_INFO[gmode].name + ' · ' + T('pisteet {0}', score) + '</p>' +
     (note ? `<p class="note">${note}</p>` : '') + '<div class="mbs">' +
     mb('resumeBtn', 'play', '', '', T('Jatka'), T('Takaisin peliin'), true) +
     (gmode === 'classic' ? mb('saveBtn', 'save', '#2aa7e0', '#fff', T('Tallenna'), T('Viisi tallennuspaikkaa')) : '') +
@@ -324,7 +355,7 @@ function showSaveSlots() {
 }
 
 function showStageWin() {
-  showOverlay(`<h2 class="h2">${T('Kaikki tasot läpäisty!')}</h2><div class="final">${NAMES[MAXL]}</div>` +
+  showOverlay(`<h2 class="h2">${T('Kaikki tasot läpäisty!')}</h2><div class="final">${NAMES[MAXL]}</div><p class="bigstars">${starStr(lastStars)}</p>` +
     `<p class="sub win">${T('Sait {0} ja läpäisit kaikki tasot!', NAMES[MAXL])}</p>` +
     '<div class="mbs">' + mb('resumeBtn', 'play', '', '', T('Jatka tätä peliä'), T('Kerää lisää pisteitä'), true) +
     mb('menuBtn', 'home', '#7b5cff', '#fff', T('Päävalikko'), '') + '</div>');
@@ -333,12 +364,10 @@ function showStageWin() {
 function showOver(newBest) {
   const NB = '<p class="sub win">' + T('Uusi ennätys!') + '</p>', REC = v => '<p class="sub">' + T('Ennätys {0}', v) + '</p>';
   let title = T('Vaunu täyttyi!'), main = String(score), sub = newBest && score > 0 ? NB : REC(best), extraBtn = '';
-  if (gmode === 'time') { title = T('Aika loppui!'); sub = newBest ? NB : REC(modeBest('time')); }
   if (gmode === 'classic' && endReason === 'stage' && failGoal) {
     title = T('Aikaraja ylittyi!');
-    sub = '<p class="sub">' + T('{0} piti saada {1} minuutissa.', NAMES[failGoal[0]], failGoal[1] / 60) + '</p>' + sub;
+    sub = '<p class="sub">' + T('{0} piti saada {1} minuutissa.', ballLabel(failGoal.lv), failGoal.t / 60) + '</p>' + sub;
   }
-  if (gmode === 'gravity') sub = newBest ? NB : REC(modeBest('gravity'));
   if (gmode === 'daily') {
     const d = Number(store.get('piispanpeli-daily-' + dayKey, 0)) || 0;
     if (endReason === 'win') { title = T('Päivän haaste läpäisty!'); main = T('{0} laukausta', shots); sub = newBest ? '<p class="sub win">' + T('Päivän paras tulos!') + '</p>' : '<p class="sub">' + T('Tänään paras: {0} laukausta', d) + '</p>'; }
@@ -352,9 +381,11 @@ function showOver(newBest) {
   if (cheated) sub = '<p class="sub">' + T('Huijaukset käytössä – ennätystä ei tallennettu.') + '</p>';
   showOverlay(`<h2 class="h2">${title}</h2><div class="final">${main}</div>` + sub +
     (gmode === 'daily' || gmode === 'map' ? '' : `<div class="biggest"><span>${T(theme().id === 'eu' && !stage ? 'Suurin maa' : 'Suurin pallo')}</span><i class="dot" style="background:${COLORS[maxLevel]}"></i><b>${NAMES[maxLevel]} (${maxLevel + 1}/${MAXL + 1})</b></div>`) +
+    metaOverHTML() +
     '<div class="mbs">' + (extraBtn ? mb('nextMission', 'next', '', '', T('Seuraava tehtävä'), '', true) : '') +
     mb('againBtn', extraBtn ? 'restart' : 'play', '#2fbf71', '#fff', T(gmode === 'map' && endReason === 'win' ? 'Uudelleen' : 'Pelaa uudestaan'), gmode === 'classic' ? T('Taso {0}: {1}', stage + 1, T(stageInfo().name)) : MODE_INFO[gmode].name, !extraBtn) +
     mb('menuBtn', 'home', '#7b5cff', '#fff', T('Päävalikko'), '') + '</div>');
+  animateXP();
 }
 
 card.addEventListener('change', e => {
@@ -363,6 +394,7 @@ card.addEventListener('change', e => {
   if (e.target.id === 'adminBall') { cheat(); cur = Number(e.target.value); popT = 0; }
 });
 card.addEventListener('input', e => { if (e.target.id === 'volRange') { sfx.ensure(); sfx.setVolume(Number(e.target.value) / 100); } });
+card.addEventListener('input', e => { if (e.target.id === 'heroName') setHeroName(e.target.value); });
 card.addEventListener('click', e => {
   if (e.target.classList && e.target.classList.contains('mascot')) {
     mascotTaps++; mascotTapT = 2; mascotBounce = 0.6;
@@ -375,7 +407,7 @@ card.addEventListener('click', e => {
   if (act === 'save') { store.set(SLOT_KEY(slot), gameData()); showPause(T('Tallennettu paikkaan {0}.', slot)); return; }
   if (act === 'load') { const g = store.get(SLOT_KEY(slot), null); if (validSave(g)) loadGame(g, false); return; }
   if (act === 'del') { store.set(SLOT_KEY(slot), null); showMenu(); return; }
-  if (btn.dataset.item) {
+  if (btn.dataset.item && btn.dataset.slot) {
     const slot = btn.dataset.slot;
     look[slot] = btn.dataset.item; store.set('piispanpeli-look', look); mascotBounce = 0.8;
     card.querySelectorAll(`.witem[data-slot="${slot}"]:not(.locked)`).forEach(el => { const on = el === btn; el.classList.toggle('on', on); el.querySelector('small').textContent = T(on ? 'Käytössä' : 'Valitse'); });
@@ -399,8 +431,22 @@ card.addEventListener('click', e => {
   else if (btn.id === 'nextMission') startGame('map', missionIdx + 1);
   else if (btn.id === 'modesBtn') showModes();
   else if (btn.id === 'achBtn') showAch();
+  else if (btn.id === 'vitBtn') showVitrine();
+  else if (btn.id === 'vitAuto') { setVitrine(null); showVitrine(); }
+  else if (btn.dataset.vit) {
+    const id = btn.dataset.vit, ids = vitrineIds().slice(), k = ids.indexOf(id);
+    if (k >= 0) ids.splice(k, 1);
+    else if (ids.length >= VIT_N) { showVitrine(T('Vitriini on täynnä. Poista ensin jokin palkinto.')); return; }
+    else ids.push(id);
+    setVitrine(ids); sfx.pop && sfx.pop(); showVitrine();
+  }
   else if (btn.id === 'rulesBtn') showRules();
   else if (btn.id === 'wardBtn') showWardrobe();
+  else if (btn.id === 'shopBtn') showShop();
+  else if (btn.dataset.buy) {
+    const slot = btn.dataset.buy, it = WARDROBE[slot].find(w => w[0] === btn.dataset.item);
+    if (it && buy(slot, it[0])) { themeMemoKey = ''; mascotBounce = 0.8; triggerConfetti(); if (card.querySelector('.mascot.big')) showWardrobe(); else showShop(T('Ostettu: {0}! Se on nyt päälläsi.', it[1])); }
+  }
   else if (btn.id === 'themeBtn') showThemes();
   else if (btn.id === 'backMenu') showMenu();
   else if (btn.id === 'continueBtn') { const g = store.get(AUTO_KEY, null); if (validSave(g)) loadGame(g, true); else startGame(); }
@@ -535,18 +581,21 @@ pauseBtn.addEventListener('click', () => { if (state === 'play') pause(); else i
 // ------------------------------ language switching ------------------------------
 const FI = {
   names: NAMES.slice(), modes: Object.fromEntries(Object.entries(MODE_INFO).map(([k, v]) => [k, [v.name, v.desc]])),
-  missions: MISSIONS.map(m => m.text), ach: ACH.map(a => [a[1], a[2]]), gravs: GRAVS.map(g => g[2]),
+  missions: MISSIONS.map(m => m.text), ach: ACH.map(a => [a[1], a[2]]),
   ward: Object.fromEntries(Object.entries(WARDROBE).map(([k, v]) => [k, v.map(it => it[1])])), slots: Object.assign({}, SLOT_NAMES), songs: music.names.slice()
 };
+// mode and mission goals name a ball, which is hidden until seen: rewritten whenever those screens open
+function refreshGoalTexts() {
+  for (const k in FI.modes) { MODE_INFO[k].name = T(FI.modes[k][0]); MODE_INFO[k].desc = T(FI.modes[k][1], ballLabel(10)); }
+  MISSIONS.forEach((m, i) => { m.text = missionText(m, i); });
+}
 function applyLang() {
   // ball names follow the chosen theme (countries, gods, hearts or sums)
   const tb = THEME_BALLS[theme().id], st = STAGES[theme().id][stage], base = i => T(tb ? tb.names[i] : FI.names[i]);
   FI.names.forEach((n, i) => { NAMES[i] = st && st.names ? T(st.names[i]) : base(i); });
   // the other modes always use the theme's first balls
-  for (const k in FI.modes) { MODE_INFO[k].name = T(FI.modes[k][0]); MODE_INFO[k].desc = T(FI.modes[k][1], base(10)); }
-  MISSIONS.forEach((m, i) => { m.text = missionText(m, i); });
+  refreshGoalTexts();
   FI.ach.forEach(([n, d], i) => { ACH[i][1] = T(n); ACH[i][2] = T(d); });
-  FI.gravs.forEach((g, i) => { GRAVS[i][2] = T(g); });
   for (const k in FI.ward) FI.ward[k].forEach((n, i) => { WARDROBE[k][i][1] = T(n); });
   for (const k in FI.slots) SLOT_NAMES[k] = T(FI.slots[k]);
   FI.songs.forEach((n, i) => { music.names[i] = T(n); });

@@ -18,8 +18,10 @@ const UNLOCKED = { nordic: 1, heart: 1, map3: 1 };
 const text = (page, sel) => page.evaluate(s => document.querySelector(s) && document.querySelector(s).innerText, sel);
 
 test('each theme gives the balls its own names in the menu, missions and daily challenge', { skip }, async t => {
-  for (const [theme, ten, lead] of [['eu', 'Ranska', /Virosta/], ['viking', 'Frigg', /Odiniin/], ['heart', 'Violetti sydän', /kultaiseen sydämeen/], ['uni', 'sin 30°', /matriisiin/]]) {
-    const { page, errors } = await openPage(browser, base, t, { store: { 'piispanpeli-ach': UNLOCKED, 'piispanpeli-theme': theme } });
+  const ALL15 = [...Array(15).keys()];
+  for (const [theme, ten, lead] of [['eu', 'Ranska', /Mikä mahtaa olla suurin/], ['viking', 'Frigg', /mahtavin kaikista/], ['heart', 'Violetti sydän', /suurin sydän/], ['uni', 'sin 30°', /vaikein lasku/]]) {
+    // the player has seen every ball of the theme, so the goals may name them
+    const { page, errors } = await openPage(browser, base, t, { store: { 'piispanpeli-ach': UNLOCKED, 'piispanpeli-theme': theme, [theme === 'eu' ? 'piispanpeli-seen' : 'piispanpeli-seen-' + theme]: ALL15 } });
     assert.match(await text(page, '.lead'), lead, `${theme}: menu text`);
     await page.click('#modesBtn');
     assert.ok((await text(page, '#card')).includes(ten), `${theme}: daily challenge names "${ten}"`);
@@ -35,17 +37,17 @@ test('switching the theme switches the ball names right away', { skip }, async t
   await page.click('#themeBtn');
   await page.click('[data-theme="viking"]');
   await page.click('#backMenu');
-  assert.match(await text(page, '.lead'), /Odiniin/);
+  assert.match(await text(page, '.lead'), /mahtavin kaikista/);
   await page.selectOption('#langSel', 'en');
-  assert.match(await text(page, '.lead'), /from Ratatoskr to Odin/);
+  assert.match(await text(page, '.lead'), /mightiest of all/);
   assert.deepEqual(errors, []);
 });
 
 test('themed achievements only count in their own theme, the originals only on the EU train', { skip }, async t => {
-  const blobs = [[2, 5.55, 16], [2, 6.45, 16]];
-  for (const [theme, own, other] of [['viking', 'v_first', 'first'], ['eu', 'first', 'v_first']]) {
+  const blobs = [[13, 3.4, 16.5], [13, 8.6, 16.5]];
+  for (const [theme, own, other] of [['viking', 'v_l14', 'rus'], ['eu', 'rus', 'v_l14']]) {
     const { page, errors } = await openPage(browser, base, t, {
-      store: { 'piispanpeli-ach': UNLOCKED, 'piispanpeli-theme': theme, 'piispanpeli-autosave': { v: 1, t: 1, score: 0, cur: 0, nxt: 1, maxLevel: 2, blobs } }
+      store: { 'piispanpeli-ach': UNLOCKED, 'piispanpeli-theme': theme, 'piispanpeli-autosave': { v: 1, t: 1, score: 0, cur: 0, nxt: 1, maxLevel: 13, blobs } }
     });
     await page.click('#continueBtn');
     await page.waitForFunction(id => !!JSON.parse(localStorage.getItem('piispanpeli-ach') || '{}')[id], own, { timeout: 8000 });
@@ -73,4 +75,22 @@ test('themed balls draw without errors in every theme, including the biggest one
     await frames(page, 30);
     assert.deepEqual(errors, [], `${theme}`);
   }
+});
+
+test('no spoilers: balls the player has not seen are called by their number', { skip }, async t => {
+  const { page, errors } = await openPage(browser, base, t);
+  const lead = await text(page, '.lead');
+  assert.ok(!/USSR/.test(lead), 'the menu text does not tell the biggest ball');
+  assert.match(await text(page, '.stgoal'), /Yhdistä kaksi suurinta palloa, niin/);
+  await page.click('#achBtn');
+  const ach = await text(page, '#card');
+  for (const name of ['USSR', 'Suomi', 'Odin', 'Matriisi', 'matriisi', 'Kultainen sydän', 'kultainen sydän']) assert.ok(!ach.includes(name), `achievements do not reveal "${name}"`);
+  assert.match(ach, /Yhdistä kaksi suurinta palloa\./);
+  await page.evaluate(() => showMenu());
+  await page.click('#modesBtn');
+  assert.match(await text(page, '#card'), /Saa 11\. pallo/);
+  // once the ball has been seen, its name is used
+  await page.evaluate(() => { seenEver.add(10); showModes(); });
+  assert.match(await text(page, '#card'), /Saa Ranska/);
+  assert.deepEqual(errors, []);
 });

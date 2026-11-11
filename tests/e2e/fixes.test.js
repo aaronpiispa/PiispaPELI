@@ -158,7 +158,7 @@ test('static wagon bitmaps are not redrawn during normal play, nor while a new t
   await page.click('#startBtn');
   await frames(page, 5);
   await page.evaluate(() => { window.__layers = [jarLayers.back.parts[0].cv, ...jarLayers.front.parts.map(p => p.cv)]; window.__key = jarLayers.front.key + '#' + jarLayers.back.key; });
-  await page.evaluate(() => unlock('first'));
+  await page.evaluate(() => unlock('combo10'));
   const shelfKeyDuringPop = await page.evaluate(() => new Promise(ok => requestAnimationFrame(() => requestAnimationFrame(() => ok(jarLayers.shelf && jarLayers.shelf.key)))));
   await frames(page, 40);
   const same = await page.evaluate(() => jarLayers.front.key + '#' + jarLayers.back.key === window.__key &&

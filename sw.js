@@ -5,12 +5,12 @@
 // closed half-way (the scripts share one global scope, so a mix could break the game). Updates show up on the
 // next launch. When nothing changed, nothing is written.
 // VERSION only needs a bump when this file's own logic changes or files are added or removed.
-const VERSION = 'v59';
+const VERSION = 'v74';
 const CACHE = 'piispanpeli-' + VERSION;
 const FONTS = 'piispanpeli-fonts-v1';
 const ASSETS = [
   './', './index.html', './manifest.webmanifest', './css/style.css',
-  './js/engine.js', './js/i18n-data.js', './js/core.js', './js/audio.js', './js/scenery.js', './js/game.js',
+  './js/engine.js', './js/i18n-data.js', './js/core.js', './js/audio.js', './js/scenery.js', './js/game.js', './js/challenge.js', './js/meta.js',
   './js/render.js', './js/stageart.js', './js/mascot.js', './js/ui.js', './js/intro.js', './js/main.js',
   './icons/icon-192.png', './icons/icon-512.png', './icons/icon-maskable-512.png', './icons/apple-touch-icon.png', './icons/favicon-32.png'
 ];

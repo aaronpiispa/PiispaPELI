@@ -93,7 +93,7 @@ function placeButtons() {
     // on narrow screens the buttons come close to the next ball's name below them: lift them a little
     const lift = hr - 92 * u < fc + 100 * u ? 10 * u : 0;
     pauseBtn.style.top = soundBtn.style.top = (ft - 74 * u - lift) + 'px';
-    abilBtn.style.left = (hl + 4 * u) + 'px'; abilBtn.style.top = (fb + 14 * u) + 'px'; abilBtn.style.right = 'auto';
+    abilBtn.style.left = (hl + 4 * u) + 'px'; abilBtn.style.top = (fb + 6 * u) + 'px'; abilBtn.style.right = 'auto';
   } else {
     const fl = OX + VX0 * SC, fr = OX + VX1 * SC;
     soundBtn.style.left = (fr + 24 * u) + 'px'; pauseBtn.style.left = (fr + 72 * u) + 'px';
