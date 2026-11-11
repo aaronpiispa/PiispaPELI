@@ -5,8 +5,14 @@
 // closed half-way (the scripts share one global scope, so a mix could break the game). Updates show up on the
 // next launch. When nothing changed, nothing is written.
 // VERSION only needs a bump when this file's own logic changes or files are added or removed.
-const VERSION = 'v59';
-const CACHE = 'piispanpeli-' + VERSION;
+const VERSION = 'v60';
+// The untested version of the game is published under test/ on the same site. It keeps caches of its own
+// (piispanpeli-test-...), so the published game and the test version never remove or use each other's files.
+const SW_PATH = (self.location && self.location.pathname) || '/';
+const TEST_BUILD = /\/test\/sw\.js$/.test(SW_PATH);
+const BASE = SW_PATH.replace(/[^/]*$/, '');
+const FAMILY = 'piispanpeli-' + (TEST_BUILD ? 'test-' : '') + 'v';
+const CACHE = FAMILY + VERSION.slice(1);
 const FONTS = 'piispanpeli-fonts-v1';
 const ASSETS = [
   './', './index.html', './manifest.webmanifest', './css/style.css',
@@ -32,7 +38,7 @@ const stamp = k => (k === CACHE ? 0 : Number(k.slice(CACHE.length + 2)) || 0);
 
 self.addEventListener('activate', e => {
   e.waitUntil(caches.keys()
-    .then(keys => Promise.all(keys.filter(k => !ours(k) && k !== FONTS).map(k => caches.delete(k))))
+    .then(keys => Promise.all(keys.filter(k => k.startsWith(FAMILY) && !ours(k)).map(k => caches.delete(k))))
     .then(() => self.clients.claim()));
 });
 
@@ -86,6 +92,8 @@ self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
+  // the test version under test/ has a worker of its own
+  if (!TEST_BUILD && url.origin === self.location.origin && url.pathname.startsWith(BASE + 'test/')) return;
   if (url.origin === self.location.origin) {
     const nav = req.mode === 'navigate';
     e.respondWith(currentCache().then(name => caches.open(name)).then(c => c.match(req, { ignoreSearch: nav }).then(hit => {

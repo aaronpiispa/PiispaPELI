@@ -7,7 +7,8 @@ Tämä ohje koskee kaikkia, jotka tekevät muutoksia PiispanPELIin, ja kaikkia t
 | Haara | Mitä siinä on |
 |---|---|
 | `main` | Julkaistu peli (https://aaronpiispa.github.io/PiispaPELI/). Tänne tulee vain testattua ja valmista koodia. |
-| `test` | Työhaara. Kaikki uudet muutokset tulevat ensin tänne. |
+| `test` | Työhaara. Kaikki uudet muutokset tulevat ensin tänne. Pelattavissa osoitteessa https://aaronpiispa.github.io/PiispaPELI/test/ |
+| `gh-pages` | Syntyy automaattisesti mainista ja test-haarasta jokaisen pushin jälkeen. Älä muokkaa sitä käsin. |
 
 **Mainiin ei koskaan pushata suoraan.**
 
@@ -39,7 +40,7 @@ Tämä ohje koskee kaikkia, jotka tekevät muutoksia PiispanPELIin, ja kaikkia t
    npm run test:e2e
    ```
 
-   Kokeile peliä myös selaimessa puhelin- ja tietokonekoossa. Korjaukset commitoidaan ja pushataan samaan test-haaraan.
+   Kokeile peliä myös selaimessa puhelin- ja tietokonekoossa: https://aaronpiispa.github.io/PiispaPELI/test/ päivittyy muutaman minuutin kuluttua pushista. Korjaukset commitoidaan ja pushataan samaan test-haaraan.
 
 4. **Julkaise vasta, kun kaikki on valmista.** Kun testit menevät läpi ja muutokset on todettu valmiiksi, test-haara yhdistetään mainiin (pull request `test` → `main` GitHubissa tai `git checkout main && git merge test && git push origin main`).
 

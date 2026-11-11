@@ -4,6 +4,14 @@ Lippupallopeli junavaunussa: ammu Euroopan maiden lippupalloja vaunuun, ja kaksi
 
 Pelaa: https://aaronpiispa.github.io/PiispaPELI/
 
+## Testiversio
+
+Testaamatonta ja vielä julkaisematonta versiota voi pelata osoitteessa:
+
+**https://aaronpiispa.github.io/PiispaPELI/test/**
+
+Se on `test`-haaran koodi, ja se päivittyy muutaman minuutin kuluttua jokaisesta pushista. Testiversiolla on omat tallennukset, joten se ei koske julkaistun pelin ennätyksiin tai saavutuksiin. Jos uusin muutos ei näy, avaa sivu uudelleen.
+
 Muutokset tehdään ensin `test`-haaraan ja julkaistaan mainiin vasta testattuina. Katso [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Rakenne
@@ -24,6 +32,7 @@ Muutokset tehdään ensin `test`-haaraan ja julkaistaan mainiin vasta testattuin
 | `js/ui.js` | Valikot, asennus, ohjaus, kielen vaihto |
 | `js/intro.js` | Avausanimaatio |
 | `js/main.js` | Käynnistys |
+| `.github/workflows/julkaisu.yml` | Rakentaa sivuston `gh-pages`-haaraan: main juureen ja test-haara `test/`-kansioon |
 | `sw.js` | Offline-tuki: peli avautuu välimuistista, uusi versio haetaan taustalla ja otetaan käyttöön seuraavalla käynnistyksellä vasta kun kaikki tiedostot ovat tulleet perille. `VERSION`-arvoa kasvatetaan vain kun tiedostoja lisätään tai poistetaan tai `sw.js` itse muuttuu. |
 
 Skriptit ovat tavallisia selainskriptejä, jotka jakavat saman globaalin näkyvyysalueen, joten niiden järjestys `index.html`:ssä on tärkeä.

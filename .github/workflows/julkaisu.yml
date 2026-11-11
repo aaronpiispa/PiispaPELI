@@ -1,0 +1,48 @@
+# Rakentaa sivuston gh-pages-haaraan aina, kun mainiin tai test-haaraan pushataan:
+#   https://aaronpiispa.github.io/PiispaPELI/       main-haara (julkaistu peli)
+#   https://aaronpiispa.github.io/PiispaPELI/test/  test-haara (testaamaton versio)
+# gh-pages-haara syntyy tästä automaattisesti joka kerta uudelleen. Sitä ei muokata käsin.
+name: Julkaisu
+
+on:
+  push:
+    branches: [main, test]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: julkaisu
+  cancel-in-progress: false
+
+jobs:
+  julkaisu:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Kokoa sivusto
+        run: |
+          mkdir -p site
+          git archive origin/main | tar -x -C site
+          if git rev-parse --verify --quiet origin/test >/dev/null; then
+            mkdir -p site/test
+            git archive origin/test | tar -x -C site/test
+          fi
+          rm -rf site/.github site/test/.github
+          touch site/.nojekyll
+
+      - name: Päivitä gh-pages
+        run: |
+          cd site
+          git init -q -b gh-pages
+          git config user.name "noponenv"
+          git config user.email "190293559+noponenv@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Julkaisu: main $(git -C .. rev-parse --short origin/main), test $(git -C .. rev-parse --short origin/test 2>/dev/null || echo -)"
+          git push -f "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" gh-pages
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

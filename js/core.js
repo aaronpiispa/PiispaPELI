@@ -54,9 +54,11 @@ const PAL = COLORS.map(h => {
   return { rgb: c, base: css(c), light: css(mix(c, [255, 255, 255], 0.55)), dark: css(mix(c, [38, 22, 70], 0.3)), edge: css(mix(c, [30, 18, 58], 0.55)) };
 });
 
+// the untested version under test/ keeps its saves apart from the published game on the same site
+const STORE_PREFIX = typeof location !== 'undefined' && /\/test\/(index\.html)?$/.test(location.pathname) ? 'test:' : '';
 const store = {
-  get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
-  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* storage unavailable */ } }
+  get(k, d) { try { const v = localStorage.getItem(STORE_PREFIX + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(STORE_PREFIX + k, JSON.stringify(v)); } catch (e) { /* storage unavailable */ } }
 };
 
 // ------------------------------ languages ------------------------------
