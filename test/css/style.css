@@ -1,0 +1,299 @@
+:root{
+  /* Layout: one screen, a glass jar of European flag balls; HUD in bands on phones, side panels on wide screens */
+  --night:#0a1c47;
+  --dusk:#123072;
+  --paper:#fbf6ea;
+  --ink:#0f2350;
+  --berry:#e8b400;
+  --gold:#ffcc00;
+  --lilac:#a9c1f0;
+  --display:"Lilita One","Baloo 2",system-ui,sans-serif;
+  --body:"Baloo 2",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;overflow:hidden;background:var(--night);color:var(--paper);font-family:var(--body);-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;-webkit-text-size-adjust:100%;touch-action:manipulation;overscroll-behavior:none}
+#game{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+.iconbtn{position:fixed;z-index:5;width:calc(40px * var(--ui,1));height:calc(40px * var(--ui,1));padding:0;border:0;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.1);color:var(--paper);cursor:pointer;transition:background .15s}
+.iconbtn:hover{background:rgba(255,255,255,.2)}
+.iconbtn:focus-visible{outline:2px solid var(--paper);outline-offset:2px}
+.iconbtn svg{width:calc(20px * var(--ui,1));height:calc(20px * var(--ui,1));display:block}
+.iconbtn[hidden]{display:none}
+#overlay{position:fixed;inset:0;z-index:10;display:grid;place-items:center;padding:max(16px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left));background:rgba(14,12,38,.5)}
+#safe{position:fixed;inset:0;padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px);visibility:hidden;pointer-events:none;z-index:-1}
+#overlay[hidden]{display:none}
+.abil{position:fixed;z-index:5;height:calc(34px * var(--ui,1));padding:0 calc(12px * var(--ui,1));border:calc(2px * var(--ui,1)) solid #ffd84d;border-radius:calc(12px * var(--ui,1));font:800 calc(13px * var(--ui,1))/1 var(--body);color:#fff;cursor:pointer;letter-spacing:.02em;
+  background:linear-gradient(90deg,#e8a800 0,#ffcc00 var(--p,0%),rgba(10,28,71,.85) var(--p,0%),rgba(10,28,71,.85) 100%);
+  box-shadow:0 0 0 2px #0a1c47,0 0 14px rgba(255,204,0,.35),inset 0 1px 0 rgba(255,255,255,.35),0 4px 0 #6b5000;text-shadow:0 1px 2px rgba(0,0,0,.7);white-space:nowrap;font-variant-numeric:tabular-nums}
+.abil.ready{color:var(--ink);text-shadow:none;box-shadow:0 0 0 2px #0a1c47,0 0 22px rgba(255,204,0,.8),inset 0 1px 0 rgba(255,255,255,.5),0 4px 0 #6b5000}
+.abil[hidden]{display:none}
+.abil.ready{animation:abilpulse 1s ease-in-out infinite}
+.abil:disabled{cursor:default;color:rgba(255,255,255,.85)}
+.abil:focus-visible{outline:2px solid var(--paper);outline-offset:2px}
+@keyframes abilpulse{50%{transform:scale(1.07)}}
+@media (prefers-reduced-motion: reduce){.abil.ready{animation:none}}
+#fx{position:fixed;inset:0;width:100%;height:100%;z-index:15;pointer-events:none}
+.card{zoom:var(--uiz,1);width:min(380px,100%);max-height:100%;overflow:auto;background:var(--paper);color:var(--ink);border-radius:28px;padding:24px 24px 22px;text-align:center;box-shadow:0 26px 70px rgba(4,2,24,.55)}
+.title{font-family:var(--display);font-weight:400;font-size:min(52px,11.5vw);line-height:1.05;margin:0 0 6px;letter-spacing:1px;white-space:nowrap}
+.title span{display:inline-block;-webkit-text-stroke:3px var(--ink);paint-order:stroke fill}
+.lead{font-size:18px;line-height:1.35;font-weight:600;margin:2px auto 16px;max-width:30ch;text-wrap:balance}
+.rules{list-style:none;margin:0 0 20px;padding:0;display:grid;gap:10px;text-align:left;font-size:16px;line-height:1.3;font-weight:500}
+.rules li{display:grid;grid-template-columns:18px 1fr;gap:10px;align-items:start}
+.dot{display:inline-block;width:18px;height:18px;border-radius:50%;margin-top:1px;box-shadow:inset -3px -4px 0 rgba(35,29,69,.18),inset 3px 3px 0 rgba(255,255,255,.45)}
+.btn{font:800 22px/1 var(--body);border:0;border-radius:999px;padding:14px 40px 11px;background:var(--gold);color:var(--ink);box-shadow:0 6px 0 #b58f00;cursor:pointer;transition:transform .08s,box-shadow .08s}
+.btn:active{transform:translateY(4px);box-shadow:0 2px 0 #b58f00}
+.btn:focus-visible{outline:3px solid #6f63ff;outline-offset:4px}
+.btn.alt{background:#e3eafa;color:var(--ink);box-shadow:0 5px 0 #b9c7e8;font-size:18px;padding:12px 26px 9px}
+.btn.alt:active{box-shadow:0 1px 0 #b9c7e8}
+.saves{margin:18px 0 0;text-align:left}
+.saves h3{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:#5d6b8c;margin:0 0 8px;font-weight:700}
+.saves ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.saves li{display:grid;grid-template-columns:1fr auto;gap:2px 10px;align-items:center;background:rgba(15,35,80,.06);border-radius:14px;padding:8px 10px 8px 12px;font-size:14px}
+.slotname{font-weight:700}
+.slotinfo{grid-column:1;font-size:13px;color:#4c5a7c}
+.slotbtns{grid-column:2;grid-row:1 / span 2;display:flex;gap:6px}
+.muted{opacity:.6}
+.mini{font:700 14px/1 var(--body);border:0;border-radius:999px;padding:9px 13px 7px;background:var(--ink);color:#fff;cursor:pointer}
+.mini.ghost{background:transparent;color:var(--ink);box-shadow:inset 0 0 0 1.5px rgba(15,35,80,.3)}
+.mini:focus-visible{outline:3px solid #6f8dff;outline-offset:2px}
+.note{font-size:14px;font-weight:600;color:#1f7a3a;margin:0 0 10px}
+.row{display:flex;gap:12px;justify-content:center;align-items:center;flex-wrap:wrap}
+.keys{font-size:13px;color:#6c6590;margin:16px 0 0;font-weight:500}
+.mascot{display:block;width:96px;height:96px;margin:-8px auto -4px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.audio{margin-top:16px;display:grid;grid-template-columns:auto 1fr;gap:8px 12px;align-items:center;text-align:left;font-size:14px;font-weight:700;background:rgba(15,35,80,.06);border-radius:14px;padding:10px 12px}
+.audio select{font:600 15px var(--body);color:var(--ink);background:#fff;border:1.5px solid rgba(15,35,80,.25);border-radius:10px;padding:6px 8px;min-width:0}
+.audio input[type=range]{width:100%;accent-color:#e8b400}
+.audio select:focus-visible,.audio input:focus-visible{outline:3px solid #6f8dff;outline-offset:2px}
+.menu-btns{display:grid;gap:10px;margin-top:4px}
+.menu-btns .btn{width:100%}
+.list{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:8px;text-align:left}
+.list li{display:grid;grid-template-columns:1fr auto;gap:2px 10px;align-items:center;background:rgba(15,35,80,.06);border-radius:14px;padding:10px 12px}
+.list b{font-size:16px}
+.list small{grid-column:1;font-size:13px;color:#4c5a7c;line-height:1.3}
+.list .mini{grid-column:2;grid-row:1 / span 2}
+.list li.locked{opacity:.5}
+.list li.done{background:rgba(232,180,0,.16)}
+.ach{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:6px;text-align:left;max-height:46vh;overflow:auto}
+.ach li{display:grid;grid-template-columns:30px 1fr;gap:2px 10px;align-items:center;padding:7px 10px;border-radius:12px;background:rgba(15,35,80,.05)}
+.ach li.got{background:rgba(232,180,0,.18)}
+.ach .ico{grid-row:1 / span 2;width:34px;height:34px}
+.ach li{grid-template-columns:36px 1fr}
+.ach b{font-size:15px}
+.ach small{font-size:12.5px;color:#4c5a7c}
+.ach h4{grid-column:1 / -1;margin:8px 0 0;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#5d6b8c;background:none}
+.trophies{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin:6px 0 4px}
+.trophies svg{width:34px;height:34px}
+.trophies .off{opacity:.18;filter:grayscale(1)}
+#toast{position:fixed;left:50%;top:max(14px,env(safe-area-inset-top));transform:translate(-50%,calc(-100% - 60px));z-index:30;zoom:var(--uiz,1);display:flex;gap:10px;align-items:center;
+  background:linear-gradient(180deg,#fff6d1,#ffe07a);color:var(--ink);border:2px solid #c99a00;border-radius:16px;padding:9px 16px 8px 10px;box-shadow:0 10px 30px rgba(0,0,0,.35);
+  font:700 14px/1.25 var(--body);transition:transform .35s cubic-bezier(.2,1.4,.4,1);max-width:calc(100vw - 24px);pointer-events:none}
+#toast.show{transform:translate(-50%,0)}
+#toast svg{width:30px;height:30px;flex:none}
+#toast small{display:block;font-weight:600;color:#5b4a00}
+.mascot.big{width:130px;height:130px;margin:-4px auto 0;position:sticky;top:-10px;z-index:2;background:radial-gradient(circle,var(--paper) 60%,transparent 72%)}
+.wtitle{margin:12px 0 6px;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:#5d6b8c;text-align:left}
+.wgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(98px,1fr));gap:6px}
+.witem{font:inherit;text-align:left;border:1.5px solid rgba(15,35,80,.18);background:#fff;border-radius:12px;padding:7px 9px;cursor:pointer;color:var(--ink);display:grid;gap:1px}
+.witem b{font-size:14px}
+.witem small{font-size:11.5px;color:#5d6b8c;line-height:1.2}
+.witem.on{border-color:#e8b400;background:#fff6d1;box-shadow:0 0 0 2px #ffcc00 inset}
+.witem.locked{opacity:.45;cursor:default}
+.witem:focus-visible{outline:3px solid #6f8dff;outline-offset:2px}
+.install{margin-top:16px}
+.install:empty{display:none}
+.hint{font-size:14px;line-height:1.35;color:#6c6590;margin:0;font-weight:500}
+.h2{font-family:var(--display);font-weight:400;font-size:min(46px,11vw);line-height:1.05;margin:0 0 6px;color:var(--gold);-webkit-text-stroke:2px var(--ink);paint-order:stroke fill;text-wrap:balance}
+.final{font-size:68px;font-weight:800;line-height:1;margin:8px 0 0;font-variant-numeric:tabular-nums}
+.sub{margin:6px 0 14px;font-size:17px;font-weight:600;color:#6c6590}
+.sub.win{color:#c58f00}
+.biggest{display:flex;align-items:center;justify-content:center;gap:10px;margin:0 0 22px;font-size:16px;font-weight:600}
+@media (hover: none) and (pointer: coarse){.keys{display:none}}
+@media (prefers-reduced-motion: reduce){.btn,.iconbtn{transition:none}}
+
+/* Start screen: dark, high-contrast card with icon tiles */
+.card.start{background:radial-gradient(120% 80% at 50% 0%,#1c3c8c 0,#0d2160 45%,#060f2e 100%);color:#fff;border:2px solid rgba(255,204,0,.6);
+  box-shadow:0 0 0 4px rgba(6,15,46,.7),0 0 40px rgba(255,204,0,.25),0 26px 70px rgba(0,0,0,.6)}
+.start .title span{-webkit-text-stroke:3px #050c26;filter:drop-shadow(0 3px 0 #050c26) drop-shadow(0 0 10px rgba(255,255,255,.25))}
+.start .lead{color:#dce6ff;font-size:16px;margin-bottom:12px}
+.start .mascot{background:radial-gradient(circle,rgba(255,204,0,.28) 0,rgba(255,204,0,0) 62%)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:0 0 14px}
+.stat{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);border-radius:14px;padding:7px 4px 6px;display:grid;justify-items:center;gap:1px}
+.stat svg{width:20px;height:20px}
+.stat b{font:800 17px/1.1 var(--body);font-variant-numeric:tabular-nums}
+.stat small{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#a9bbe8;font-weight:700}
+.mb{display:grid;grid-template-columns:40px 1fr 16px;align-items:center;gap:12px;width:100%;text-align:left;font:700 17px/1.15 var(--body);color:#fff;cursor:pointer;
+  background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.16);border-radius:16px;padding:8px 12px 8px 8px;transition:background .12s,transform .08s,border-color .12s}
+.mb:hover{background:rgba(255,255,255,.14);border-color:rgba(255,204,0,.55)}
+.mb:active{transform:scale(.98)}
+.mb:focus-visible{outline:3px solid #ffcc00;outline-offset:2px}
+.mb small{display:block;font-size:12.5px;font-weight:600;color:#a9bbe8;margin-top:1px}
+.mb .ic{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;box-shadow:inset 0 -3px 0 rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.35)}
+.mb .ic svg{width:22px;height:22px}
+.mb .chev{width:16px;height:16px;opacity:.6}
+.mb.primary{background:linear-gradient(180deg,#ffd84d,#ffb800);color:#0a1c47;border:0;box-shadow:0 5px 0 #a57a00,0 0 24px rgba(255,204,0,.4);font-size:21px;padding:10px 14px 10px 10px}
+.mb.primary small{color:#5b4300}
+.mb.primary .ic{background:#0a1c47;color:#ffcc00}
+.mb.primary:active{transform:translateY(3px);box-shadow:0 2px 0 #a57a00}
+.mb.primary:hover{border:0;filter:brightness(1.05)}
+.start .menu-btns{gap:8px}
+.start .menu-btns .two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.start .menu-btns .two .mb{grid-template-columns:36px 1fr;font-size:15px;gap:9px}
+.start .menu-btns .two .mb .ic{width:36px;height:36px}
+.start .menu-btns .two .chev{display:none}
+.start .saves h3,.start .wtitle{color:#a9bbe8}
+.start .saves li,.start .audio{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12)}
+.start .slotinfo{color:#b9c8ee}
+.start .mini{background:#ffcc00;color:#0a1c47}
+.start .mini.ghost{background:transparent;color:#fff;box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.35)}
+.start .audio select{background:#0a1c47;color:#fff;border-color:rgba(255,255,255,.3)}
+.start .keys,.start .hint{color:#a9bbe8}
+.start .btn.alt{background:rgba(255,255,255,.12);color:#fff;box-shadow:0 4px 0 rgba(0,0,0,.35)}
+
+.start .h2{color:#ffcc00;-webkit-text-stroke:2px #050c26;filter:drop-shadow(0 3px 0 #050c26)}
+.start .sub{color:#b9c8ee}.start .sub.win{color:#ffd84d}
+.start .final,.start .biggest{color:#fff}
+.start .rules li{color:#e6ecff}
+.start .list li,.start .ach li{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12)}
+.start .list small,.start .ach small{color:#a9bbe8}
+.start .list li.done,.start .ach li.got{background:rgba(255,204,0,.15);border-color:rgba(255,204,0,.45)}
+.start .ach h4{color:#a9bbe8;border:0}
+.start .witem{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.18);color:#fff}
+.start .witem small{color:#a9bbe8}
+.start .witem.on{background:rgba(255,204,0,.2);border-color:#ffcc00}
+.start .mascot.big{background:radial-gradient(circle,#15306f 60%,transparent 72%)}
+.start .note{color:#7fe0a0}
+.start .btn:focus-visible{outline-color:#ffcc00}
+.mbs{display:grid;gap:8px;margin:6px 0 4px}
+.tgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px}
+.tcard{font:inherit;text-align:left;display:grid;gap:3px;padding:8px;border-radius:16px;cursor:pointer;color:#fff;background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.16)}
+.tcard b{font-size:15px}.tcard small{font-size:12px;color:#a9bbe8;line-height:1.25}
+.tcard.on{border-color:#ffcc00;background:rgba(255,204,0,.16);box-shadow:0 0 0 2px #ffcc00 inset}
+.tcard.locked{opacity:.5;cursor:default}
+.tcard:focus-visible{outline:3px solid #ffcc00;outline-offset:2px}
+.tsw{height:58px;border-radius:11px;display:grid;place-items:center;box-shadow:inset 0 -3px 0 rgba(0,0,0,.25)}
+.tsw svg{width:30px;height:30px;filter:drop-shadow(0 2px 2px rgba(0,0,0,.4))}
+
+/* Main menu: two groups that act as one column, except on short landscape screens (phones held sideways),
+   where they sit side by side so the play button is visible without scrolling */
+.menu-l,.menu-r{display:contents}
+@media (max-height:560px) and (min-width:600px) and (min-aspect-ratio:5/4){
+  .card.menu{width:min(780px,100%);display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);grid-template-rows:auto 1fr;column-gap:22px;align-items:start;padding:16px 20px}
+  .card.menu .mascot{grid-column:1;width:72px;height:72px;margin:-4px auto -6px}
+  .card.menu .menu-l{display:block;grid-column:1}
+  .card.menu .menu-r{display:block;grid-column:2;grid-row:1 / span 2}
+  .card.menu .title{font-size:min(44px,6.2vw)}
+  .card.menu .lead{font-size:14px;margin:0 auto 10px}
+  .card.menu .stats{margin-bottom:0}
+}
+/* short and narrow windows: a tighter single column so the play button fits on screen */
+@media (max-height:480px) and (max-width:599.98px){
+  .card.menu{padding:12px 16px}
+  .card.menu .mascot{width:56px;height:56px;margin:-4px auto -6px}
+  .card.menu .title{font-size:min(36px,9vw)}
+  .card.menu .lead{font-size:13px;margin:0 auto 8px}
+  .card.menu .stats{margin-bottom:8px}
+  .card.menu .stat{padding:4px 4px 3px}
+  .card.menu .stg{display:flex;justify-content:center;align-items:baseline;gap:4px;padding:5px 4px}
+  .card.menu .stg b{font-size:13px}
+  .card.menu .stgoal{margin-bottom:6px;font-size:11.5px}
+}
+/* very narrow phones: the two half-width buttons would not fit side by side and pushed the menu off screen */
+@media (max-width:350px){
+  .start .menu-btns .two{grid-template-columns:1fr}
+  /* the three record boxes: long words like ACHIEVEMENTS get tighter letters instead of pushing the menu wider */
+  .stat{min-width:0}
+  .stat small{letter-spacing:0;font-size:10px;overflow-wrap:anywhere}
+  /* lists of game modes and missions: a long name wraps instead of pushing its button off the card */
+  .list li{grid-template-columns:minmax(0,1fr) auto}
+  .list b,.list small{overflow-wrap:anywhere}
+}
+@media (max-width:300px){
+  .tgrid{grid-template-columns:1fr}
+}
+/* stage picker in the main menu */
+.stages{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:0 0 4px}
+.stg{display:grid;justify-items:center;gap:2px;padding:6px 4px 5px;border-radius:12px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.07);color:#fff;cursor:pointer;font:700 12px/1.1 var(--body);min-width:0}
+.stg b{font:800 16px/1 var(--body);color:#ffcc00}
+.stg span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stg.on{background:rgba(255,204,0,.2);border-color:#ffcc00;box-shadow:0 0 12px rgba(255,204,0,.3)}
+.stg.locked{opacity:.45;cursor:default}
+.stg:focus-visible{outline:3px solid #ffcc00;outline-offset:2px}
+.stgoal{margin:0 0 8px;font-size:12.5px;font-weight:600;color:#a9bbe8;text-align:center}
+/* (i) buttons that explain the goal of a stage or a game mode */
+.stgw{position:relative;display:grid}
+.info{width:26px;height:26px;border-radius:50%;border:2px solid #fff;background:#2aa7e0;color:#fff;font:italic 800 15px/1 Georgia,serif;cursor:pointer;display:inline-grid;place-items:center;padding:0;box-shadow:0 2px 6px rgba(0,0,0,.35)}
+.info:focus-visible{outline:3px solid #ffcc00;outline-offset:2px}
+.stgw .info{position:absolute;top:-9px;right:-6px;width:24px;height:24px;font-size:14px}
+.list b .info{margin-left:8px;vertical-align:middle;width:24px;height:24px;font-size:14px}
+.info-p{text-align:left;margin:8px 0;font-size:15px;line-height:1.4}
+.stages{margin-top:8px}
+.wsw{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:6px;vertical-align:-1px;box-shadow:0 0 0 1.5px rgba(255,255,255,.7)}
+.witem{min-width:0}.witem b,.witem small{overflow-wrap:anywhere;hyphens:auto}
+/* main menu that does not fit: js fitMenu() adds these one by one until the play button is on screen */
+.card.menu.fit1 .mascot{width:60px;height:60px;margin:-6px auto -8px}
+.card.menu.fit1 .lead{font-size:14px;line-height:1.3;margin:0 auto 8px}
+.card.menu.fit1 .stats{margin-bottom:8px}
+.card.menu.fit1 .stat{padding:4px 4px 3px}
+.card.menu.fit1 .stgoal{font-size:11.5px;margin-bottom:6px}
+.card.menu.fit2 .stgoal{display:none}
+.card.menu.fit2 .stages{margin-bottom:10px}
+.card.menu.fit3 .lead{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;line-clamp:3;overflow:hidden}
+.card.menu.fit4 .lead{display:none}
+
+/* ======================= Materials and controls in the spirit of Apple's Human Interface Guidelines =======================
+   Translucent glass instead of solid slabs, hairline borders instead of glowing outlines, soft depth instead of
+   hard 3D ledges, presses that shrink slightly, touch targets of at least 44 px and text of at least 11 px. */
+:root{
+  --glass:rgba(22,34,78,.62);
+  --glass-strong:rgba(14,24,60,.78);
+  --hair:rgba(255,255,255,.14);
+  --hair-strong:rgba(255,255,255,.22);
+  --ease:cubic-bezier(.32,.72,0,1);
+}
+/* the game stays visible behind menus, softly blurred, so the menu reads as a layer on top of it */
+#overlay{background:rgba(4,8,26,.34);-webkit-backdrop-filter:blur(20px) saturate(160%);backdrop-filter:blur(20px) saturate(160%)}
+.card.start{background:linear-gradient(180deg,rgba(34,56,124,.78) 0,rgba(12,22,60,.86) 100%);border:1px solid var(--hair);
+  box-shadow:0 30px 80px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.12)}
+.start .mascot{background:radial-gradient(circle,rgba(255,204,0,.18) 0,rgba(255,204,0,0) 62%)}
+/* quieter tiles: one hairline, no glow */
+.stat,.mb,.stg,.tcard,.start .list li,.start .ach li,.start .saves li,.start .audio,.start .witem{border-color:var(--hair)}
+.stat{background:rgba(255,255,255,.06)}
+.mb{background:rgba(255,255,255,.06);transition:background .2s var(--ease),transform .25s var(--ease)}
+.mb:hover{background:rgba(255,255,255,.11);border-color:var(--hair-strong)}
+.mb:active{transform:scale(.97)}
+.mb .ic{box-shadow:inset 0 1px 0 rgba(255,255,255,.3)}
+.stg.on{box-shadow:none}
+/* primary actions: a flat fill with a soft shadow; pressing shrinks instead of sinking into a ledge */
+.mb.primary{background:linear-gradient(180deg,#ffd84d,#ffbf1a);box-shadow:0 10px 28px rgba(255,190,0,.28),inset 0 1px 0 rgba(255,255,255,.55)}
+.mb.primary:active{transform:scale(.97);box-shadow:0 4px 14px rgba(255,190,0,.25),inset 0 1px 0 rgba(255,255,255,.55)}
+.btn{min-height:44px;box-shadow:0 10px 24px rgba(181,143,0,.28),inset 0 1px 0 rgba(255,255,255,.55);transition:transform .25s var(--ease),box-shadow .25s var(--ease)}
+.btn:active{transform:scale(.97);box-shadow:0 4px 12px rgba(181,143,0,.25),inset 0 1px 0 rgba(255,255,255,.55)}
+.btn.alt,.btn.alt:active{box-shadow:inset 0 0 0 1px rgba(15,35,80,.12)}
+.start .btn.alt,.start .btn.alt:active{background:rgba(255,255,255,.1);box-shadow:inset 0 0 0 1px var(--hair)}
+/* round glass buttons over the game, 44 px */
+.iconbtn{width:calc(44px * var(--ui,1));height:calc(44px * var(--ui,1));background:rgba(255,255,255,.12);box-shadow:inset 0 0 0 1px var(--hair);
+  -webkit-backdrop-filter:blur(14px) saturate(160%);backdrop-filter:blur(14px) saturate(160%);transition:background .2s var(--ease),transform .25s var(--ease)}
+.iconbtn:active{transform:scale(.92)}
+/* swing button: a glass capsule that fills with gold as it charges */
+.abil{border:1px solid rgba(255,216,77,.55);border-radius:999px;height:calc(40px * var(--ui,1));padding:0 calc(16px * var(--ui,1));
+  background:linear-gradient(90deg,#ffc61a 0,#ffd84d var(--p,0%),var(--glass-strong) var(--p,0%),var(--glass-strong) 100%);
+  box-shadow:0 8px 22px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.2);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+.abil.ready{box-shadow:0 8px 26px rgba(255,190,0,.45),inset 0 1px 0 rgba(255,255,255,.5)}
+@keyframes abilpulse{50%{transform:scale(1.04)}}
+/* notifications: a dark glass banner, like a system notification */
+#toast{width:max-content;background:rgba(20,28,58,.78);color:#fff;border:1px solid var(--hair);border-radius:20px;padding:8px 18px 8px 10px;
+  box-shadow:0 16px 40px rgba(0,0,0,.4);-webkit-backdrop-filter:blur(24px) saturate(180%);backdrop-filter:blur(24px) saturate(180%);
+  transition:transform .5s var(--ease)}
+#toast small{color:rgba(255,255,255,.7)}
+#toast svg,#toast img{width:28px;height:28px}
+/* small controls keep their look but get a 44 px touch area */
+.info,.mini{position:relative}
+.stgw .info{position:absolute}
+.info::after,.mini::after,.abil::after{content:"";position:absolute;inset:-10px}
+.mini::after{inset:-6px -2px}
+.abil::after{inset:-2px}
+.info{box-shadow:0 2px 6px rgba(0,0,0,.25)}
+/* nothing smaller than 11 px */
+@media (max-width:350px){.stat small{font-size:11px}}
+.witem small{font-size:12px}
+@media (prefers-reduced-motion: reduce){.mb,.iconbtn,#toast{transition:none}.mb:active,.btn:active,.iconbtn:active{transform:none}}
