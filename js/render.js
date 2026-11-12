@@ -245,6 +245,7 @@ function blobPath(b) {
 function drawBlob(b) {
   if (b.level >= STONE) { drawSpecial(b); return; }
   const R = b.R * b.scale;
+  if (b.joker) { drawJokerBall(b.cx, b.cy, R, b.ang); return; }
   paintBall(blobPath(b), b.level, b.cx, b.cy, R, b.ang, 0.06);
   drawFace(b.cx, b.cy, R, b.ang, b.blinkT > 0, b.spd > 7 ? 1 : 0);
   drawBallExtra(b.level, b.cx, b.cy, R, b.ang);
@@ -566,7 +567,7 @@ function drawLauncher() {
     ctx.strokeStyle = '#ffcc00';
     ctx.beginPath(); ctx.arc(LX, LY, rr, -Math.PI / 2, -Math.PI / 2 + TAU * aimPow); ctx.stroke();
   }
-  drawRoundBlob(cur, LX, LY, R * s, sq, 0.05, true);
+  if (jokerNext) drawJokerBall(LX, LY, R * s * sq, 0); else drawRoundBlob(cur, LX, LY, R * s, sq, 0.05, true);
 }
 
 
@@ -855,7 +856,11 @@ function drawChainRaw(x0, y0, vertical, room, u) {
 function modeLine() {
   const mmss = t => Math.floor(t / 60) + ':' + String(Math.floor(t % 60)).padStart(2, '0');
   if (state === 'menu') return T('Ennätys {0}', best);
-  if (gmode === 'daily') return T('Laukaukset {0} · tavoite {1}', shots, ballLabel(10));
+  if (gmode === 'daily') {
+    const g = dailyGoal(dayKey);
+    if (g.kind === 'time') return T('Laukaukset {0} · tavoite {1}', shots, ballLabel(g.lv)) + ' · ' + mmss(Math.max(0, g.t * 60 - playT));
+    return T('Laukaukset {0} · tavoite {1}', shots, g.kind === 'score' ? T('{0} pistettä', g.n.toLocaleString('fi-FI')) : g.kind === 'combo' ? T('Kombo ×{0}', g.n) : ballLabel(g.lv));
+  }
   if (gmode === 'classic' && stage > 0) {
     const gl = openGoals()[0];
     if (gl) return T('{0}. pallo', gl.lv + 1) + ': ' + T('aikaa {0}', mmss(goalLeft(gl)));
@@ -994,11 +999,14 @@ function render() {
   drawDanger();
   drawStageGoal();
   if (state === 'play' && cooldown <= 0) drawAim();
+  drawBlackHole();
   for (let q = 0; q < E.blobs.length; q++) drawBlob(E.blobs[q]);
+  drawMagnet(); drawShields();
   drawFlyingTrophies();
   drawBonuses();
   drawParticles();
   if (state === 'play' || state === 'paused') drawLauncher();
+  drawRoulette();
   screenTf();
   drawFloaters(sx, sy);
   drawHUD();

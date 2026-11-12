@@ -172,9 +172,16 @@ const SCENES = [
   { sky: ['#1a2238', '#5b6a85'], sun: [0.3, 0.2, '#e6ecf5', 0.04], far: ['hills', '#c9d3e0', 0.07], near: ['snowpines', '#1b2a24'], water: null, anim: 'blizzard' },
   // space, for the Solar System and the galaxy stages
   { space: 'solar', anim: 'twinkle' },
-  { space: 'galaxy', anim: 'twinkle' }
+  { space: 'galaxy', anim: 'twinkle' },
+  // every other stage has a backdrop of its own
+  { space: 'cosmic', anim: 'twinkle' },
+  { space: 'creature', anim: 'fireflies' },
+  { space: 'world', anim: 'twinkle' },
+  { space: 'gem', anim: 'sparkle' },
+  { space: 'physics', anim: 'sparkle' },
+  { space: 'degree', anim: 'pollen' }
 ];
-const SPACE_SCENE = { solar: 15, galaxy: 16, cosmic: 16 };
+const SPACE_SCENE = { solar: 15, galaxy: 16, cosmic: 17, creature: 18, world: 19, gem: 20, physics: 21, degree: 22 };
 let sceneCache = {}, sceneIdx = 7, scenePrev = 7, sceneFade = 1, sceneT = 0, fadeT = 0;
 const sceneParts = [];
 function sceneFor() { const h = /scene=(\d+)/.exec(location.hash); if (h) return clamp(+h[1], 0, SCENES.length - 1); const sp = stage && SPACE_SCENE[STAGES[theme().id][stage].art]; if (sp) return sp; return state === 'menu' ? 7 : clamp(maxLevel, 0, 14); }
@@ -416,6 +423,7 @@ function euFlag(x, base, ph, fw, fh, t) {
   }
 }
 function buildSpace(c, kind, W, Hh) {
+  if (STAGE_BACKDROPS[kind]) { STAGE_BACKDROPS[kind](c, W, Hh, srand(kind.length * 31 + 7)); return; }
   const r = srand(kind === 'solar' ? 41 : 42), g = c.createLinearGradient(0, 0, W, Hh);
   g.addColorStop(0, kind === 'solar' ? '#05081a' : '#0a0418'); g.addColorStop(1, kind === 'solar' ? '#120a24' : '#031020');
   c.fillStyle = g; c.fillRect(0, 0, W, Hh);
@@ -682,3 +690,129 @@ function drawScenery() {
     }
   }
 }
+
+// ---- backdrops for the second and third stages of the Viking, heart and university trains ----
+const STAGE_BACKDROPS = (() => {
+  const U = (W, Hh) => Math.min(W, Hh);
+  const sky = (c, W, Hh, stops) => { const g = c.createLinearGradient(0, 0, 0, Hh); stops.forEach(([o, col]) => g.addColorStop(o, col)); c.fillStyle = g; c.fillRect(0, 0, W, Hh); };
+  const glowAt = (c, x, y, R, col, a) => { const q = c.createRadialGradient(x, y, 0, x, y, R); q.addColorStop(0, col + a); q.addColorStop(1, col + '00'); c.fillStyle = q; c.beginPath(); c.arc(x, y, R, 0, TAU); c.fill(); };
+  const stars = (c, W, Hh, r, n, top) => { c.fillStyle = '#fff'; for (let k = 0; k < n; k++) { c.globalAlpha = 0.2 + r() * 0.75; const s = r() < 0.07 ? 2.2 : 1.1; c.fillRect(r() * W, r() * Hh * (top || 1), s, s); } c.globalAlpha = 1; };
+  const heartAt = (c, x, y, s) => { c.beginPath(); c.moveTo(x, y + s * 0.35); c.bezierCurveTo(x, y, x - s * 0.5, y, x - s * 0.5, y + s * 0.3); c.bezierCurveTo(x - s * 0.5, y + s * 0.6, x, y + s * 0.8, x, y + s); c.bezierCurveTo(x, y + s * 0.8, x + s * 0.5, y + s * 0.6, x + s * 0.5, y + s * 0.3); c.bezierCurveTo(x + s * 0.5, y, x, y, x, y + s * 0.35); c.fill(); };
+  return {
+    // Olennot: a misty Nordic forest under a full moon, with glowing eyes between the trees
+    creature(c, W, Hh, r) {
+      sky(c, W, Hh, [[0, '#070b18'], [0.55, '#1a2340'], [1, '#0a0f14']]);
+      stars(c, W, Hh, r, 140, 0.5);
+      const mx = W * 0.72, my = Hh * 0.2, mr = U(W, Hh) * 0.09;
+      glowAt(c, mx, my, mr * 5, '#cfd8ff', '40'); c.fillStyle = '#eef0f8'; c.beginPath(); c.arc(mx, my, mr, 0, TAU); c.fill();
+      c.fillStyle = 'rgba(160,170,200,0.35)'; for (let k = 0; k < 5; k++) { c.beginPath(); c.arc(mx + (r() - 0.5) * mr, my + (r() - 0.5) * mr, mr * (0.1 + r() * 0.15), 0, TAU); c.fill(); }
+      // three rows of jagged mountains and spruce, darker towards us
+      [['#1c2638', 0.42, 0.26], ['#141c2a', 0.55, 0.16], ['#0b1118', 0.68, 0.1]].forEach(([col, base, h], row) => {
+        c.fillStyle = col; c.beginPath(); c.moveTo(0, Hh);
+        for (let x = 0; x <= W + 20; x += 20) c.lineTo(x, Hh * base - Hh * h * (0.4 + 0.6 * Math.abs(Math.sin(x * 0.013 + row * 2.1)) * (0.6 + r() * 0.4)));
+        c.lineTo(W, Hh); c.closePath(); c.fill();
+        for (let k = 0; k < 22 + row * 10; k++) { const x = r() * W, th = Hh * (0.05 + row * 0.03) * (0.6 + r() * 0.8), y = Hh * base + r() * 6; c.beginPath(); c.moveTo(x, y - th); c.lineTo(x + th * 0.22, y); c.lineTo(x - th * 0.22, y); c.closePath(); c.fill(); }
+      });
+      c.fillStyle = '#060a0e'; c.fillRect(0, Hh * 0.68, W, Hh * 0.32);
+      // mist bands
+      for (let k = 0; k < 4; k++) { const y = Hh * (0.5 + k * 0.08); const g = c.createLinearGradient(0, y - 30, 0, y + 30); g.addColorStop(0, 'rgba(150,170,210,0)'); g.addColorStop(0.5, 'rgba(150,170,210,0.12)'); g.addColorStop(1, 'rgba(150,170,210,0)'); c.fillStyle = g; c.fillRect(0, y - 30, W, 60); }
+      // pairs of eyes in the dark
+      for (let k = 0; k < 9; k++) { const x = r() * W, y = Hh * (0.6 + r() * 0.3), s = 2 + r() * 2.5, col = r() < 0.5 ? '#ffd23a' : '#ff5a3a'; glowAt(c, x, y, s * 6, col, '33'); c.fillStyle = col; c.beginPath(); c.ellipse(x - s * 1.6, y, s, s * 0.6, 0, 0, TAU); c.ellipse(x + s * 1.6, y, s, s * 0.6, 0, 0, TAU); c.fill(); }
+    },
+    // Yhdeksän maailmaa: the world tree Yggdrasil reaching into an aurora-lit cosmos, worlds hanging in its branches
+    world(c, W, Hh, r) {
+      sky(c, W, Hh, [[0, '#040616'], [0.6, '#0c1638'], [1, '#05080f']]);
+      stars(c, W, Hh, r, 320);
+      for (let k = 0; k < 3; k++) { c.save(); c.globalAlpha = 0.35; const g = c.createLinearGradient(0, Hh * 0.05, 0, Hh * 0.45); g.addColorStop(0, 'rgba(80,255,170,0)'); g.addColorStop(0.5, k === 1 ? 'rgba(160,110,255,0.6)' : 'rgba(80,255,170,0.6)'); g.addColorStop(1, 'rgba(80,255,170,0)'); c.fillStyle = g; c.beginPath(); c.moveTo(0, Hh * (0.15 + k * 0.06)); for (let x = 0; x <= W; x += 16) c.lineTo(x, Hh * (0.12 + k * 0.06) + Math.sin(x * 0.01 + k * 2) * Hh * 0.06); c.lineTo(W, Hh * 0.5); c.lineTo(0, Hh * 0.5); c.closePath(); c.fill(); c.restore(); }
+      const cx = W * 0.5, base = Hh * 0.98, top = Hh * 0.2, tw = U(W, Hh) * 0.09;
+      // trunk and roots
+      c.fillStyle = '#1a120c';
+      c.beginPath(); c.moveTo(cx - tw, base); c.bezierCurveTo(cx - tw * 0.6, base - Hh * 0.3, cx - tw * 0.5, top + Hh * 0.3, cx - tw * 0.3, top + Hh * 0.15); c.lineTo(cx + tw * 0.3, top + Hh * 0.15); c.bezierCurveTo(cx + tw * 0.5, top + Hh * 0.3, cx + tw * 0.6, base - Hh * 0.3, cx + tw, base); c.closePath(); c.fill();
+      for (let k = 0; k < 6; k++) { const d = (k - 2.5) / 2.5; c.lineWidth = tw * 0.25; c.strokeStyle = '#1a120c'; c.beginPath(); c.moveTo(cx + d * tw * 0.5, base - 10); c.quadraticCurveTo(cx + d * W * 0.25, base - 8, cx + d * W * 0.5, base + 6); c.stroke(); }
+      // branches spreading out, each world a glowing orb
+      const orbs = ['#9be8ff', '#ff7a3a', '#6b6b7a', '#7a4fd0', '#c9a24a', '#bff0b0', '#7ad08a', '#9aa8c8', '#4a8bff'];
+      for (let k = 0; k < 9; k++) {
+        const a = -Math.PI / 2 + (k - 4) * 0.33, L = Hh * (0.22 + r() * 0.12), sx = cx, sy = top + Hh * 0.18, ex = sx + Math.cos(a) * L * 1.6, ey = sy + Math.sin(a) * L * 0.9;
+        c.strokeStyle = '#21170f'; c.lineWidth = tw * 0.22; c.lineCap = 'round'; c.beginPath(); c.moveTo(sx, sy); c.quadraticCurveTo((sx + ex) / 2, sy - L * 0.3, ex, ey); c.stroke();
+        const R = U(W, Hh) * (0.025 + r() * 0.02); glowAt(c, ex, ey, R * 4, orbs[k], '55');
+        const g = c.createRadialGradient(ex - R * 0.4, ey - R * 0.4, R * 0.1, ex, ey, R); g.addColorStop(0, '#ffffff'); g.addColorStop(0.3, orbs[k]); g.addColorStop(1, '#101020'); c.fillStyle = g; c.beginPath(); c.arc(ex, ey, R, 0, TAU); c.fill();
+      }
+      // a glowing canopy of leaves
+      for (let k = 0; k < 160; k++) { const a = r() * Math.PI, d = r(); glowAt(c, cx + Math.cos(a) * W * 0.42 * d, top + Hh * 0.12 - Math.sin(a) * Hh * 0.14 * d, 6 + r() * 10, r() < 0.6 ? '#5affb0' : '#c0ff7a', '30'); }
+    },
+    // Jalokivisydämet: a crystal cave full of glittering gem hearts
+    gem(c, W, Hh, r) {
+      sky(c, W, Hh, [[0, '#1a0a2a'], [0.5, '#2e1240'], [1, '#12061c']]);
+      const cols = ['#ff3d7a', '#3ad8ff', '#7a5cff', '#2fd98a', '#ffcc33', '#ff8a3a'];
+      // crystal clusters growing from the walls and the floor
+      const cluster = (x, y, n, s, up) => { for (let k = 0; k < n; k++) { const a = (up ? -Math.PI / 2 : Math.PI / 2) + (r() - 0.5) * 1.3, L = s * (0.5 + r()), w = L * 0.18, col = cols[(r() * cols.length) | 0];
+        const ex = x + Math.cos(a) * L, ey = y + Math.sin(a) * L, nx = -Math.sin(a) * w, ny = Math.cos(a) * w;
+        glowAt(c, ex, ey, L * 0.6, col, '22');
+        c.fillStyle = col; c.globalAlpha = 0.85; c.beginPath(); c.moveTo(x + nx, y + ny); c.lineTo(ex + nx * 0.6, ey + ny * 0.6); c.lineTo(ex + Math.cos(a) * w * 1.5, ey + Math.sin(a) * w * 1.5); c.lineTo(ex - nx * 0.6, ey - ny * 0.6); c.lineTo(x - nx, y - ny); c.closePath(); c.fill();
+        c.fillStyle = 'rgba(255,255,255,0.45)'; c.beginPath(); c.moveTo(x + nx * 0.3, y + ny * 0.3); c.lineTo(ex + nx * 0.2, ey + ny * 0.2); c.lineTo(ex + Math.cos(a) * w * 1.5, ey + Math.sin(a) * w * 1.5); c.closePath(); c.fill(); c.globalAlpha = 1; } };
+      // cave walls
+      c.fillStyle = '#0c0414'; c.beginPath(); c.moveTo(0, 0); for (let y = 0; y <= Hh; y += 20) c.lineTo(W * (0.08 + Math.sin(y * 0.02) * 0.04 + r() * 0.02), y); c.lineTo(0, Hh); c.closePath(); c.fill();
+      c.beginPath(); c.moveTo(W, 0); for (let y = 0; y <= Hh; y += 20) c.lineTo(W * (0.92 - Math.sin(y * 0.017) * 0.04 - r() * 0.02), y); c.lineTo(W, Hh); c.closePath(); c.fill();
+      c.beginPath(); c.moveTo(0, 0); for (let x = 0; x <= W; x += 20) c.lineTo(x, Hh * (0.06 + Math.sin(x * 0.02) * 0.03 + r() * 0.02)); c.lineTo(W, 0); c.closePath(); c.fill();
+      c.beginPath(); c.moveTo(0, Hh); for (let x = 0; x <= W; x += 20) c.lineTo(x, Hh * (0.84 + Math.sin(x * 0.015) * 0.03)); c.lineTo(W, Hh); c.closePath(); c.fill();
+      for (let k = 0; k < 7; k++) cluster(r() * W, Hh * 0.86, 5, U(W, Hh) * 0.09, true);
+      for (let k = 0; k < 5; k++) cluster(r() * W, Hh * 0.07, 4, U(W, Hh) * 0.07, false);
+      // floating gem hearts
+      for (let k = 0; k < 14; k++) { const x = W * (0.12 + r() * 0.76), y = Hh * (0.15 + r() * 0.6), s = 10 + r() * 22, col = cols[k % cols.length]; glowAt(c, x, y + s / 2, s * 1.6, col, '33'); c.fillStyle = col; c.globalAlpha = 0.75; heartAt(c, x, y, s); c.globalAlpha = 1; c.fillStyle = 'rgba(255,255,255,0.6)'; c.beginPath(); c.arc(x - s * 0.18, y + s * 0.28, s * 0.08, 0, TAU); c.fill(); }
+    },
+    // Kosmiset sydämet: a pink nebula shaped like a heart among the stars
+    cosmic(c, W, Hh, r) {
+      sky(c, W, Hh, [[0, '#0a0418'], [1, '#1a0620']]);
+      stars(c, W, Hh, r, 300);
+      const cx = W * 0.5, cy = Hh * 0.32, S = U(W, Hh) * 0.55;
+      for (let k = 0; k < 260; k++) {
+        const t = r() * TAU, hx = 16 * Math.pow(Math.sin(t), 3), hy = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t)), d = 0.6 + r() * 0.5;
+        glowAt(c, cx + hx * S / 34 * d, cy + hy * S / 34 * d, S * (0.04 + r() * 0.06), r() < 0.6 ? '#ff4da0' : r() < 0.5 ? '#b06bff' : '#ffb0d8', '18');
+      }
+      glowAt(c, cx, cy, S * 0.35, '#fff0f6', '30');
+      for (let k = 0; k < 8; k++) { const x = r() * W, y = Hh * (0.55 + r() * 0.4), R = U(W, Hh) * (0.02 + r() * 0.04); const g = c.createRadialGradient(x - R * 0.3, y - R * 0.3, R * 0.1, x, y, R); g.addColorStop(0, '#ffe0f0'); g.addColorStop(1, k % 2 ? '#7a2a6a' : '#3a2a8a'); c.fillStyle = g; c.beginPath(); c.arc(x, y, R, 0, TAU); c.fill(); }
+    },
+    // Fysiikka: a blackboard full of formulas, an atom and a swinging-pendulum sketch
+    physics(c, W, Hh, r) {
+      sky(c, W, Hh, [[0, '#12241c'], [1, '#0a1712']]);
+      c.fillStyle = '#5a3a1e'; c.fillRect(0, Hh * 0.9, W, Hh * 0.1); c.fillStyle = '#7a5230'; c.fillRect(0, Hh * 0.9, W, 6);
+      const F = ['E = mc²', 'F = ma', 'λ = v/f', 'pV = nRT', 'ΔxΔp ≥ ħ/2', 'v = s/t', 'E = hf', 'a = v²/r', '∇·E = ρ/ε₀', 'U = RI', 'p = mv', 'F = kx'];
+      c.fillStyle = 'rgba(240,245,235,0.55)'; c.textAlign = 'left'; c.textBaseline = 'middle';
+      for (let k = 0; k < 18; k++) { c.font = `${Math.round(14 + r() * 16)}px "Comic Sans MS", "Chalkboard SE", cursive`; c.save(); c.translate(r() * W * 0.9, Hh * (0.06 + r() * 0.8)); c.rotate((r() - 0.5) * 0.15); c.fillText(F[k % F.length], 0, 0); c.restore(); }
+      // an atom
+      const ax = W * 0.78, ay = Hh * 0.22, R = U(W, Hh) * 0.12;
+      c.strokeStyle = 'rgba(240,245,235,0.6)'; c.lineWidth = 2;
+      for (let k = 0; k < 3; k++) { c.beginPath(); c.ellipse(ax, ay, R, R * 0.35, k * Math.PI / 3, 0, TAU); c.stroke(); }
+      c.fillStyle = 'rgba(255,220,120,0.85)'; c.beginPath(); c.arc(ax, ay, R * 0.12, 0, TAU); c.fill();
+      // a pendulum and a sine wave in chalk
+      const px = W * 0.2, py = Hh * 0.15; c.beginPath(); c.moveTo(px - 30, py); c.lineTo(px + 30, py); c.moveTo(px, py); c.lineTo(px + 40, py + 90); c.stroke(); c.beginPath(); c.arc(px + 40, py + 90, 10, 0, TAU); c.stroke();
+      c.setLineDash([4, 5]); c.beginPath(); c.arc(px, py, 98, Math.PI * 0.35, Math.PI * 0.65); c.stroke(); c.setLineDash([]);
+      c.beginPath(); for (let x = 0; x < W * 0.6; x += 4) c.lineTo(W * 0.2 + x, Hh * 0.7 + Math.sin(x * 0.04) * 22); c.stroke();
+      // chalk dust smudges
+      for (let k = 0; k < 8; k++) glowAt(c, r() * W, r() * Hh * 0.85, 40 + r() * 80, '#e8f0e0', '0d');
+    },
+    // Yliopisto: a grand library hall with tall arched windows and shelves of books
+    degree(c, W, Hh, r) {
+      sky(c, W, Hh, [[0, '#2a1a10'], [1, '#140a06']]);
+      // tall arched windows letting in warm light
+      const n = Math.max(3, Math.round(W / 220)), ww = W / n;
+      for (let k = 0; k < n; k++) {
+        const x = k * ww + ww * 0.25, w = ww * 0.5, top = Hh * 0.08, h = Hh * 0.5;
+        const g = c.createLinearGradient(0, top, 0, top + h); g.addColorStop(0, '#ffe8b0'); g.addColorStop(1, '#c98a4a');
+        c.fillStyle = g; c.beginPath(); c.moveTo(x, top + h); c.lineTo(x, top + w / 2); c.arc(x + w / 2, top + w / 2, w / 2, Math.PI, 0); c.lineTo(x + w, top + h); c.closePath(); c.fill();
+        c.strokeStyle = '#3a2414'; c.lineWidth = 4; c.stroke(); c.beginPath(); c.moveTo(x + w / 2, top); c.lineTo(x + w / 2, top + h); c.moveTo(x, top + h * 0.55); c.lineTo(x + w, top + h * 0.55); c.stroke();
+        c.save(); c.globalAlpha = 0.12; c.fillStyle = '#ffe0a0'; c.beginPath(); c.moveTo(x, top + h); c.lineTo(x + w, top + h); c.lineTo(x + w * 1.8, Hh); c.lineTo(x + w * 0.2, Hh); c.closePath(); c.fill(); c.restore();
+      }
+      // bookshelves along the bottom
+      const sy = Hh * 0.62; c.fillStyle = '#3a2210'; c.fillRect(0, sy, W, Hh - sy);
+      const bcols = ['#7a1e1e', '#1e3a7a', '#2a6a3a', '#7a5a1e', '#4a2a6a', '#8a3a1a', '#1a5a5a'];
+      for (let row = 0; row < 4; row++) {
+        const y0 = sy + 8 + row * (Hh - sy) / 4, bh = (Hh - sy) / 4 - 12;
+        for (let x = 4; x < W - 4;) { const bw = 6 + r() * 10, h = bh * (0.7 + r() * 0.3); c.fillStyle = bcols[(r() * bcols.length) | 0]; c.fillRect(x, y0 + bh - h, bw, h); c.fillStyle = 'rgba(255,220,140,0.35)'; c.fillRect(x + 1, y0 + bh - h + 4, bw - 2, 2); x += bw + 1; }
+        c.fillStyle = '#5a3418'; c.fillRect(0, y0 + bh, W, 6);
+      }
+      // floating dust in the light
+      for (let k = 0; k < 60; k++) { c.fillStyle = `rgba(255,230,170,${0.2 + r() * 0.4})`; c.fillRect(r() * W, r() * Hh * 0.7, 2, 2); }
+    }
+  };
+})();

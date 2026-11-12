@@ -17,9 +17,9 @@ test.after(async () => { if (browser) await browser.close(); if (server) server.
 const open = (t, opts) => openPage(browser, base, t, opts);
 const toMenu = page => page.evaluate(() => { state = 'menu'; showMenu(); });
 
-test('endless swings: the swing works again and again without charges', { skip }, async t => {
+test('endless roulettes: the roulette spins again and again without charges', { skip }, async t => {
   const { page, errors } = await open(t, { viewport: { width: 1280, height: 720 } });
-  await page.click('#startBtn');
+  await page.click('#startBtn'); await page.click('.tcard.on[data-pick]');
   await page.evaluate(() => openAdmin());
   await page.click('#admInf');
   assert.equal(await page.$eval('#admInf', b => b.getAttribute('aria-pressed')), 'true');
@@ -27,8 +27,8 @@ test('endless swings: the swing works again and again without charges', { skip }
   assert.ok(await page.$eval('#abilBtn', b => !b.disabled && b.textContent.includes('∞')), 'the swing button shows ∞');
   for (let i = 0; i < 3; i++) {
     await page.click('#abilBtn', { force: true });   // the ready button pulses, so it is never "still"
-    assert.ok(await page.evaluate(() => wobT > 0), `swing ${i + 1} happened`);
-    await page.waitForFunction(() => wobT === 0);
+    assert.ok(await page.evaluate(() => rouT > 0), `spin ${i + 1} happened`);
+    await page.waitForFunction(() => !rouBusy(), null, { timeout: 8000 });
   }
   assert.equal(await page.evaluate(() => charges), 0, 'no charges were needed');
   // switched off: back to needing charges
@@ -40,7 +40,7 @@ test('endless swings: the swing works again and again without charges', { skip }
 
 test('a game with cheats keeps no record, achievements or progress; an honest game does', { skip }, async t => {
   const { page, errors } = await open(t, { viewport: { width: 1280, height: 720 }, store: { 'piispanpeli-best': 100 } });
-  await page.click('#startBtn');
+  await page.click('#startBtn'); await page.click('.tcard.on[data-pick]');
   await page.evaluate(() => openAdmin());
   await page.click('#admPts');
   assert.ok(await page.$eval('#card', c => c.textContent.includes('Huijaukset käytössä')), 'the admin panel says so');
@@ -59,13 +59,13 @@ test('a game with cheats keeps no record, achievements or progress; an honest ga
   // immortality switched on in the menu makes the next game a cheated one too
   await toMenu(page);
   await page.evaluate(() => openAdmin()); await page.click('#admGod'); await page.click('#admClose');
-  await page.click('#startBtn');
+  await page.click('#startBtn'); await page.click('.tcard.on[data-pick]');
   assert.equal(await page.evaluate(() => cheated), true);
   await page.evaluate(() => { invincible = false; gameOver('forced'); });
   await page.waitForFunction(() => document.getElementById('againBtn'));
   // an honest game counts again
   await toMenu(page);
-  await page.click('#startBtn');
+  await page.click('#startBtn'); await page.click('.tcard.on[data-pick]');
   await page.evaluate(() => { addScore(500); gameOver('over'); });
   await page.waitForFunction(() => document.getElementById('againBtn'));
   assert.equal(await page.evaluate(() => localStorage.getItem('piispanpeli-best')), '500');
@@ -76,7 +76,7 @@ test('the EU ball and its scenery draw without errors on a phone and a computer'
   for (const viewport of [{ width: 390, height: 844 }, { width: 1280, height: 720 }]) {
     const { page, errors } = await open(t, { viewport, store: { 'piispanpeli-seen': [...Array(15).keys()] } });
     await page.evaluate(() => { location.hash = 'scene=13'; });
-    await page.click('#startBtn');
+    await page.click('#startBtn'); await page.click('.tcard.on[data-pick]');
     await page.evaluate(() => { cur = 13; makeBlob(13, 5, 12, 0, 0, 1); });
     await page.waitForTimeout(1500);
     const r = await page.evaluate(() => ({ name: NAMES[13], flag: FLAGS[13][0], scene: sceneIdx }));
@@ -89,7 +89,7 @@ test('the EU ball and its scenery draw without errors on a phone and a computer'
 // show a late timer here. The old music played every note it had missed at the same moment.
 test('music: notes missed by a late timer are skipped, not played all at once', { skip: skip || (BROWSER !== 'chromium' && 'needs an audio clock that runs on while the page is busy') }, async t => {
   const { page, errors } = await open(t, { viewport: { width: 800, height: 600 } });
-  await page.click('#startBtn');
+  await page.click('#startBtn'); await page.click('.tcard.on[data-pick]');
   const r = await page.evaluate(async () => {
     sfx.ensure(); await new Promise(res => setTimeout(res, 800));
     const log = [], orig = AudioScheduledSourceNode.prototype.start;

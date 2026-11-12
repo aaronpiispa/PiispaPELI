@@ -7,7 +7,7 @@ const STAGE_RULES = [{}, { stones: 22 }, { boss: 12 }];
 const BOSS_HP = 60;
 // the two bonus goals of each stage; beating the stage gives one star and each bonus goal one more
 const STAR_GOALS = [
-  [['Älä käytä heilautusta', () => ch.swings === 0], ['Tee kombo ×8', () => ch.maxCombo >= 8]],
+  [['Älä käytä rulettia', () => ch.swings === 0], ['Tee kombo ×4', () => ch.maxCombo >= 4]],
   [['Riko 8 kiveä', () => ch.broken >= 8], ['Saa 10. pallo alle 5 minuutissa', () => ch.at9 > 0 && ch.at9 <= 300]],
   [['Voita pomo', () => ch.bossDone], ['Saa 13. pallo alle 18 minuutissa', () => ch.at12 > 0 && ch.at12 <= 1080]]
 ];

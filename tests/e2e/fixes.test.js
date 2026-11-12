@@ -141,7 +141,7 @@ test('text in cached bitmaps is redrawn once the web font arrives', { skip: skip
   // do not wait for the page's load event: a pending font would hold it back
   await page.goto(base, { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('#startBtn');
-  await page.click('#startBtn');
+  await page.click('#startBtn'); await page.click('.tcard.on[data-pick]');
   await frames(page, 3);
   const before = await page.evaluate(() => ({ front: jarLayers.front.key, back: jarLayers.back.key, chain: chainCache.key, gen: fontGen, ready: document.fonts.check(`800 20px ${FONT}`) }));
   await page.waitForFunction(() => document.fonts.check(`800 20px ${FONT}`) && fontGen > 0, null, { timeout: 10000 });
@@ -155,7 +155,7 @@ test('text in cached bitmaps is redrawn once the web font arrives', { skip: skip
 
 test('static wagon bitmaps are not redrawn during normal play, nor while a new trophy pops', { skip }, async t => {
   const { page, errors } = await open(t);
-  await page.click('#startBtn');
+  await page.click('#startBtn'); await page.click('.tcard.on[data-pick]');
   await frames(page, 5);
   await page.evaluate(() => { window.__layers = [jarLayers.back.parts[0].cv, ...jarLayers.front.parts.map(p => p.cv)]; window.__key = jarLayers.front.key + '#' + jarLayers.back.key; });
   await page.evaluate(() => unlock('combo10'));
@@ -198,7 +198,7 @@ test('broken saved quality values fall back to full quality', { skip }, async t 
 
 test('slow play lowers the resolution and remembers when, but rebuild frames and hidden tabs do not count', { skip }, async t => {
   const { page } = await open(t, { dsf: 2 });
-  await page.click('#startBtn');
+  await page.click('#startBtn'); await page.click('.tcard.on[data-pick]');
   const r = await page.evaluate(() => {
     const feed = (ms, n, heavy) => { for (let i = 0; i < n; i++) { if (heavy) heavyFrame = true; watchFrameTime(ms); } };
     feed(40, 200, true);
@@ -217,7 +217,7 @@ test('slow play lowers the resolution and remembers when, but rebuild frames and
 test('smooth play on a retried level keeps it for the next launch', { skip }, async t => {
   const at = Date.now() - 5 * DAY;
   const { page } = await open(t, { dsf: 2, store: { 'piispanpeli-quality': { q: 2, at } } });
-  await page.click('#startBtn');
+  await page.click('#startBtn'); await page.click('.tcard.on[data-pick]');
   const saved = await page.evaluate(() => { for (let i = 0; i < 2400; i++) watchFrameTime(16); return JSON.parse(localStorage.getItem('piispanpeli-quality')); });
   assert.deepEqual(saved, { q: 1, at }, 'the better level is kept, still marked with the old time so it can climb again');
 });

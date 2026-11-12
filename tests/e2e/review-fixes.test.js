@@ -52,7 +52,7 @@ test('keyboard: Space and Enter start the game only from the main menu, Escape g
 
 test('touch: a second finger neither moves the aim nor shoots', { skip }, async t => {
   const { page, errors } = await open(t, { viewport: { width: 430, height: 860 }, touch: true });
-  await page.click('#startBtn');
+  await page.click('#startBtn'); await page.click('.tcard.on[data-pick]');
   await page.waitForFunction(() => cooldown <= 0);
   const r = await page.evaluate(() => {
     const ev = (type, id, x, y) => canvas.dispatchEvent(new PointerEvent(type, { pointerId: id, pointerType: 'touch', isPrimary: id === 1, clientX: x, clientY: y, bubbles: true, cancelable: true }));
@@ -75,7 +75,7 @@ test('touch: a second finger neither moves the aim nor shoots', { skip }, async 
 
 test('admin: closing the panel ends admin mode; the ADMIN mark shows only while a cheat is in use', { skip }, async t => {
   const { page, errors } = await open(t, { viewport: { width: 1280, height: 720 } });
-  await page.click('#startBtn');
+  await page.click('#startBtn'); await page.click('.tcard.on[data-pick]');
   await page.evaluate(() => openAdmin());
   await page.click('#admClose');
   assert.equal(await page.evaluate(() => adminOn), false);
@@ -175,7 +175,7 @@ test('offline updates: a half-written new version is never used, and unchanged f
 
 test('balls that merge behind the pause menu still give their points', { skip }, async t => {
   const { page, errors } = await open(t, { viewport: { width: 800, height: 600 } });
-  await page.click('#startBtn');
+  await page.click('#startBtn'); await page.click('.tcard.on[data-pick]');
   await page.evaluate(() => {
     pause();
     clearAll();

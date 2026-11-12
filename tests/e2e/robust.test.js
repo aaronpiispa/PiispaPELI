@@ -30,7 +30,7 @@ test('a slow phone: the game lowers its resolution by itself and keeps running s
   const cdp = await ctx.newCDPSession(page);
   // slow the processor down until frames are clearly too slow (much more is needed when a graphics chip draws)
   await cdp.send('Emulation.setCPUThrottlingRate', { rate: process.env.GPU === '1' ? 40 : 8 });
-  await page.click('#startBtn');
+  await page.click('#startBtn'); await page.click('.tcard.on[data-pick]');
   await shootMany(page, 12, 300);
   await page.waitForFunction(() => quality > 0, null, { timeout: 30000 }).catch(() => {});
   const r = await page.evaluate(() => ({ quality, scale: document.getElementById('game').width / innerWidth, saved: JSON.parse(localStorage.getItem('piispanpeli-quality')), state }));
@@ -44,7 +44,7 @@ test('a slow phone: the game lowers its resolution by itself and keeps running s
 
 test('a fast device keeps full resolution through a whole game', { skip }, async t => {
   const { page, errors } = await open(t, { dsf: 2 });
-  await page.click('#startBtn');
+  await page.click('#startBtn'); await page.click('.tcard.on[data-pick]');
   await shootMany(page, 15, 250);
   const r = await page.evaluate(() => ({ quality, scale: document.getElementById('game').width / innerWidth }));
   assert.equal(r.quality, 0);
@@ -60,7 +60,7 @@ test('a long session: several games in a row, no errors and nothing piling up', 
   }));
   const seen = [];
   for (let game = 0; game < 4; game++) {
-    if (game === 0) await page.click('#startBtn');
+    if (game === 0) { await page.click('#startBtn'); await page.click('.tcard.on[data-pick]'); }
     await shootMany(page, 25, 120);
     // speed time up: run many physics steps at once, like several minutes of play
     await page.evaluate(() => { for (let i = 0; i < 3000; i++) stepGame(); });
@@ -110,7 +110,7 @@ test('phones that still run the previous offline version switch to the new one c
   const cached = await page.evaluate(async ([list, cur]) => { const c = await caches.open(cur); return Promise.all(list.map(u => c.match(u).then(Boolean))); }, [assets, current]);
   assert.deepEqual(assets.filter((a, i) => !cached[i]), [], 'every file of the new version is cached');
   await page.reload(); await page.waitForSelector('#startBtn');
-  await page.click('#startBtn');
+  await page.click('#startBtn'); await page.click('.tcard.on[data-pick]');
   await frames(page, 5);
   assert.equal(await page.evaluate(() => state), 'play', 'the game runs on the new version');
   assert.deepEqual(errors, []);
@@ -128,7 +128,7 @@ test('reduced motion: no intro, still animations off, the game plays normally', 
   await page.waitForSelector('#startBtn');
   assert.equal(await page.evaluate(() => reduceMotion), true);
   assert.equal(await page.evaluate(() => !!document.getElementById('intro')), false, 'intro skipped');
-  await page.click('#startBtn');
+  await page.click('#startBtn'); await page.click('.tcard.on[data-pick]');
   await shootMany(page, 6, 400);
   assert.ok(await page.evaluate(() => E.blobs.length) > 0);
   assert.deepEqual(errors, []);
@@ -137,7 +137,7 @@ test('reduced motion: no intro, still animations off, the game plays normally', 
 test('the whole game can be played with the keyboard', { skip }, async t => {
   const { page, errors } = await open(t);
   await page.keyboard.press('Space'); // starts from the menu
-  await page.waitForFunction(() => state === 'play', null, { timeout: 3000 }).catch(async () => { await page.click('#startBtn'); });
+  await page.waitForFunction(() => state === 'play', null, { timeout: 3000 }).catch(async () => { await page.click('#startBtn'); await page.click('.tcard.on[data-pick]'); });
   for (let i = 0; i < 6; i++) {
     await page.keyboard.down(i % 2 ? 'ArrowLeft' : 'ArrowRight'); await page.waitForTimeout(120); await page.keyboard.up(i % 2 ? 'ArrowLeft' : 'ArrowRight');
     await page.keyboard.press('Space'); await page.waitForTimeout(450);

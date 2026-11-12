@@ -19,7 +19,7 @@ function randLevel() {
 let gmode = 'classic', modeT = 0, shots = 0, missionIdx = -1, gotLevels = new Set(), playT = 0, oneBtnT = 0, mergesThisGame = 0, failT = 0, endReason = 'over';
 const MODE_INFO = {
   classic: { name: 'Klassinen', desc: 'Peruspeli. Peli päättyy, kun pallot koskettavat molempia nappeja.' },
-  daily: { name: 'Päivän haaste', desc: 'Joka päivä sama pallojärjestys kaikille. Saa {0} mahdollisimman vähillä laukauksilla.' },
+  daily: { name: 'Päivän haaste', desc: 'Joka päivä uusi tavoite ja sama pallojärjestys kaikille.' },
   map: { name: 'Tehtäväkartta', desc: 'Matkaa Euroopan halki. Jokainen maa on oma tehtävänsä.' }
 };
 // mission texts are written from the current ball names (countries, gods, hearts or sums), see missionText()
@@ -56,6 +56,27 @@ function dailyLeft() {
 }
 function mulberry(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 let rng = Math.random;
+// each day's challenge has its own goal; the kinds take turns day by day, and the numbers come from the day
+const DAILY_KINDS = ['ball', 'score', 'combo', 'time'];
+function dailyGoal(key) {
+  key = key || todayKey();
+  const k = (key - 5) / 10, y = Math.floor(k / 10000), m = Math.floor(k / 100) % 100, d = k % 100;
+  const day = Math.floor(Date.UTC(y, m - 1, d) / 864e5), r = mulberry(key * 7 + 1);
+  const kind = DAILY_KINDS[day % DAILY_KINDS.length];
+  if (kind === 'ball') return { kind, lv: 9 + Math.floor(r() * 3) };
+  if (kind === 'score') return { kind, n: 5000 + Math.floor(r() * 11) * 1000 };
+  if (kind === 'combo') return { kind, n: 3 + Math.floor(r() * 2) };
+  const [lv, t] = r() < 0.5 ? [8, 4] : [9, 6];
+  return { kind, lv, t };
+}
+function dailyText(g) {
+  g = g || dailyGoal();
+  if (g.kind === 'ball') return T('Saa {0} mahdollisimman vähillä laukauksilla.', ballLabel(g.lv));
+  if (g.kind === 'score') return T('Kerää {0} pistettä mahdollisimman vähillä laukauksilla.', g.n.toLocaleString('fi-FI'));
+  if (g.kind === 'combo') return T('Tee kombo ×{0} mahdollisimman vähillä laukauksilla.', g.n);
+  return T('Saa {0} alle {1} minuutissa mahdollisimman vähillä laukauksilla.', ballLabel(g.lv), g.t);
+}
+const dailyDone = g => g.kind === 'score' ? score >= g.n : g.kind === 'combo' ? combo >= g.n : maxLevel >= g.lv;
 const mapDone = () => Number(store.get('piispanpeli-map', 0)) || 0;
 
 // ======================= wardrobe for the mascot =======================
@@ -185,8 +206,11 @@ const goldBalls = () => rimStyle() !== '';
 // how many stages of a theme are beaten (0 to 3), and which stage the next classic game starts on
 const stagesDone = id => clamp(Number(store.get('piispanpeli-stage-' + id, 0)) || 0, 0, 3);
 const stageOpen = (n, id) => n <= Math.min(2, stagesDone(id));
-function stageSel() {
-  const id = theme().id, s = Number(store.get('piispanpeli-stagesel-' + id, -1));
+// which song plays: the train and stage of the game (the other game modes use the first stage's song)
+function musicScene() { return theme().id + ':' + (state !== 'menu' && gmode !== 'classic' ? 0 : stage); }
+function stageSel(id) {
+  id = id || theme().id;
+  const s = Number(store.get('piispanpeli-stagesel-' + id, -1));
   return s >= 0 && stageOpen(s, id) ? s : Math.min(2, stagesDone(id));
 }
 let stage = 0, stageDone = false, stageT = 0, failGoal = null, lastStars = 0;
@@ -226,7 +250,7 @@ const TCOL = { gold: ['#ffd84d', '#a07800'], silver: ['#e6ebf3', '#7d869c'], ros
 const TDES = {
   first: ['medal', 'gold', 't:1'], fin: ['shield', 'blue', 'f:7'],
   rus: ['gem', 'red', 'f:14'], union: ['shield', 'purple', 't:H'], all: ['cup', 'gold', 't:15'], heart: ['medal', 'rose', 'heart'],
-  combo10: ['star', 'purple', 't:×10'], star: ['medal', 'silver', 'star'], close: ['shield', 'red', 't:!'],
+  combo10: ['star', 'purple', 't:×6'], star: ['medal', 'silver', 'star'], close: ['shield', 'red', 't:!'],
   merges100: ['plaque', 'teal', 't:100'], s100k: ['cup', 'gold', 't:100k'],
   marathon: ['plaque', 'blue', 't:30m'], games50: ['plaque', 'gold', 't:50'],
   daily: ['shield', 'gold', 't:24h'], daily60: ['shield', 'silver', 't:60'],
@@ -432,7 +456,7 @@ const ACH = [
   ['rus', 'Itäblokki', 'Saa USSR.'],
   ['union', 'Alamaailman Hermes', 'Yhdistä kaksi USSR:ää.'],
   ['all', 'Keräilijä', 'Avaa kaikki 15 maata. Palkintona kultaiset reunat!'],
-  ['combo10', 'Ketjureaktio', 'Tee kombo ×10.'],
+  ['combo10', 'Ketjureaktio', 'Tee kombo ×6.'],
   ['heart', 'Rakkauden ammattilainen', 'Osu Nelli-bonukseen.'],
   ['close', 'Täpärä', 'Selviä, kun toinen nappi on ollut punaisena 5 sekuntia.'],
   ['merges100', 'Ahkera yhdistäjä', 'Tee 100 yhdistymistä yhdessä pelissä.'],
@@ -587,11 +611,11 @@ function startGame(m, mi) {
   E.gx = 0; E.gy = GRAV;
   const gp = (Number(store.get('piispanpeli-games', 0)) || 0) + 1; store.set('piispanpeli-games', gp);
   if (gp >= 50) unlock('games50');
-  if (music.track < 0) unlock('quiet');
+  if (sfx.muted || sfx.volume === 0) unlock('quiet');
   sfx.ensure();
   clearAll(); parts.length = 0; floaters.length = 0;
   bonuses.length = 0; bonusT = 12; jamT = 0;
-  score = 0; shownScore = 0; maxLevel = 0; dangerT = 0; combo = 0; comboT = 0; shake = 0; blockedT = 0; charges = 0; abilProg = 0; wobT = 0;
+  score = 0; shownScore = 0; maxLevel = 0; dangerT = 0; combo = 0; comboT = 0; shake = 0; blockedT = 0; charges = 0; abilProg = 0; wobT = 0; rouletteReset();
   cur = rng() < 0.5 ? 1 : 2; nxt = randLevel(); cooldown = 0.2; popT = 0; aiming = false;
   state = 'play'; hideOverlay(); syncUI();
   startTransition('start', gmode === 'classic' ? T('Taso {0}: {1}', stage + 1, T(stageInfo().name)) : gmode === 'map' && ms ? NAMES[ms.c] : MODE_INFO[gmode].name);
@@ -604,7 +628,7 @@ const AUTO_KEY = 'piispanpeli-autosave', SLOT_KEY = i => 'piispanpeli-slot' + i;
 let autoT = 0;
 function gameData() {
   return { v: 1, t: Date.now(), score, cur, nxt, maxLevel, charges, abilProg, th: theme().id, stage, playT: Math.round(playT), done: stageDone, ch: cheated ? 1 : 0, chal: challengeSave(),
-    blobs: E.blobs.map(b => [b.level, Math.round(b.cx * 100) / 100, Math.round(b.cy * 100) / 100, b.hp | 0]) };
+    jk: jokerNext ? 1 : 0, blobs: E.blobs.map(b => [b.level, Math.round(b.cx * 100) / 100, Math.round(b.cy * 100) / 100, b.hp | 0, b.joker ? 1 : 0]) };
 }
 function validSave(g) { return !!(g && Array.isArray(g.blobs)); }
 function autoSave() { if ((state === 'play' || state === 'paused') && gmode === 'classic') store.set(AUTO_KEY, gameData()); }
@@ -616,9 +640,10 @@ function loadGame(g, play) {
     const R = isSpecial(lv) ? SPECIAL_R[lv] : RADII[lv];
     const b = makeBlob(lv, clamp(+item[1] || 5, R, WORLD_W - R), clamp(+item[2] || 10, DANGER_Y, FLOOR_Y - R), 0, 0, 0.85);
     if (b && lv === STONE) b.hp = clamp(item[3] | 0, 1, 2);
+    if (b && item[4] && !isSpecial(lv)) b.joker = true;
   }
   score = shownScore = g.score | 0; cur = clamp(g.cur | 0, 0, MAXL); nxt = clamp(g.nxt | 0, 0, 6); maxLevel = g.maxLevel | 0;
-  charges = g.charges | 0; abilProg = g.abilProg | 0; wobT = 0;
+  charges = g.charges | 0; abilProg = g.abilProg | 0; wobT = 0; rouletteReset(); jokerNext = !!g.jk;
   dangerT = 0; combo = 0; comboT = 0; shake = 0; blockedT = 0; cooldown = 0.3; popT = 0; aiming = false; autoT = 0;
   gmode = 'classic'; missionIdx = -1; rng = Math.random; E.gx = 0; E.gy = GRAV; shots = 0; gotLevels = new Set(); playT = +g.playT || 0;
   cheated = !!g.ch || invincible || infSwing;
@@ -693,6 +718,7 @@ function shoot() {
   }
   const sp = 3 + aimPow * 29;
   const b = makeBlob(cur, LX, LY, Math.sin(aimAng) * sp, Math.cos(aimAng) * sp, 1);
+  if (b && jokerNext) { b.joker = true; jokerNext = false; }
   if (!b) return;
   maxLevel = Math.max(maxLevel, cur); noteLevel(cur); shots++; challengeOnShot();
   sfx.shoot(aimPow);
@@ -721,9 +747,9 @@ function handleEvent(ev) {
     if (ev.level >= 7 && !reduceMotion) shake = Math.max(shake, 0.1 + (ev.level - 7) * 0.06);
     // the world keeps moving behind the pause menu, so a merge there counts just the same
     if (state !== 'play' && state !== 'paused') return;
-    combo = comboT > 0 ? combo + 1 : 1; comboT = 1.1;
+    combo = ev.combo || 1; comboT = 1.1;   // only a chain reaction of the same ball raises the combo
     mergesThisGame++; noteLevel(ev.level);
-    if (combo >= 10) unlock('combo10'); if (mergesThisGame >= 100) unlock('merges100');
+    if (combo >= 6) unlock('combo10'); if (mergesThisGame >= 100) unlock('merges100');
     const pts = POINTS[ev.level] * combo;
     addScore(pts);
     floater('+' + pts, ev.x, ev.y, PAL[ev.level].light, 17 + ev.level * 1.5);
@@ -742,7 +768,7 @@ function handleEvent(ev) {
     if (state === 'play' || state === 'paused') { gainXP(200); gainCoins(40); }
     if (!reduceMotion) shake = 0.45;
     if (state !== 'play' && state !== 'paused') return;
-    combo = comboT > 0 ? combo + 1 : 1; comboT = 1.1;
+    combo = ev.combo || 1; comboT = 1.1;   // only a chain reaction of the same ball raises the combo
     if (!stage) unlock(achFor('union'));
     if (gmode === 'classic' && !stageDone && !stageT) stageT = 1.3;
     const pts = MAX_BONUS * combo;
@@ -754,7 +780,7 @@ function handleEvent(ev) {
 function addScore(p) {
   score += p; abilProg += p;
   if (state === 'play' || state === 'paused') { if (score >= 100000) unlock('s100k'); }
-  while (abilProg >= ABIL_COST) { abilProg -= ABIL_COST; charges++; floater(T('Heilautus valmis!'), WORLD_W / 2, 6, '#ffcc00', 24); }
+  while (abilProg >= ABIL_COST) { abilProg -= ABIL_COST; charges++; floater(T('Ruletti valmis!'), WORLD_W / 2, 6, '#ffcc00', 24); }
   syncAbil();
 }
 function syncAbil() {
@@ -762,24 +788,18 @@ function syncAbil() {
   abilBtn.hidden = !on;
   if (!on) return;
   const have = infSwing || charges > 0;
-  abilBtn.disabled = !have || wobT > 0;
-  abilBtn.classList.toggle('ready', have && wobT <= 0);
+  abilBtn.disabled = !have || rouBusy();
+  abilBtn.classList.toggle('ready', have && !rouBusy());
   const fmt = n => n >= 1000 ? (Math.floor(n / 100) / 10).toString().replace(/\.0$/, '') + 'k' : String(Math.floor(n));
-  abilBtn.textContent = infSwing ? T('Heilauta! ×{0}', '∞') : charges > 0 ? T('Heilauta! ×{0}', charges) : T('Heilautus {0} / {1}', fmt(abilProg), fmt(ABIL_COST));
+  abilBtn.textContent = infSwing ? T('Ruletti! ×{0}', '∞') : charges > 0 ? T('Ruletti! ×{0}', charges) : T('Ruletti {0} / {1}', fmt(abilProg), fmt(ABIL_COST));
   abilBtn.style.setProperty('--p', have ? '100%' : (abilProg / ABIL_COST * 100).toFixed(1) + '%');
-  abilBtn.setAttribute('aria-label', have ? T('Heilauta vaunua, {0} käytettävissä', infSwing ? '∞' : charges) : T('Heilautus latautuu, {0} / {1} pistettä', Math.floor(abilProg), ABIL_COST));
+  abilBtn.setAttribute('aria-label', have ? T('Pyöräytä rulettia, {0} käytettävissä', infSwing ? '∞' : charges) : T('Ruletti latautuu, {0} / {1} pistettä', Math.floor(abilProg), ABIL_COST));
 }
 function useAbility() {
-  if (state !== 'play' || (!infSwing && charges <= 0) || wobT > 0) return;
-  if (!infSwing) charges--; wobT = 1.4; ch.swings++;
-  // throw everything up a bit, then rock the wagon from side to side
-  for (const b of E.blobs) {
-    const kick = 12 + Math.random() * 12, side = (Math.random() - 0.5) * 12;
-    for (let i = b.start; i < b.start + b.n; i++) { VY[i] -= kick; VX[i] += side; }
-  }
-  if (!reduceMotion) shake = Math.max(shake, 0.35);
-  sfx.mega(); mascotBounce = 1; dangerT = 0;
-  floater(T('HEILAUTUS!'), WORLD_W / 2, 7, '#ffcc00', 30);
+  // the special button spins the roulette (see roulette.js)
+  if (state !== 'play' || (!infSwing && charges <= 0) || rouBusy()) return;
+  if (!infSwing) charges--; ch.swings++;
+  spinRoulette(); dangerT = 0;
   syncAbil();
 }
 function wobbleStep() {
@@ -803,6 +823,8 @@ function checkDanger() {
   // gauge level grows with how many bead contacts press the button (green → yellow → red)
   tgtL = cl > 0 ? Math.min(1, 0.45 + cl / 5) : 0; tgtR = cr > 0 ? Math.min(1, 0.45 + cr / 5) : 0;
   btnL = cl > 0; btnR = cr > 0;
+  // under the roulette's shield the buttons cannot be pressed down
+  if (shieldOn()) { tgtL = Math.min(tgtL, 0.3); tgtR = Math.min(tgtR, 0.3); btnL = btnR = false; }
   if (btnL && btnR && wobT <= 0) { dangerT += STEP; if (dangerT >= DANGER_TIME) gameOver(); }
   else dangerT = Math.max(0, dangerT - STEP * 2);
 }
@@ -817,7 +839,11 @@ function modeStep() {
     // merging the two biggest balls beats the stage; a moment later (so the merge can be seen) the next stage begins
     if (stageT > 0) { stageT -= STEP; if (stageT <= 0) { stageT = 0; completeStage(); return; } }
     if (challengeStep()) return;
-  } else if (gmode === 'daily') { if (maxLevel >= 10) gameOver('win'); }
+  } else if (gmode === 'daily') {
+    const g = dailyGoal(dayKey);
+    if (dailyDone(g)) { gameOver('win'); return; }
+    if (g.kind === 'time' && playT >= g.t * 60) gameOver('fail');
+  }
   else if (gmode === 'map') {
     const ms = MISSIONS[missionIdx];
     const ok = (ms.level != null && maxLevel >= ms.level) || (ms.score != null && score >= ms.score) || (ms.combo != null && combo >= ms.combo);
@@ -897,7 +923,7 @@ function stepGame() {
   if (state === 'play') {
     modeStep();
     if (state !== 'play') return;
-    wobbleStep(); checkDanger(); bonusStep();
+    wobbleStep(); rouletteStep(); checkDanger(); bonusStep();
     // launcher jammed: is there room for the waiting ball?
     const R = RADII[cur], lim = (R + RB) * (R + RB);
     let jam = false;

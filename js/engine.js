@@ -157,7 +157,8 @@ function collide() {
           }
           const A = bl[oi], B = bl[oj];
           A.touched = true; B.touched = true;
-          if (A.level === B.level && A.level < STONE && !A.merging && !B.merging) {
+          // same balls merge; a joker merges with any ordinary ball
+          if ((A.level === B.level || A.joker || B.joker) && A.level < STONE && B.level < STONE && !A.merging && !B.merging) {
             A.merging = true; B.merging = true; E.mergeQ.push(A, B);
           }
         }
@@ -203,7 +204,7 @@ function separateNested() {
   }
   for (let qa = 0; qa < n; qa++) for (let qb = qa + 1; qb < n; qb++) {
     let A = bl[qa], B = bl[qb], ia = qa, ib = qb;
-    if (A.level === B.level && !isSpecial(A.level)) continue;   // these two merge anyway
+    if ((A.level === B.level || A.joker || B.joker) && !isSpecial(A.level) && !isSpecial(B.level)) continue;   // these two merge anyway
     let ra = A.R * A.scale, rb = B.R * B.scale;
     if (ra > rb) { [A, B, ia, ib, ra, rb] = [B, A, ib, ia, rb, ra]; }   // A is the smaller one
     let dx = NEST_CX[ia] - NEST_CX[ib], dy = NEST_CY[ia] - NEST_CY[ib];
@@ -330,6 +331,10 @@ function compact() {
 // take one blob out of the world (a broken stone, a beaten boss)
 function removeBlob(b) { if (!b.alive) return; b.alive = false; compact(); }
 
+// A combo is a chain reaction: it only grows when the ball that a merge just made merges again soon after
+// (a freshly made ball keeps its chain for CHAIN_T seconds). Merges of other balls start again from ×1.
+const CHAIN_T = 1.5;
+const chainOf = b => b.chain && b.age - b.chainAt < CHAIN_T ? b.chain : 0;
 function processMerges() {
   const q = E.mergeQ;
   if (!q.length) return;
@@ -339,15 +344,15 @@ function processMerges() {
     if (!A.alive || !B.alive) continue;
     const a = centroidVel(A), b = centroidVel(B);
     A.alive = false; B.alive = false; changed = true;
-    const L = A.level, vx = (a.vx + b.vx) / 2, vy = (a.vy + b.vy) / 2;
+    const L = A.joker && !B.joker ? B.level : B.joker && !A.joker ? A.level : Math.max(A.level, B.level), vx = (a.vx + b.vx) / 2, vy = (a.vy + b.vy) / 2, chain = Math.max(chainOf(A), chainOf(B)) + 1;
     const host = a.y >= b.y ? a : b, other = host === a ? b : a;
     if (L < MAXL) {
       const s0 = Math.min(0.95, 0.72 * RADII[L] / RADII[L + 1]);
       const nb = makeBlob(L + 1, host.x, host.y, vx, vy, s0);
-      if (nb) { nb.touched = true; nb.age = 0.3; }
-      E.events.push({ type: 'merge', level: L + 1, x: host.x, y: host.y, ox: other.x, oy: other.y });
+      if (nb) { nb.touched = true; nb.age = 0.3; nb.chain = chain; nb.chainAt = nb.age; }
+      E.events.push({ type: 'merge', level: L + 1, x: host.x, y: host.y, ox: other.x, oy: other.y, combo: chain });
     } else {
-      E.events.push({ type: 'max', level: L, x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
+      E.events.push({ type: 'max', level: L, x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, combo: chain });
     }
   }
   q.length = 0;

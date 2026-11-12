@@ -66,7 +66,7 @@ test('the game loads without errors and shows the main menu', { skip }, async t 
 
 test('shooting balls merges them, scores points and saves the game', { skip }, async t => {
   const { page, errors } = await open(t);
-  await page.click('#startBtn');
+  await page.click('#startBtn'); await page.click('.tcard.on[data-pick]');
   for (let i = 0; i < 10; i++) { await page.mouse.click(215 + (i % 3) * 20, 600); await page.waitForTimeout(450); }
   const merged = await page.evaluate(() => mergesThisGame);
   const auto = await page.evaluate(() => JSON.parse(localStorage.getItem('piispanpeli-autosave') || 'null'));
@@ -78,7 +78,7 @@ test('shooting balls merges them, scores points and saves the game', { skip }, a
 
 test('pause, save to a slot and continue from the main menu', { skip }, async t => {
   const { page, errors } = await open(t);
-  await page.click('#startBtn');
+  await page.click('#startBtn'); await page.click('.tcard.on[data-pick]');
   for (let i = 0; i < 4; i++) { await page.mouse.click(215, 600); await page.waitForTimeout(400); }
   await page.click('#pauseBtn');
   assert.match(await text(page, '#card'), /Tauko/);
@@ -117,7 +117,7 @@ test('admin mode unlocks everything and can end the game', { skip }, async t => 
   const pairs = [...(await text(page, '#card')).matchAll(/(\d+)\/(\d+)/g)].map(m => [+m[1], +m[2]]);
   assert.ok(pairs.some(([a, b]) => a === b && b >= 29), `every achievement unlocked (${JSON.stringify(pairs)})`);
   assert.match(await text(page, '#themeBtn'), /4 \/ 4/);
-  await page.click('#startBtn');
+  await page.click('#startBtn'); await page.click('.tcard.on[data-pick]');
   await page.keyboard.type('admin123');
   await page.click('#admLose');
   await page.waitForFunction(() => !document.getElementById('overlay').hidden && /Vaunu täyttyi/.test(document.getElementById('card').innerText), null, { timeout: 8000 });

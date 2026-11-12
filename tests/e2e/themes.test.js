@@ -24,7 +24,8 @@ test('each theme gives the balls its own names in the menu, missions and daily c
     const { page, errors } = await openPage(browser, base, t, { store: { 'piispanpeli-ach': UNLOCKED, 'piispanpeli-theme': theme, [theme === 'eu' ? 'piispanpeli-seen' : 'piispanpeli-seen-' + theme]: ALL15 } });
     assert.match(await text(page, '.lead'), lead, `${theme}: menu text`);
     await page.click('#modesBtn');
-    assert.ok((await text(page, '#card')).includes(ten), `${theme}: daily challenge names "${ten}"`);
+    assert.ok(await page.evaluate(ten => dailyText({ kind: 'ball', lv: 10 }).includes(ten), ten), `${theme}: daily challenge names "${ten}"`);
+    assert.ok((await text(page, '#card')).includes(await page.evaluate(() => dailyText())), `${theme}: today's goal is shown`);
     await page.click('[data-mode="map"]');
     const map = await text(page, '#card');
     assert.ok(map.includes(ten), `${theme}: the last mission asks for "${ten}"`);
@@ -87,10 +88,9 @@ test('no spoilers: balls the player has not seen are called by their number', { 
   for (const name of ['USSR', 'Suomi', 'Odin', 'Matriisi', 'matriisi', 'Kultainen sydän', 'kultainen sydän']) assert.ok(!ach.includes(name), `achievements do not reveal "${name}"`);
   assert.match(ach, /Yhdistä kaksi suurinta palloa\./);
   await page.evaluate(() => showMenu());
-  await page.click('#modesBtn');
-  assert.match(await text(page, '#card'), /Saa 11\. pallo/);
+  assert.match(await page.evaluate(() => dailyText({ kind: 'ball', lv: 10 })), /Saa 11\. pallo/);
   // once the ball has been seen, its name is used
-  await page.evaluate(() => { seenEver.add(10); showModes(); });
-  assert.match(await text(page, '#card'), /Saa Ranska/);
+  await page.evaluate(() => { seenEver.add(10); });
+  assert.match(await page.evaluate(() => dailyText({ kind: 'ball', lv: 10 })), /Saa Ranska/);
   assert.deepEqual(errors, []);
 });

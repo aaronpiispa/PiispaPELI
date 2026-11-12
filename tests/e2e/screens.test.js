@@ -78,7 +78,7 @@ for (const [name, w, h, dsf, touch] of SCREENS) {
       await page.evaluate(() => showMenu());
     }
     // ---- playing ----
-    await page.click('#startBtn');
+    await page.click('#startBtn'); await page.click('.tcard.on[data-pick]');
     await page.evaluate(() => { const real = drawMascot; window.drawMascot = function (c, cx, cy, s) { if (c === ctx) window.__mascot = [cx, cy, s]; return real.apply(this, arguments); }; });
     for (let i = 0; i < 4; i++) {
       if (touch) await page.touchscreen.tap(w / 2 + (i - 2) * 7, h * 0.62); else await page.mouse.click(w / 2 + (i - 2) * 7, h * 0.62);
@@ -115,7 +115,7 @@ for (const [name, w, h, dsf, touch] of SCREENS) {
 
 test('turning a phone sideways and back re-lays out the game', { skip }, async t => {
   const { page, errors } = await openPage(browser, base, t, { viewport: { width: 393, height: 852 }, dsf: 3, touch: true });
-  await page.click('#startBtn');
+  await page.click('#startBtn'); await page.click('.tcard.on[data-pick]');
   for (const [w, h, want] of [[852, 393, 'side'], [393, 852, 'top']]) {
     await page.setViewportSize({ width: w, height: h });
     await frames(page, 3);
@@ -183,7 +183,7 @@ for (const [name, w, h, dsf, touch] of LANG_SCREENS) {
           if (!btn) assert.ok(inside(r.start, w, h), `${lang}: play button visible`);
           await page.evaluate(() => showMenu());
         }
-        await page.click('#startBtn');
+        await page.click('#startBtn'); await page.click('.tcard.on[data-pick]');
         await frames(page, 2);
         const m = await page.evaluate(`(${MEASURE_ALL_MODES.toString()})()`);
         for (const [k, box] of Object.entries(m.boxes)) {
@@ -216,7 +216,7 @@ for (const [name, w, h, dsf, touch] of SCREENS) {
       const r = await page.evaluate(id => { const e = document.getElementById(id); e.scrollIntoView({ block: 'nearest' }); const b = e.getBoundingClientRect(); return [b.left, b.top, b.right, b.bottom]; }, id);
       assert.ok(inside(r, w, h), `${label}: ${id} can be scrolled into view ${r.map(Math.round)}`);
     };
-    await page.click('#startBtn');
+    await page.click('#startBtn'); await page.click('.tcard.on[data-pick]');
     await frames(page, 2);
     await page.click('#pauseBtn');
     await check('pause', 'resumeBtn');
@@ -244,7 +244,7 @@ for (const [name, w, h, pad] of [['notched phone', 393, 852, '59px 0 34px 0'], [
     // the game reads the notch insets from #safe, which normally gets them from env(safe-area-inset-*)
     await page.addStyleTag({ content: `#safe{padding:${pad} !important}` });
     await page.evaluate(() => layout());
-    await page.click('#startBtn');
+    await page.click('#startBtn'); await page.click('.tcard.on[data-pick]');
     await frames(page, 3);
     const m = await page.evaluate(`(${MEASURE.toString()})()`);
     const [pt, pr, pb, pl] = pad.split(' ').map(parseFloat).concat([0, 0, 0]).slice(0, 4);
@@ -260,7 +260,7 @@ for (const [name, w, h, pad] of [['notched phone', 393, 852, '59px 0 34px 0'], [
 test('the shake button never covers the row of balls on phones', { skip }, async t => {
   for (const [w, h] of [[360, 640], [375, 667], [390, 700], [393, 852], [412, 915], [430, 932]]) {
     const { page, errors } = await openPage(browser, base, t, { viewport: { width: w, height: h }, touch: true });
-    await page.click('#startBtn');
+    await page.click('#startBtn'); await page.click('.tcard.on[data-pick]');
     const r = await page.evaluate(() => { const b = abilBtn.getBoundingClientRect(), fb = OY + VY1 * SC, top = fb + 78 * ui - (8 + RADII[MAXL] * 2.6) * ui; return [b.bottom, top]; });
     assert.ok(r[0] + 8 <= r[1], `${w}x${h}: button bottom ${Math.round(r[0])}, balls start ${Math.round(r[1])}`);
     assert.deepEqual(errors, []);

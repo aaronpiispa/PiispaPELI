@@ -144,14 +144,15 @@ function showInfo(kind, id, back) {
       (r.stones ? p('<b>' + T('Kivet') + ':</b> ' + T('Joka {0}. laukauksella vaunuun putoaa kivi, joka ei yhdisty. Se hajoaa, kun sen vieressä yhdistetään palloja kaksi kertaa.', r.stones)) : '') +
       (r.boss ? p('<b>' + T('Pomo') + ':</b> ' + T('Kun saat {0}, vaunuun saapuu pomo. Voita se yhdistämällä palloja sen vieressä.', lbl(r.boss))) : '') +
       p('<b>' + T('Tähdet') + ':</b> ' + `<span class="stars">${starStr(st)}</span> ` + T('Yksi tähti läpäisystä ja yksi kummastakin lisätavoitteesta: {0}.', STAR_GOALS[i].map(g => T(g[0])).join(' · '))) +
-      (i > 0 ? p(T('Pisteet ja heilautukset säilyvät, kun siirryt seuraavalle tasolle.')) : '') +
+      (i > 0 ? p(T('Pisteet ja ruletit säilyvät, kun siirryt seuraavalle tasolle.')) : '') +
       (stageOpen(i, theme().id) ? '' : p('🔒 ' + T('Avautuu, kun läpäiset tason {0}.', i)));
   } else {
     const goal = { classic: 'Kerää mahdollisimman paljon pisteitä ja läpäise tasot yhdistämällä kaksi suurinta palloa. Peli päättyy, jos pallot painavat molempia nappeja yhtä aikaa.',
-      daily: 'Saa {0} mahdollisimman vähillä laukauksilla. Kaikilla on sama pallojärjestys, ja haaste vaihtuu joka päivä klo 15.',
+      daily: '',
       map: 'Suorita {1} tehtävää järjestyksessä. Jokaisella tehtävällä on oma tavoitteensa, esimerkiksi tietty pallo rajatuilla laukauksilla tai pisteitä aikarajassa.' }[id];
     title = MODE_INFO[id].name;
-    body = (id === 'daily' ? '' : p(MODE_INFO[id].desc)) + p('<b>' + T('Tavoite') + ':</b> ' + T(goal, ballLabel(10), MISSIONS.length));
+    body = id === 'daily' ? p('<b>' + T('Tänään') + ':</b> ' + dailyText()) + p(T('Tavoite vaihtuu joka päivä klo 15. Kaikilla on sama pallojärjestys ja sama tavoite.'))
+      : p(MODE_INFO[id].desc) + p('<b>' + T('Tavoite') + ':</b> ' + T(goal, ballLabel(10), MISSIONS.length));
   }
   showOverlay(`<h2 class="h2">${title}</h2>` + body + `<div class="row" style="margin-top:14px"><button class="btn" id="${back === 'modes' ? 'modesBtn' : 'backMenu'}" type="button">${T('Selvä!')}</button></div>`);
 }
@@ -191,7 +192,7 @@ function showMenu() {
     slotsHTML('load') +
     musicRow() +
     '<div class="install" id="installRow"></div>' +
-    '<p class="keys">' + T('Näppäimistö: ← → tähtää · ↑ ↓ voima · välilyönti ampuu · H heilauta · P tauko') + '</p></div>', 'menu');
+    '<p class="keys">' + T('Näppäimistö: ← → tähtää · ↑ ↓ voima · välilyönti ampuu · H ruletti · P tauko') + '</p></div>', 'menu');
   renderInstall();
   fitMenu();
 }
@@ -219,13 +220,26 @@ function showThemes() {
   showOverlay('<h2 class="h2">' + T('Teemat') + '</h2><p class="sub">' + T('Vaunun ja taustan tyyli') + '</p><div class="tgrid">' + items + '</div>' +
     '<div class="row" style="margin-top:14px"><button class="btn" id="backMenu" type="button">' + T('Valmis') + '</button></div>');
 }
+// starting a new game: first pick the train
+function showThemePick() {
+  const ICON = { eu: 'train', viking: 'shield', heart: 'heart', uni: 'cap' }, cur = theme().id;
+  const items = THEMES.map(t => {
+    const open = themeOpen(t), a = t.ach && ACH.find(x => x[0] === t.ach), s = stageSel(t.id);
+    const sw = `background:linear-gradient(90deg,${t.wall[2]} 0 10%,${t.wall[1]} 10% 14%,${t.body.replace(/[\d.]+\)$/, '1)')} 14% 86%,${t.wall[1]} 86% 90%,${t.wall[2]} 90%);color:${t.rivet}`;
+    return `<button class="tcard${cur === t.id && open ? ' on' : ''}${open ? '' : ' locked'}" type="button" data-pick="${t.id}"${open ? '' : ' disabled'}>` +
+      `<span class="tsw" style="${sw}" aria-hidden="true">${MI[ICON[t.id]]}</span><b>${T(t.name)}</b>` +
+      `<small>${open ? T('Taso {0}: {1}', s + 1, T(STAGES[t.id][s].name)) : T('Avautuu saavutuksesta: {0}', a ? a[1] : '')}</small></button>`;
+  }).join('');
+  showOverlay('<h2 class="h2">' + T('Valitse teema') + '</h2><p class="sub">' + T('Millä junalla lähdetään?') + '</p><div class="tgrid">' + items + '</div>' +
+    '<div class="row" style="margin-top:14px"><button class="btn alt" id="backMenu" type="button">' + T('Takaisin') + '</button></div>');
+}
 function showRules() {
   const R = [
     [COLORS[0], '<b>Tähtää</b> hiirellä tai sormella. Mitä kauemmas osoitat, sitä kovempaa pallo lentää.'],
     [COLORS[2], '<b>Ammu</b> klikkaamalla tai nostamalla sormen ruudulta.'],
     [COLORS[4], 'Kevyt laukaus laskee pallon varovasti, kova laukaus <b>tönii ja litistää</b> muita.'],
     [COLORS[9], 'Vaunun seinissä on kaksi nappia. Jos pallot koskettavat <b>molempia nappeja</b> yhtä aikaa, peli päättyy.'],
-    ['#ffcc00', 'Joka <b>40 000 pisteellä</b> saat heilautuksen, joka ravistaa vaunua ja sekoittaa pallot.'],
+    ['#ffcc00', 'Joka <b>40 000 pisteellä</b> saat <b>ruletin</b>. Se arpoo heilautuksen, mustan aukon, magneetin, ei mitään tai harvoin <b>jokeripallon</b>, joka yhdistyy minkä tahansa pallon kanssa. Seinien napit saavat hetkeksi <b>kilven</b>.'],
     ['#ff4d7d', 'Ammu vaunun yläosassa lentäviä <b>tähtiä</b> ja <b>Nelli-sydämiä</b>, niin saat bonuspisteitä.'],
     ['#6fd3ff', 'Kun yhdistät kaksi suurinta palloa, siirryt heti <b>uudelle tasolle</b> uusine palloineen. Ylemmillä tasoilla tietty pallo pitää saada <b>aikarajassa</b>.'],
     ['#3ad8ff', 'Pelaamalla saat <b>kokemusta</b> ja <b>kolikoita</b>. Uusista pelaajatasoista saa palkintoja, ja kolikoilla voi ostaa <b>kaupasta</b> uusia tavaroita. Jokaisesta tasosta saa 1–3 <b>tähteä</b>.'],
@@ -243,7 +257,7 @@ function showModes() {
     if (m === 'classic') extra = T('Ennätys {0}', best);
     if (m === 'daily') { const d = Number(store.get('piispanpeli-daily-' + todayKey(), 0)) || 0; extra = (d ? T('Paras: {0} laukausta', d) : T('Haaste odottaa')) + ' · ' + T('uusi haaste {0} päästä', dailyLeft()); }
     if (m === 'map') extra = T('Suoritettu {0} / {1}', mapDone(), MISSIONS.length);
-    return `<li><b>${MODE_INFO[m].name}${infoBtn('mode', m, MODE_INFO[m].name)}</b><button class="mini" type="button" data-mode="${m}">${T(m === 'map' ? 'Avaa' : 'Pelaa')}</button><small>${MODE_INFO[m].desc}<br>${extra}</small></li>`;
+    return `<li><b>${MODE_INFO[m].name}${infoBtn('mode', m, MODE_INFO[m].name)}</b><button class="mini" type="button" data-mode="${m}">${T(m === 'map' ? 'Avaa' : 'Pelaa')}</button><small>${m === 'daily' ? T('Tänään') + ': ' + dailyText() : MODE_INFO[m].desc}<br>${extra}</small></li>`;
   }).join('');
   showOverlay('<h2 class="h2">' + T('Pelimuodot') + '</h2><ul class="list">' + rows + '</ul><div class="row" style="margin-top:14px"><button class="btn alt" id="backMenu" type="button">' + T('Takaisin') + '</button></div>');
 }
@@ -315,10 +329,8 @@ function showPause(note) {
     '</div>' + musicRow());
 }
 function musicRow() {
-  const opts = music.names.map((n, i) => `<option value="${i}"${music.track === i ? ' selected' : ''}>${n}</option>`).join('') + `<option value="-1"${music.track < 0 ? ' selected' : ''}>${T('Ei musiikkia')}</option>`;
   const lopts = LANGS.map(([c, n]) => `<option value="${c}"${c === lang ? ' selected' : ''}>${n}</option>`).join('');
   return `<div class="audio"><label for="langSel">🌐 ${T('Kieli')}</label><select id="langSel">${lopts}</select>` +
-    `<label for="trackSel">♪ ${T('Musiikki')}</label><select id="trackSel">${opts}</select>` +
     `<label for="volRange">${T('Äänenvoimakkuus')}</label><input id="volRange" type="range" min="0" max="100" value="${Math.round(sfx.volume * 100)}"></div>`;
 }
 function openAdmin() {
@@ -333,16 +345,16 @@ function showAdmin(note) {
     (inGame && cheated ? `<p class="sub">${T('Huijaukset käytössä – ennätystä ei tallenneta tästä pelistä.')}</p>` : '') +
     (inGame
       ? `<div class="audio"><label for="adminBall">${T('Seuraava pallo')}</label><select id="adminBall">${opts}</select></div>` +
-        '<div class="row" style="margin-top:14px"><button class="btn alt" id="admCharge" type="button">' + T('+1 heilautus') + '</button><button class="btn alt" id="admPts" type="button">' + T('+10 000 pistettä') + '</button></div>' +
+        '<div class="row" style="margin-top:14px"><button class="btn alt" id="admCharge" type="button">' + T('+1 ruletti') + '</button><button class="btn alt" id="admPts" type="button">' + T('+10 000 pistettä') + '</button></div>' +
         '<div class="row" style="margin-top:12px"><button class="btn alt" id="admClear" type="button">' + T('Tyhjennä vaunu') + '</button>' +
         `<button class="btn alt" id="admGod" type="button" aria-pressed="${invincible}">${T('Kuolemattomuus: {0}', T(invincible ? 'päällä' : 'pois'))}</button></div>` +
-        `<div class="row" style="margin-top:12px"><button class="btn alt" id="admInf" type="button" aria-pressed="${infSwing}">${T('Loputtomat heilautukset: {0}', T(infSwing ? 'päällä' : 'pois'))}</button></div>` +
+        `<div class="row" style="margin-top:12px"><button class="btn alt" id="admInf" type="button" aria-pressed="${infSwing}">${T('Loputtomat ruletit: {0}', T(infSwing ? 'päällä' : 'pois'))}</button></div>` +
         '<div class="row" style="margin-top:12px"><button class="btn alt" id="admLose" type="button">' + T('Häviä peli') + '</button></div>' +
         '<div class="row" style="margin-top:12px"><button class="btn" id="admAll" type="button">' + T('Avaa kaikki') + '</button></div>'
       : '<p class="sub">' + T('Aloita peli, niin voit muokata sitä täällä.') + '</p>' +
         `<div class="row" style="margin-bottom:12px"><button class="btn" id="admAll" type="button">${T('Avaa kaikki')}</button></div>` +
         `<div class="row"><button class="btn alt" id="admGod" type="button" aria-pressed="${invincible}">${T('Kuolemattomuus: {0}', T(invincible ? 'päällä' : 'pois'))}</button></div>` +
-        `<div class="row" style="margin-top:12px"><button class="btn alt" id="admInf" type="button" aria-pressed="${infSwing}">${T('Loputtomat heilautukset: {0}', T(infSwing ? 'päällä' : 'pois'))}</button></div>`) +
+        `<div class="row" style="margin-top:12px"><button class="btn alt" id="admInf" type="button" aria-pressed="${infSwing}">${T('Loputtomat ruletit: {0}', T(infSwing ? 'päällä' : 'pois'))}</button></div>`) +
     '<div class="row" style="margin-top:16px"><button class="btn" id="admClose" type="button">' + T('Sulje') + '</button></div>');
 }
 // a game in which the admin panel changed something keeps no records, achievements or progress. Toggles switched
@@ -371,7 +383,7 @@ function showOver(newBest) {
   if (gmode === 'daily') {
     const d = Number(store.get('piispanpeli-daily-' + dayKey, 0)) || 0;
     if (endReason === 'win') { title = T('Päivän haaste läpäisty!'); main = T('{0} laukausta', shots); sub = newBest ? '<p class="sub win">' + T('Päivän paras tulos!') + '</p>' : '<p class="sub">' + T('Tänään paras: {0} laukausta', d) + '</p>'; }
-    else { title = T('Haaste jäi kesken'); main = NAMES[maxLevel]; sub = '<p class="sub">' + T('Yritä uudelleen saada {0}. Pallojärjestys pysyy samana, kunnes uusi haaste alkaa klo 15.', NAMES[10]) + '</p>'; }
+    else { title = T('Haaste jäi kesken'); main = NAMES[maxLevel]; sub = '<p class="sub">' + dailyText(dailyGoal(dayKey)) + ' ' + T('Pallojärjestys ja tavoite pysyvät samoina, kunnes uusi haaste alkaa klo 15.') + '</p>'; }
   }
   if (gmode === 'map') {
     const ms = MISSIONS[missionIdx];
@@ -389,7 +401,6 @@ function showOver(newBest) {
 }
 
 card.addEventListener('change', e => {
-  if (e.target.id === 'trackSel') { sfx.ensure(); music.setTrack(Number(e.target.value)); }
   if (e.target.id === 'langSel') { setLang(e.target.value); if (state === 'menu') showMenu(); else if (state === 'paused' && !adminOn) showPause(); }
   if (e.target.id === 'adminBall') { cheat(); cur = Number(e.target.value); popT = 0; }
 });
@@ -413,6 +424,11 @@ card.addEventListener('click', e => {
     card.querySelectorAll(`.witem[data-slot="${slot}"]:not(.locked)`).forEach(el => { const on = el === btn; el.classList.toggle('on', on); el.querySelector('small').textContent = T(on ? 'Käytössä' : 'Valitse'); });
     return;
   }
+  if (btn.dataset.pick) {
+    themeId = btn.dataset.pick; store.set('piispanpeli-theme', themeId); buildBg(); stage = stageSel(); applyLang();
+    startGame('classic');
+    return;
+  }
   if (btn.dataset.theme) {
     themeId = btn.dataset.theme; store.set('piispanpeli-theme', themeId); mascotBounce = 0.8; buildBg(); stage = stageSel(); applyLang();
     card.querySelectorAll('.tcard:not(.locked)').forEach(el => { const on = el === btn; el.classList.toggle('on', on); el.querySelector('small').textContent = T(on ? 'Käytössä' : 'Valitse'); });
@@ -426,7 +442,7 @@ card.addEventListener('click', e => {
   }
   if (btn.dataset.mode) { const m = btn.dataset.mode; if (m === 'map') showMap(); else startGame(m); return; }
   if (btn.dataset.mission != null) { startGame('map', Number(btn.dataset.mission)); return; }
-  if (btn.id === 'startBtn') startGame('classic');
+  if (btn.id === 'startBtn') showThemePick();
   else if (btn.id === 'againBtn' || btn.id === 'restartBtn') { if (gmode === 'classic') store.set('piispanpeli-stagesel-' + theme().id, stage); startGame(); }
   else if (btn.id === 'nextMission') startGame('map', missionIdx + 1);
   else if (btn.id === 'modesBtn') showModes();
@@ -453,11 +469,11 @@ card.addEventListener('click', e => {
   else if (btn.id === 'resumeBtn') resume();
   else if (btn.id === 'saveBtn') showSaveSlots();
   else if (btn.id === 'admAll') { unlockEverything(); sfx.ensure(); triggerConfetti(); showAdmin(T('Kaikki avattu: saavutukset, teemat, hahmon tavarat, maat ja tehtävät.')); }
-  else if (btn.id === 'admCharge') { cheat(); charges++; syncAbil(); showAdmin(T('Heilautus lisätty.')); }
+  else if (btn.id === 'admCharge') { cheat(); charges++; syncAbil(); showAdmin(T('Ruletti lisätty.')); }
   else if (btn.id === 'admPts') { cheat(); addScore(10000); shownScore = score; showAdmin(T('Lisätty 10 000 pistettä.')); }
   else if (btn.id === 'admClear') { cheat(); clearAll(); dangerT = 0; jamT = 0; showAdmin(T('Vaunu tyhjennetty.')); }
   else if (btn.id === 'admGod') { invincible = !invincible; if (invincible) cheat(); showAdmin(T(invincible ? 'Kuolemattomuus päällä.' : 'Kuolemattomuus pois.')); }
-  else if (btn.id === 'admInf') { infSwing = !infSwing; if (infSwing) cheat(); syncAbil(); showAdmin(T(infSwing ? 'Loputtomat heilautukset päällä.' : 'Loputtomat heilautukset pois.')); }
+  else if (btn.id === 'admInf') { infSwing = !infSwing; if (infSwing) cheat(); syncAbil(); showAdmin(T(infSwing ? 'Loputtomat ruletit päällä.' : 'Loputtomat ruletit pois.')); }
   else if (btn.id === 'admClose') closeAdmin();
   else if (btn.id === 'admLose') { invincible = false; adminOn = false; hideOverlay(); state = 'play'; gameOver(gmode === 'map' || gmode === 'daily' ? 'fail' : 'forced'); }
 
@@ -582,7 +598,7 @@ pauseBtn.addEventListener('click', () => { if (state === 'play') pause(); else i
 const FI = {
   names: NAMES.slice(), modes: Object.fromEntries(Object.entries(MODE_INFO).map(([k, v]) => [k, [v.name, v.desc]])),
   missions: MISSIONS.map(m => m.text), ach: ACH.map(a => [a[1], a[2]]),
-  ward: Object.fromEntries(Object.entries(WARDROBE).map(([k, v]) => [k, v.map(it => it[1])])), slots: Object.assign({}, SLOT_NAMES), songs: music.names.slice()
+  ward: Object.fromEntries(Object.entries(WARDROBE).map(([k, v]) => [k, v.map(it => it[1])])), slots: Object.assign({}, SLOT_NAMES)
 };
 // mode and mission goals name a ball, which is hidden until seen: rewritten whenever those screens open
 function refreshGoalTexts() {
@@ -598,7 +614,6 @@ function applyLang() {
   FI.ach.forEach(([n, d], i) => { ACH[i][1] = T(n); ACH[i][2] = T(d); });
   for (const k in FI.ward) FI.ward[k].forEach((n, i) => { WARDROBE[k][i][1] = T(n); });
   for (const k in FI.slots) SLOT_NAMES[k] = T(FI.slots[k]);
-  FI.songs.forEach((n, i) => { music.names[i] = T(n); });
   document.documentElement.lang = lang;
   canvas.setAttribute('aria-label', T('Pelialue: vaunu täynnä lippupalloja'));
   pauseBtn.setAttribute('aria-label', T('Tauko'));

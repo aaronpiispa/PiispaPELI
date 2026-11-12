@@ -13,12 +13,13 @@ Pelaa: https://aaronpiispa.github.io/PiispaPELI/
 | `js/engine.js` | Pehmeä fysiikka: pallot helmirenkaina, törmäykset, yhdistyminen |
 | `js/i18n-data.js` | Käännökset (avaimena suomenkielinen teksti) |
 | `js/core.js` | Yhteiset vakiot, tallennus, liput, kielen valinta |
-| `js/audio.js` | Generoitu lo-fi-musiikki ja ääniefektit |
+| `js/audio.js` | Musiikki (oma kappale jokaiselle teemalle ja tasolle) ja ääniefektit, tehty Web Audiolla |
 | `js/scenery.js` | Asettelu, automaattinen laatutaso, maisemat |
 | `js/game.js` | Pelin kulku, pelimuodot, teemat, saavutukset, pokaalit, tallennukset |
 | `js/render.js` | Vaunun, pallojen, nappien ja HUDin piirto sekä pääsilmukka |
 | `js/challenge.js` | Tasojen haasteet: kivet, pomo ja tähdet |
 | `js/meta.js` | Pelaajataso, kokemus, kolikot ja kauppa |
+| `js/roulette.js` | Ruletti (heilautus, musta aukko, magneetti tai ei mitään) ja nappien kilpi |
 | `js/stageart.js` | Tasojen 2 ja 3 pallojen kuvat (planeetat, tähdet, olennot, maailmat, jalokivet, kaavat, tutkinnot) |
 | `js/mascot.js` | Hahmon piirto |
 | `js/ui.js` | Valikot, asennus, ohjaus, kielen vaihto |

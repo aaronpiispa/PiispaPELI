@@ -18,7 +18,7 @@ const store = (page, k) => page.evaluate(k => JSON.parse(localStorage.getItem(k)
 // start a classic game on the given stage (0, 1 or 2) of the EU train
 async function stageGame(t, n, extra) {
   const { page, errors } = await openPage(browser, base, t, { store: Object.assign({ 'piispanpeli-stage-eu': 3, 'piispanpeli-stagesel-eu': n }, extra || {}) });
-  await page.click('#startBtn');
+  await page.click('#startBtn'); await page.click('.tcard.on[data-pick]');
   assert.equal(await page.evaluate(() => stage), n);
   return { page, errors };
 }
@@ -80,7 +80,7 @@ test('beating a stage gives stars by its bonus goals, shown on the stage buttons
     chal: { s: 300, w: 0, c: 9 }, blobs: [[14, 3.1, 16.3], [14, 8.9, 16.3]] } } });
   await page.click('#continueBtn');
   await page.waitForFunction(() => stage === 1, null, { timeout: 10000 });
-  assert.deepEqual(await store(page, 'piispanpeli-stars-eu'), [3, 0, 0], 'no shake and a ×8 combo: three stars');
+  assert.deepEqual(await store(page, 'piispanpeli-stars-eu'), [3, 0, 0], 'no roulette and a ×4 combo: three stars');
   await page.evaluate(() => toMenu());
   assert.match(await text(page, '.stg[data-stage="0"]'), /★★★/);
   await page.click('[data-info="stage"][data-id="1"]');
@@ -91,7 +91,7 @@ test('beating a stage gives stars by its bonus goals, shown on the stage buttons
 test('merges give experience; a new player level gives coins and is shown in the menu', { skip }, async t => {
   const { page, errors } = await openPage(browser, base, t);
   assert.match(await text(page, '.meta'), /1\s*0 \/ 200 XP/);
-  await page.click('#startBtn');
+  await page.click('#startBtn'); await page.click('.tcard.on[data-pick]');
   await page.evaluate(() => gainXP(250));
   assert.deepEqual(await page.evaluate(() => [meta.lvl, meta.xp, meta.coins]), [2, 50, 35]);
   await page.evaluate(() => gameOver('forced'));
@@ -104,7 +104,7 @@ test('merges give experience; a new player level gives coins and is shown in the
 
 test('a cheated game gives no experience or coins', { skip }, async t => {
   const { page, errors } = await openPage(browser, base, t);
-  await page.click('#startBtn');
+  await page.click('#startBtn'); await page.click('.tcard.on[data-pick]');
   await page.evaluate(() => { cheated = true; gainXP(500); gainCoins(100); });
   assert.deepEqual(await page.evaluate(() => [meta.lvl, meta.xp, meta.coins]), [1, 0, 0]);
   assert.deepEqual(errors, []);
@@ -144,7 +144,7 @@ function STONE_LV() { return 20; }
 
 test('bonus bubbles drift across the wagon and pop when a ball touches them', { skip }, async t => {
   const { page, errors } = await openPage(browser, base, t);
-  await page.click('#startBtn');
+  await page.click('#startBtn'); await page.click('.tcard.on[data-pick]');
   await page.evaluate(() => { bonusT = 0.001; });
   await frames(page, 3);
   const p0 = await page.evaluate(() => { const o = bonuses[0]; return [o.x, bubblePos(o)[1]]; });
@@ -167,7 +167,7 @@ test('new menu screens pop in, and starting a game or a new stage shows its bann
   await page.click('[data-slot="hat"][data-item="none"]');
   assert.ok(await page.evaluate(() => card.classList.contains('pop')), 'still the same screen');
   await page.click('#backMenu');
-  await page.click('#startBtn');
+  await page.click('#startBtn'); await page.click('.tcard.on[data-pick]');
   assert.deepEqual(await page.evaluate(() => [trans.kind, trans.title]), ['start', 'Taso 1: Eurooppa']);
   await frames(page, 20);
   assert.deepEqual(errors, []);

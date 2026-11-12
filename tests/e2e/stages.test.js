@@ -70,7 +70,7 @@ test('the last stage ends with a final win screen, and the game can go on after 
 
 test('five save slots', { skip }, async t => {
   const { page, errors } = await openPage(browser, base, t);
-  await page.click('#startBtn');
+  await page.click('#startBtn'); await page.click('.tcard.on[data-pick]');
   await page.evaluate(() => pause());
   await page.click('#saveBtn');
   assert.equal(await page.$$eval('[data-act="save"]', b => b.length), 5);
@@ -83,7 +83,7 @@ test('five save slots', { skip }, async t => {
 test('missing the time limit ends the game and says which ball was needed', { skip }, async t => {
   const { page, errors } = await openPage(browser, base, t, { store: { 'piispanpeli-stage-eu': 2 } });
   assert.match(await text(page, '.stgoal'), /Aikaraja: 10\. pallo 6 minuutissa · 13\. pallo 20 minuutissa/);
-  await page.click('#startBtn');
+  await page.click('#startBtn'); await page.click('.tcard.on[data-pick]');
   assert.equal(await page.evaluate(() => stage), 2);
   await page.evaluate(() => { playT = 359.9; });
   await page.waitForFunction(() => state === 'over', null, { timeout: 5000 });
@@ -106,7 +106,8 @@ test('the other game modes always play the first stage\'s balls', { skip }, asyn
   const { page, errors } = await openPage(browser, base, t, { store: { 'piispanpeli-stage-eu': 2, 'piispanpeli-stagesel-eu': 2 } });
   assert.equal(await page.evaluate(() => NAMES[14]), 'Universumi', 'the menu shows the chosen stage');
   await page.click('#modesBtn');
-  assert.match(await text(page, '#card'), /Saa 11\. pallo/, 'France is not seen yet, so it is not named');
+  assert.ok(!(await text(page, '#card')).includes('Ranska'), 'France is not seen yet, so it is not named');
+  assert.match(await page.evaluate(() => dailyText({ kind: 'ball', lv: 10 })), /Saa 11\. pallo/);
   await page.click('[data-mode="daily"]');
   assert.deepEqual(await page.evaluate(() => [stage, NAMES[10]]), [0, 'Ranska']);
   await page.evaluate(() => toMenu());
@@ -155,7 +156,7 @@ test('the (i) buttons explain the goal of every stage and every game mode', { sk
   assert.equal(await page.$$eval('.list .info', b => b.length), 3, 'one info button per game mode');
   for (const m of ['classic', 'daily', 'map']) {
     await page.click(`[data-info="mode"][data-id="${m}"]`);
-    assert.match(await text(page, '#card'), /Tavoite:/, m);
+    assert.match(await text(page, '#card'), m === 'daily' ? /Tänään:/ : /Tavoite:/, m);
     await page.click('#modesBtn');
   }
   assert.deepEqual(errors, []);
@@ -163,7 +164,7 @@ test('the (i) buttons explain the goal of every stage and every game mode', { sk
 
 test('the goal ball is marked in the ball row and the time limit is written across the wagon', { skip }, async t => {
   const { page, errors } = await openPage(browser, base, t, { store: { 'piispanpeli-stage-eu': 3, 'piispanpeli-stagesel-eu': 2 } });
-  await page.click('#startBtn');
+  await page.click('#startBtn'); await page.click('.tcard.on[data-pick]');
   assert.deepEqual(await page.evaluate(() => openGoals()), [{ lv: 9, t: 360 }, { lv: 12, t: 1200 }]);
   await frames(page, 10);
   await page.evaluate(() => { maxLevel = 9; });
