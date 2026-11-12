@@ -708,7 +708,10 @@ const I18N = {
     "Tee kombo ×{0} mahdollisimman vähillä laukauksilla.": "Lav en ×{0}-kombo med så få skud som muligt.",
     "Saa {0} alle {1} minuutissa mahdollisimman vähillä laukauksilla.": "Få {0} inden for {1} minutter med så få skud som muligt.",
     "Tänään": "I dag",
-    "JOKERI!": "JOKER!"
+    "JOKERI!": "JOKER!",
+    "Läpäise taso {0} minuutissa": "Klar banen på {0} minutter",
+    "Taso piti läpäistä {0} minuutissa.": "Banen skulle klares på {0} minutter.",
+    "Aikaraja": "Tidsgrænse"
   },
   "de": {
     "Hahmo": "Figur",
@@ -1416,7 +1419,10 @@ const I18N = {
     "Tee kombo ×{0} mahdollisimman vähillä laukauksilla.": "Schaffe eine ×{0}-Kombo mit möglichst wenigen Schüssen.",
     "Saa {0} alle {1} minuutissa mahdollisimman vähillä laukauksilla.": "Hol {0} in {1} Minuten mit möglichst wenigen Schüssen.",
     "Tänään": "Heute",
-    "JOKERI!": "JOKER!"
+    "JOKERI!": "JOKER!",
+    "Läpäise taso {0} minuutissa": "Schaffe das Level in {0} Minuten",
+    "Taso piti läpäistä {0} minuutissa.": "Das Level musste in {0} Minuten geschafft werden.",
+    "Aikaraja": "Zeitlimit"
   },
   "en": {
     "Hahmo": "Character",
@@ -2124,7 +2130,10 @@ const I18N = {
     "Tee kombo ×{0} mahdollisimman vähillä laukauksilla.": "Make a ×{0} combo in as few shots as possible.",
     "Saa {0} alle {1} minuutissa mahdollisimman vähillä laukauksilla.": "Get {0} within {1} minutes, in as few shots as possible.",
     "Tänään": "Today",
-    "JOKERI!": "JOKER!"
+    "JOKERI!": "JOKER!",
+    "Läpäise taso {0} minuutissa": "Beat the stage in {0} minutes",
+    "Taso piti läpäistä {0} minuutissa.": "The stage had to be beaten in {0} minutes.",
+    "Aikaraja": "Time limit"
   },
   "et": {
     "Hahmo": "Tegelane",
@@ -2832,7 +2841,10 @@ const I18N = {
     "Tee kombo ×{0} mahdollisimman vähillä laukauksilla.": "Tee kombo ×{0} võimalikult väheste lasudega.",
     "Saa {0} alle {1} minuutissa mahdollisimman vähillä laukauksilla.": "Saa {0} {1} minutiga võimalikult väheste lasudega.",
     "Tänään": "Täna",
-    "JOKERI!": "JOKKER!"
+    "JOKERI!": "JOKKER!",
+    "Läpäise taso {0} minuutissa": "Läbi tase {0} minutiga",
+    "Taso piti läpäistä {0} minuutissa.": "Tase tuli läbida {0} minutiga.",
+    "Aikaraja": "Ajalimiit"
   },
   "fr": {
     "Hahmo": "Personnage",
@@ -3540,7 +3552,10 @@ const I18N = {
     "Tee kombo ×{0} mahdollisimman vähillä laukauksilla.": "Fais un combo ×{0} en le moins de tirs possible.",
     "Saa {0} alle {1} minuutissa mahdollisimman vähillä laukauksilla.": "Obtiens {0} en moins de {1} minutes, en le moins de tirs possible.",
     "Tänään": "Aujourd’hui",
-    "JOKERI!": "JOKER !"
+    "JOKERI!": "JOKER !",
+    "Läpäise taso {0} minuutissa": "Termine le niveau en {0} minutes",
+    "Taso piti läpäistä {0} minuutissa.": "Il fallait terminer le niveau en {0} minutes.",
+    "Aikaraja": "Temps limite"
   },
   "ga": {
     "Hahmo": "Carachtar",
@@ -4248,7 +4263,10 @@ const I18N = {
     "Tee kombo ×{0} mahdollisimman vähillä laukauksilla.": "Déan combo ×{0} leis an líon is lú urchar.",
     "Saa {0} alle {1} minuutissa mahdollisimman vähillä laukauksilla.": "Faigh {0} laistigh de {1} nóiméad, leis an líon is lú urchar.",
     "Tänään": "Inniu",
-    "JOKERI!": "JOKER!"
+    "JOKERI!": "JOKER!",
+    "Läpäise taso {0} minuutissa": "Críochnaigh an leibhéal i {0} nóiméad",
+    "Taso piti läpäistä {0} minuutissa.": "Bhí an leibhéal le críochnú i {0} nóiméad.",
+    "Aikaraja": "Teorainn ama"
   },
   "hu": {
     "Hahmo": "Karakter",
@@ -4956,7 +4974,10 @@ const I18N = {
     "Tee kombo ×{0} mahdollisimman vähillä laukauksilla.": "Csinálj ×{0}-os kombót minél kevesebb lövéssel.",
     "Saa {0} alle {1} minuutissa mahdollisimman vähillä laukauksilla.": "Szerezd meg: {0}, {1} percen belül, minél kevesebb lövéssel.",
     "Tänään": "Ma",
-    "JOKERI!": "DZSÓKER!"
+    "JOKERI!": "DZSÓKER!",
+    "Läpäise taso {0} minuutissa": "Teljesítsd a szintet {0} perc alatt",
+    "Taso piti läpäistä {0} minuutissa.": "A szintet {0} perc alatt kellett teljesíteni.",
+    "Aikaraja": "Időkorlát"
   },
   "it": {
     "Hahmo": "Personaggio",
@@ -5664,7 +5685,10 @@ const I18N = {
     "Tee kombo ×{0} mahdollisimman vähillä laukauksilla.": "Fai una combo ×{0} con meno tiri possibile.",
     "Saa {0} alle {1} minuutissa mahdollisimman vähillä laukauksilla.": "Ottieni {0} entro {1} minuti, con meno tiri possibile.",
     "Tänään": "Oggi",
-    "JOKERI!": "JOLLY!"
+    "JOKERI!": "JOLLY!",
+    "Läpäise taso {0} minuutissa": "Completa il livello in {0} minuti",
+    "Taso piti läpäistä {0} minuutissa.": "Il livello andava completato in {0} minuti.",
+    "Aikaraja": "Tempo limite"
   },
   "lv": {
     "Hahmo": "Tēls",
@@ -6372,7 +6396,10 @@ const I18N = {
     "Tee kombo ×{0} mahdollisimman vähillä laukauksilla.": "Izveido kombo ×{0} ar pēc iespējas mazāk šāvieniem.",
     "Saa {0} alle {1} minuutissa mahdollisimman vähillä laukauksilla.": "Iegūsti {0} {1} minūšu laikā ar pēc iespējas mazāk šāvieniem.",
     "Tänään": "Šodien",
-    "JOKERI!": "DŽOKERS!"
+    "JOKERI!": "DŽOKERS!",
+    "Läpäise taso {0} minuutissa": "Pabeidz līmeni {0} minūtēs",
+    "Taso piti läpäistä {0} minuutissa.": "Līmenis bija jāpabeidz {0} minūtēs.",
+    "Aikaraja": "Laika limits"
   },
   "ro": {
     "Hahmo": "Personaj",
@@ -7080,7 +7107,10 @@ const I18N = {
     "Tee kombo ×{0} mahdollisimman vähillä laukauksilla.": "Fă un combo ×{0} din cât mai puține lovituri.",
     "Saa {0} alle {1} minuutissa mahdollisimman vähillä laukauksilla.": "Obține {0} în {1} minute, din cât mai puține lovituri.",
     "Tänään": "Azi",
-    "JOKERI!": "JOKER!"
+    "JOKERI!": "JOKER!",
+    "Läpäise taso {0} minuutissa": "Termină nivelul în {0} minute",
+    "Taso piti läpäistä {0} minuutissa.": "Nivelul trebuia terminat în {0} minute.",
+    "Aikaraja": "Limită de timp"
   },
   "ru": {
     "Hahmo": "Персонаж",
@@ -7788,7 +7818,10 @@ const I18N = {
     "Tee kombo ×{0} mahdollisimman vähillä laukauksilla.": "Сделай комбо ×{0} как можно меньшим числом выстрелов.",
     "Saa {0} alle {1} minuutissa mahdollisimman vähillä laukauksilla.": "Получи {0} за {1} минут как можно меньшим числом выстрелов.",
     "Tänään": "Сегодня",
-    "JOKERI!": "ДЖОКЕР!"
+    "JOKERI!": "ДЖОКЕР!",
+    "Läpäise taso {0} minuutissa": "Пройди уровень за {0} минут",
+    "Taso piti läpäistä {0} minuutissa.": "Уровень нужно было пройти за {0} минут.",
+    "Aikaraja": "Лимит времени"
   },
   "sv": {
     "Hahmo": "Figur",
@@ -8496,7 +8529,10 @@ const I18N = {
     "Tee kombo ×{0} mahdollisimman vähillä laukauksilla.": "Gör en ×{0}-kombo med så få skott som möjligt.",
     "Saa {0} alle {1} minuutissa mahdollisimman vähillä laukauksilla.": "Få {0} inom {1} minuter med så få skott som möjligt.",
     "Tänään": "Idag",
-    "JOKERI!": "JOKER!"
+    "JOKERI!": "JOKER!",
+    "Läpäise taso {0} minuutissa": "Klara nivån på {0} minuter",
+    "Taso piti läpäistä {0} minuutissa.": "Nivån skulle klaras på {0} minuter.",
+    "Aikaraja": "Tidsgräns"
   },
   "tr": {
     "Hahmo": "Karakter",
@@ -9204,7 +9240,10 @@ const I18N = {
     "Tee kombo ×{0} mahdollisimman vähillä laukauksilla.": "Olabildiğince az atışla ×{0} kombo yap.",
     "Saa {0} alle {1} minuutissa mahdollisimman vähillä laukauksilla.": "{0} topunu {1} dakika içinde, olabildiğince az atışla al.",
     "Tänään": "Bugün",
-    "JOKERI!": "JOKER!"
+    "JOKERI!": "JOKER!",
+    "Läpäise taso {0} minuutissa": "Seviyeyi {0} dakikada bitir",
+    "Taso piti läpäistä {0} minuutissa.": "Seviyenin {0} dakikada bitirilmesi gerekiyordu.",
+    "Aikaraja": "Süre sınırı"
   },
   "uk": {
     "Hahmo": "Персонаж",
@@ -9912,7 +9951,10 @@ const I18N = {
     "Tee kombo ×{0} mahdollisimman vähillä laukauksilla.": "Зроби комбо ×{0} якомога меншою кількістю пострілів.",
     "Saa {0} alle {1} minuutissa mahdollisimman vähillä laukauksilla.": "Отримай {0} за {1} хвилин якомога меншою кількістю пострілів.",
     "Tänään": "Сьогодні",
-    "JOKERI!": "ДЖОКЕР!"
+    "JOKERI!": "ДЖОКЕР!",
+    "Läpäise taso {0} minuutissa": "Пройди рівень за {0} хвилин",
+    "Taso piti läpäistä {0} minuutissa.": "Рівень треба було пройти за {0} хвилин.",
+    "Aikaraja": "Ліміт часу"
   },
   "kl": {
     "EU": "EU"

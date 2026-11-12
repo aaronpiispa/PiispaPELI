@@ -1,14 +1,15 @@
 // PiispanPELI · Stage challenges: stones and the boss of the last stage, and the bonus goals that give a stage its stars.
 'use strict';
 
-// what each stage asks for (the same in every theme): stage 1 is free play, stage 2 has stones,
-// stage 3 has time limits (STAGE_GOALS in game.js) and a boss
-const STAGE_RULES = [{}, { stones: 22 }, { boss: 12 }];
-const BOSS_HP = 60;
+// what each stage asks for (the same in every theme): stage 1 is free play, stage 2 has stones, and both
+// later stages have a time limit for the whole stage (STAGE_TIME in game.js) and a boss that arrives once
+// the biggest ball has been made. The boss is about as big as the 11th ball on stage 2 and the 12th on stage 3.
+const STAGE_RULES = [{}, { stones: 22, boss: MAXL }, { boss: MAXL }];
+const BOSS_HPS = [0, 40, 60], bossHP = () => BOSS_HPS[stage] || 60, bossR = st => RADII[st === 1 ? 10 : 11];
 // the two bonus goals of each stage; beating the stage gives one star and each bonus goal one more
 const STAR_GOALS = [
   [['Älä käytä rulettia', () => ch.swings === 0], ['Tee kombo ×4', () => ch.maxCombo >= 4]],
-  [['Riko 8 kiveä', () => ch.broken >= 8], ['Saa 10. pallo alle 5 minuutissa', () => ch.at9 > 0 && ch.at9 <= 300]],
+  [['Riko 8 kiveä', () => ch.broken >= 8], ['Voita pomo', () => ch.bossDone]],
   [['Voita pomo', () => ch.bossDone], ['Saa 13. pallo alle 18 minuutissa', () => ch.at12 > 0 && ch.at12 <= 1080]]
 ];
 
@@ -27,8 +28,8 @@ function challengeLoad(d) {
 }
 const rules = () => (gmode === 'classic' ? STAGE_RULES[stage] || {} : {});
 // the time limits of a stage: { lv, t }
-const stageGoals = i => (STAGE_GOALS[i] || []).map(([lv, t]) => ({ lv, t }));
-const goalText = (g, label) => T('{0} {1} minuutissa', label, g.t / 60);
+const stageGoals = i => (STAGE_TIME[i] ? [{ lv: MAXL, t: STAGE_TIME[i] }] : []);
+const goalText = g => T('Läpäise taso {0} minuutissa', g.t / 60);
 
 function challengeOnShot() {
   if (gmode !== 'classic') return;
@@ -83,14 +84,14 @@ function bossSpot() {
 }
 function challengeStep() {
   const r = rules();
-  for (const [lv, t] of STAGE_GOALS[stage] || []) {
-    if (maxLevel < lv && playT >= t && !invincible) { failGoal = { lv, t }; gameOver('stage'); return true; }
-  }
-  // the boss arrives two balls before the end of the stage
+  const lim = STAGE_TIME[stage];
+  if (lim && !stageDone && playT >= lim && !invincible) { failGoal = { lv: MAXL, t: lim }; gameOver('stage'); return true; }
+  // the boss arrives when the biggest ball has been made
   // it waits for a free spot, so it never lands on top of a ball (one just shot, say), and no ball can be shot for a moment
+  if (r.boss) SPECIAL_R[BOSS] = bossR(stage);
   const bx = r.boss && !ch.bossOn && !ch.bossDone && maxLevel >= r.boss ? bossSpot() : null;
   if (bx != null) {
-    ch.bossOn = true; ch.bossHP = BOSS_HP; cooldown = Math.max(cooldown, 0.9);
+    ch.bossOn = true; ch.bossHP = bossHP(); cooldown = Math.max(cooldown, 0.9);
     makeBlob(BOSS, bx, 2.8, 0, 1, 0.5);
     floater(T('Pomo saapuu!'), WORLD_W / 2, 6, '#ff6b6b', 30); sfx.over();
     if (!reduceMotion) shake = 0.35;
@@ -138,7 +139,7 @@ function drawSpecial(b) {
   if (b.level === BOSS) {
     drawBossFace(b.cx, b.cy, R, b.ang);
     // health bar above the boss
-    const w = 3, x = b.cx - w / 2, y = b.cy - R - 0.65, f = ch.bossHP / BOSS_HP;
+    const w = 3, x = b.cx - w / 2, y = b.cy - R - 0.65, f = ch.bossHP / bossHP();
     ctx.fillStyle = 'rgba(10,12,30,0.75)'; ctx.fillRect(x - 0.06, y - 0.06, w + 0.12, 0.38);
     ctx.fillStyle = ch.bossHit > 0 ? '#ffffff' : f > 0.5 ? '#ff5a5a' : f > 0.25 ? '#ff9a3a' : '#ffd84d'; ctx.fillRect(x, y, w * f, 0.26);
   }

@@ -172,7 +172,8 @@ const STAGES = {
       'Akatemiaprofessori', 'Kunniatohtori', 'Fields-mitali', 'Nobel-palkinto', 'Kaiken teoria'] }]
 };
 // time limits [ball level, seconds]; the other challenges are in challenge.js
-const STAGE_GOALS = [[], [], [[9, 360], [12, 1200]]];
+// how long each stage may take, in seconds (0 = no limit): the whole stage has to be beaten in that time
+const STAGE_TIME = [0, 60 * 60, 50 * 60];
 let themeId = store.get('piispanpeli-theme', 'eu');
 // achievements that were taken out as too easy, and what replaced each one: whatever they opened stays open
 const ACH_WAS = { nordic: 'rus', fra: 'stage1', combo5: 'combo10', s10k: 'merges100', shake: 'close', v_l79: 'v_l14', v_l10: 'v_stage1', h_l79: 'h_l14', h_l10: 'h_stage1', u_l79: 'u_l14', u_l10: 'u_stage1' };
@@ -634,6 +635,7 @@ function validSave(g) { return !!(g && Array.isArray(g.blobs)); }
 function autoSave() { if ((state === 'play' || state === 'paused') && gmode === 'classic') store.set(AUTO_KEY, gameData()); }
 function loadGame(g, play) {
   clearAll(); parts.length = 0; floaters.length = 0;
+  SPECIAL_R[BOSS] = bossR(g.stage | 0);
   for (const item of g.blobs) {
     const lv = item[0] | 0;
     if (!(lv >= 0 && lv <= MAXL) && lv !== STONE && lv !== BOSS) continue;

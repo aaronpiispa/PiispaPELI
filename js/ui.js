@@ -119,7 +119,7 @@ function stageLine() {
   // the goal of the selected stage, shown under the stage buttons in the menu
   const goals = stageGoals(stage);
   if (!goals.length) return T('Yhdistä kaksi suurinta palloa, niin pääset seuraavalle tasolle.');
-  return T('Aikaraja: {0}', goals.map(g => goalText(g, ballLabel(g.lv))).join(' · '));
+  return goalText(goals[0]) + '.';
 }
 // small (i) buttons that explain the goal of a stage or a game mode
 const infoBtn = (kind, id, name) => `<button class="info" type="button" data-info="${kind}" data-id="${id}" aria-label="${T('Lisätietoa: {0}', name)}">i</button>`;
@@ -139,7 +139,7 @@ function showInfo(kind, id, back) {
     body = p(T('Pallot: {0} → … → {1}', names[0], open ? names[MAXL] : '?')) +
       p('<b>' + T('Tavoite') + ':</b> ' + T('Yhdistä kaksi suurinta palloa.') + ' ' +
         (i + 1 < set.length ? T('Silloin peli siirtyy heti tasolle {0}: {1}.', i + 2, T(set[i + 1].name)) : T('Tämä on teeman viimeinen taso.'))) +
-      p(goals.length ? '<b>' + T('Aikarajat') + ':</b> ' + goals.map(g => goalText(g, lbl(g.lv))).join(' · ') + '. ' + T('Jos aikaraja ylittyy, peli päättyy.')
+      p(goals.length ? '<b>' + T('Aikaraja') + ':</b> ' + goalText(goals[0]) + '. ' + T('Jos aikaraja ylittyy, peli päättyy.')
         : T('Ei aikarajaa.')) +
       (r.stones ? p('<b>' + T('Kivet') + ':</b> ' + T('Joka {0}. laukauksella vaunuun putoaa kivi, joka ei yhdisty. Se hajoaa, kun sen vieressä yhdistetään palloja kaksi kertaa.', r.stones)) : '') +
       (r.boss ? p('<b>' + T('Pomo') + ':</b> ' + T('Kun saat {0}, vaunuun saapuu pomo. Voita se yhdistämällä palloja sen vieressä.', lbl(r.boss))) : '') +
@@ -378,7 +378,7 @@ function showOver(newBest) {
   let title = T('Vaunu täyttyi!'), main = String(score), sub = newBest && score > 0 ? NB : REC(best), extraBtn = '';
   if (gmode === 'classic' && endReason === 'stage' && failGoal) {
     title = T('Aikaraja ylittyi!');
-    sub = '<p class="sub">' + T('{0} piti saada {1} minuutissa.', ballLabel(failGoal.lv), failGoal.t / 60) + '</p>' + sub;
+    sub = '<p class="sub">' + T('Taso piti läpäistä {0} minuutissa.', failGoal.t / 60) + '</p>' + sub;
   }
   if (gmode === 'daily') {
     const d = Number(store.get('piispanpeli-daily-' + dayKey, 0)) || 0;

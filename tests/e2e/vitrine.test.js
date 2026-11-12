@@ -87,7 +87,7 @@ test('a ball stuck inside another slides out instead of staying inside or flying
 test('the boss waits for a free spot and holds the next shot for a moment', { skip }, async t => {
   const { page, errors } = await openPage(browser, base, t, { store: { 'piispanpeli-stage-eu': 3, 'piispanpeli-stagesel-eu': 2 } });
   await page.click('#startBtn'); await page.click('.tcard.on[data-pick]');
-  await page.evaluate(() => { clearAll(); invincible = true; maxLevel = 12; makeBlob(2, 6, 2.8, 0, 0, 1); challengeStep(); });
+  await page.evaluate(() => { clearAll(); invincible = true; maxLevel = 14; makeBlob(2, 6, 2.8, 0, 0, 1); challengeStep(); });
   assert.equal(await page.evaluate(() => E.blobs.some(b => b.level === BOSS && Math.hypot(b.cx - 6, b.cy - 2.8) < 2)), false, 'not on top of the ball');
   await page.evaluate(() => { clearAll(); ch.bossOn = false; challengeStep(); });
   assert.deepEqual(await page.evaluate(() => [E.blobs.filter(b => b.level === BOSS).length, cooldown > 0.5]), [1, true]);

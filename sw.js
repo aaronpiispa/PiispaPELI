@@ -5,7 +5,7 @@
 // closed half-way (the scripts share one global scope, so a mix could break the game). Updates show up on the
 // next launch. When nothing changed, nothing is written.
 // VERSION only needs a bump when this file's own logic changes or files are added or removed.
-const VERSION = 'v78';
+const VERSION = 'v80';
 const CACHE = 'piispanpeli-' + VERSION;
 const FONTS = 'piispanpeli-fonts-v1';
 const ASSETS = [

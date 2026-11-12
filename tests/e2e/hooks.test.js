@@ -25,7 +25,7 @@ async function stageGame(t, n, extra) {
 
 test('stage 2 has no shot limit: shooting goes on as long as there is room', { skip }, async t => {
   const { page, errors } = await stageGame(t, 1);
-  assert.match(await page.evaluate(() => modeLine()), /Taso 2: Aurinkokunta/);
+  assert.match(await page.evaluate(() => modeLine()), /^Aikaraja: (60:00|59:5\d)$/);
   await page.evaluate(() => { ch.shots = 1000; });
   const before = await page.evaluate(() => E.blobs.length);
   await page.evaluate(() => { cooldown = 0; shoot(); });
@@ -53,11 +53,19 @@ test('stage 2: stones fall in now and then and break after two merges next to th
   assert.deepEqual(errors, []);
 });
 
-test('stage 3: the boss arrives two balls before the end and is beaten by merges next to it', { skip }, async t => {
+test('stages 2 and 3: the boss arrives with the biggest ball, bigger on stage 3, and is beaten by merges next to it', { skip }, async t => {
   const { page, errors } = await stageGame(t, 2);
-  await page.evaluate(() => { maxLevel = 12; });
+  await page.evaluate(() => { maxLevel = 13; });
   await frames(page, 5);
-  assert.deepEqual(await page.evaluate(() => [ch.bossOn, ch.bossHP, E.blobs.some(b => b.level === BOSS)]), [true, 60, true]);
+  assert.equal(await page.evaluate(() => ch.bossOn), false, 'not before the biggest ball');
+  await page.evaluate(() => { maxLevel = 14; });
+  await frames(page, 5);
+  assert.deepEqual(await page.evaluate(() => [ch.bossOn, ch.bossHP, E.blobs.find(b => b.level === BOSS).R === RADII[11]]), [true, 60, true]);
+  // on stage 2 the boss is smaller and weaker
+  const two = await stageGame(t, 1);
+  await two.page.evaluate(() => { maxLevel = 14; });
+  await frames(two.page, 5);
+  assert.deepEqual(await two.page.evaluate(() => [ch.bossOn, ch.bossHP, E.blobs.find(b => b.level === BOSS).R === RADII[10]]), [true, 40, true]);
   await frames(page, 60);
   const score = await page.evaluate(() => score);
   await page.evaluate(() => { const b = E.blobs.find(q => q.level === BOSS); for (let i = 0; i < 6; i++) challengeOnMerge({ level: 9, x: b.cx, y: b.cy }); });

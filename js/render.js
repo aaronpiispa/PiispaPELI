@@ -793,7 +793,7 @@ function drawChain(x0, y0, vertical, room, u) {
 }
 // the time-limit goals of the stage, still to reach: [level, seconds]
 // the time limits of the stage still to reach: { lv, t }
-const openGoals = () => (gmode === 'classic' && stage > 0 && (state === 'play' || state === 'paused') && !invincible ? stageGoals(stage).filter(g => maxLevel < g.lv) : []);
+const openGoals = () => (gmode === 'classic' && stage > 0 && (state === 'play' || state === 'paused') && !invincible && !stageDone ? stageGoals(stage) : []);
 // seconds left, and whether that is getting tight
 const goalLeft = g => Math.max(0, g.t - playT);
 const goalUrgent = g => goalLeft(g) < 30;
@@ -863,7 +863,7 @@ function modeLine() {
   }
   if (gmode === 'classic' && stage > 0) {
     const gl = openGoals()[0];
-    if (gl) return T('{0}. pallo', gl.lv + 1) + ': ' + T('aikaa {0}', mmss(goalLeft(gl)));
+    if (gl) return T('Aikaraja: {0}', mmss(goalLeft(gl)));
     return T('Taso {0}: {1}', stage + 1, T(stageInfo().name));
   }
   if (gmode === 'map' && missionIdx >= 0) {
